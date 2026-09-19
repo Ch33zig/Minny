@@ -1,0 +1,122 @@
+{
+  "notice": "Illustrative contract fixtures only. IDs, hashes and results do not identify live resources or tests.",
+  "attack_plan": {
+    "schema_version": 1,
+    "technique_id": "T1059.001",
+    "persona": "stealth",
+    "objective": "Test name-based detection",
+    "hypothesis": "Display-name variation bypasses baseline",
+    "template_id": "office_interpreter_v1",
+    "host_role": "workstation",
+    "user_role": "employee",
+    "steps": [
+      {
+        "step_id": "s1",
+        "action": "process_start",
+        "role": "document_app",
+        "parent_role": null,
+        "delay_ms": 0,
+        "attributes": {
+          "identity": "word"
+        }
+      },
+      {
+        "step_id": "s2",
+        "action": "process_start",
+        "role": "interpreter",
+        "parent_role": "document_app",
+        "delay_ms": 1000,
+        "attributes": {
+          "identity": "powershell",
+          "display_variant": "renamed"
+        }
+      },
+      {
+        "step_id": "s3",
+        "action": "network_connection",
+        "role": "interpreter",
+        "parent_role": null,
+        "delay_ms": 2000,
+        "attributes": {
+          "destination_class": "external_test"
+        }
+      }
+    ],
+    "expected_evidence": [
+      "interpreter identity",
+      "document parent",
+      "linked network event"
+    ],
+    "mutation_of_variant_id": null
+  },
+  "rule_document": {
+    "schema_version": 1,
+    "rule_id": "office-interpreter",
+    "title": "Interpreter launched by a document application",
+    "technique_ids": [
+      "T1059.001"
+    ],
+    "engine": "esql_predicate_v1",
+    "predicate": {
+      "all": [
+        {
+          "field": "event.category",
+          "op": "eq",
+          "value": "process"
+        },
+        {
+          "field": "process.parent.name",
+          "op": "eq",
+          "value": "winword.exe"
+        },
+        {
+          "field": "process.pe.original_file_name",
+          "op": "eq",
+          "value": "PowerShell.EXE"
+        }
+      ]
+    },
+    "severity": "medium",
+    "description": "Investigate this combination; it is not proof of compromise.",
+    "false_positive_notes": [
+      "Authorized document automation may launch interpreters."
+    ],
+    "required_fields": [
+      "event.category",
+      "process.parent.name",
+      "process.pe.original_file_name"
+    ],
+    "compiler_version": "esql_predicate_v1"
+  },
+  "evaluation": {
+    "schema_version": 1,
+    "evaluation_id": "30000000-0000-4000-8000-000000000001",
+    "experiment_id": "10000000-0000-4000-8000-000000000001",
+    "variant_id": "20000000-0000-4000-8000-000000000001",
+    "event_set_sha256": "c342fecdba711ed47e48555340ad7745a92c738ddf29a1e83fa0fedf70f22a0d",
+    "rule_set_sha256": "839f878cc793f596d4bee7eed1f2989d85887411ca648d3a377077063c680070",
+    "commit_sha": null,
+    "status": "evaded",
+    "matched_rule_ids": [],
+    "matched_synthetic_event_ids": [],
+    "matched_background_event_ids": [],
+    "ingestion_complete": true,
+    "query_complete": true,
+    "evidence": [],
+    "error": null
+  },
+  "verified_merge": {
+    "schema_version": 1,
+    "workspace_id": "40000000-0000-4000-8000-000000000001",
+    "remediation_id": "50000000-0000-4000-8000-000000000001",
+    "variant_id": "20000000-0000-4000-8000-000000000001",
+    "repository_id": 12345,
+    "pull_number": 1,
+    "base_branch": "main",
+    "merged_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "changed_rule_paths": [
+      "detection-rules/T1059.001/office-interpreter.json"
+    ],
+    "source": "composio_trigger"
+  }
+}

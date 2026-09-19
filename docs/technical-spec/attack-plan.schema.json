@@ -1,0 +1,148 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "technique_id": {
+      "const": "T1059.001"
+    },
+    "persona": {
+      "enum": [
+        "stealth",
+        "opportunistic"
+      ]
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hypothesis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "template_id": {
+      "const": "office_interpreter_v1"
+    },
+    "host_role": {
+      "const": "workstation"
+    },
+    "user_role": {
+      "const": "employee"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "step_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "enum": [
+              "process_start",
+              "network_connection",
+              "authentication"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parent_role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delay_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 300000
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "identity": {
+                "enum": [
+                  "word",
+                  "powershell"
+                ]
+              },
+              "display_variant": {
+                "enum": [
+                  "standard",
+                  "renamed"
+                ]
+              },
+              "destination_class": {
+                "enum": [
+                  "external_test"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "success",
+                  "failure"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "step_id",
+          "action",
+          "role",
+          "parent_role",
+          "delay_ms",
+          "attributes"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 20
+    },
+    "expected_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "mutation_of_variant_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "technique_id",
+    "persona",
+    "objective",
+    "hypothesis",
+    "template_id",
+    "host_role",
+    "user_role",
+    "steps",
+    "expected_evidence",
+    "mutation_of_variant_id"
+  ],
+  "description": "Generic v1 draft contract, not directly the OpenAI strict-output schema. The model-facing Pydantic schema makes all optional attribute keys explicitly nullable/required; normalize nulls away before storing this form. Template validator enforces action-specific attributes, role graph, unique IDs, time order, and technique evidence.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

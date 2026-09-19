@@ -1,0 +1,45 @@
+# Proposed field inventory. Not a working credential file.
+# Copy into an untracked local .env during implementation; populate secrets privately.
+APP_ENV=development
+PUBLIC_BASE_URL=http://localhost:8000
+RELEASE=development
+DATABASE_URL=
+APP_SECRET_KEY=
+PORT=8000
+
+# Worker-only OpenAI credentials. Confirm model access before freezing configuration.
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5-mini
+
+# Elastic endpoint and restricted encoded API keys.
+ELASTICSEARCH_URL=
+ELASTIC_QUERY_API_KEY=
+ELASTIC_INGEST_API_KEY=
+# Operator-local bootstrap only; never deploy this key to the app.
+ELASTIC_BOOTSTRAP_API_KEY=
+
+# Project credentials; per-user connected accounts belong in Postgres.
+COMPOSIO_API_KEY=
+COMPOSIO_AUTH_CONFIG_GITHUB=
+COMPOSIO_AUTH_CONFIG_GMAIL=
+COMPOSIO_AUTH_CONFIG_SLACK=
+# Catalog-observed versions: verify/export schemas before adopting.
+COMPOSIO_TOOLKIT_VERSION_GITHUB=20260916_00
+COMPOSIO_TOOLKIT_VERSION_SLACK=20260915_00
+COMPOSIO_TOOLKIT_VERSION_GMAIL=20260915_00
+COMPOSIO_WEBHOOK_SECRET=
+
+SENTRY_BACKEND_DSN=
+SENTRY_WEB_DSN=
+# Optional build-only source map upload credentials.
+SENTRY_AUTH_TOKEN=
+SENTRY_ORG=
+SENTRY_PROJECT=
+
+MAX_ACTIVE_EXPERIMENTS=2
+MAX_LLM_CALLS=12
+MAX_TOOL_CALLS=20
+MAX_TOTAL_TOKENS=60000
+MAX_ACTIVE_EXPERIMENT_SECONDS=600
+MUTATION_LIMIT=1
+CSE_DATA_DIR=

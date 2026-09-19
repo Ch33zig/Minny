@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "workspace_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "remediation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "variant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "repository_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pull_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "base_branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "merged_commit_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "changed_rule_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^detection-rules/.+\\.json$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "source": {
+      "enum": [
+        "composio_trigger",
+        "reconciliation"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "workspace_id",
+    "remediation_id",
+    "variant_id",
+    "repository_id",
+    "pull_number",
+    "base_branch",
+    "merged_commit_sha",
+    "changed_rule_paths",
+    "source"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

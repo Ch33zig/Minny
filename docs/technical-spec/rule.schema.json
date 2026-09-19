@@ -1,0 +1,245 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "technique_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "engine": {
+      "const": "esql_predicate_v1"
+    },
+    "predicate": {
+      "$ref": "#/$defs/predicate"
+    },
+    "severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "false_positive_notes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "required_fields": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "event.category",
+          "event.type",
+          "event.action",
+          "event.outcome",
+          "process.name",
+          "process.parent.name",
+          "process.pe.original_file_name",
+          "network.transport",
+          "network.direction",
+          "destination.port"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "compiler_version": {
+      "const": "esql_predicate_v1"
+    }
+  },
+  "required": [
+    "schema_version",
+    "rule_id",
+    "title",
+    "technique_ids",
+    "engine",
+    "predicate",
+    "severity",
+    "description",
+    "false_positive_notes",
+    "required_fields",
+    "compiler_version"
+  ],
+  "$defs": {
+    "predicate": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "enum": [
+                "event.category",
+                "event.type",
+                "event.action",
+                "event.outcome",
+                "process.name",
+                "process.parent.name",
+                "process.pe.original_file_name",
+                "network.transport",
+                "network.direction",
+                "destination.port"
+              ]
+            },
+            "op": {
+              "const": "eq"
+            },
+            "value": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ],
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "field",
+            "op",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "enum": [
+                "event.category",
+                "event.type",
+                "event.action",
+                "event.outcome",
+                "process.name",
+                "process.parent.name",
+                "process.pe.original_file_name",
+                "network.transport",
+                "network.direction",
+                "destination.port"
+              ]
+            },
+            "op": {
+              "const": "in"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "integer",
+                  "boolean"
+                ],
+                "maxLength": 256
+              },
+              "minItems": 1,
+              "maxItems": 10,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "field",
+            "op",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "enum": [
+                "event.category",
+                "event.type",
+                "event.action",
+                "event.outcome",
+                "process.name",
+                "process.parent.name",
+                "process.pe.original_file_name",
+                "network.transport",
+                "network.direction",
+                "destination.port"
+              ]
+            },
+            "op": {
+              "const": "exists"
+            }
+          },
+          "required": [
+            "field",
+            "op"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/predicate"
+              },
+              "minItems": 1,
+              "maxItems": 30
+            }
+          },
+          "required": [
+            "all"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/predicate"
+              },
+              "minItems": 1,
+              "maxItems": 30
+            }
+          },
+          "required": [
+            "any"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/predicate"
+            }
+          },
+          "required": [
+            "not"
+          ]
+        }
+      ]
+    }
+  },
+  "description": "V1 rule document. Application validation additionally enforces max depth 4, 30 nodes total, typed literals matching the field, no provenance-label predicates, required_fields matching predicate fields, and 64 KiB maximum serialized size.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
