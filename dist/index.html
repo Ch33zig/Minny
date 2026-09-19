@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#081015" />
+    <meta name="description" content="A synthetic detection engineering control room." />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2398f5b3' d='M32 4 57 15v16c0 15-10 25-25 29C17 56 7 46 7 31V15z'/%3E%3Cpath fill='%23081015' d='m21 31 7 7 15-16 4 4-19 20-11-11z'/%3E%3C/svg%3E" />
+    <title>Riftline · Detection coverage</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="rail" aria-label="Primary navigation">
+        <div class="mark" aria-label="Riftline">R<span>:</span></div>
+        <nav>
+          <a class="nav-item active" href="#command" aria-current="page"><span class="nav-icon">⌘</span><span>Command</span></a>
+          <a class="nav-item" href="#coverage"><span class="nav-icon">▦</span><span>Coverage</span></a>
+          <a class="nav-item" href="#telemetry"><span class="nav-icon">≋</span><span>Telemetry</span></a>
+          <a class="nav-item" href="#detections"><span class="nav-icon">◎</span><span>Rules</span></a>
+        </nav>
+        <div class="rail-foot"><div class="avatar">FM</div><span>faiz@minny</span></div>
+      </aside>
+
+      <section class="workspace" id="command">
+        <header class="topbar">
+          <div><p class="eyebrow">DETECTION ENGINEERING / LAB 01</p><h1>Attack telemetry, <em>before impact.</em></h1></div>
+          <div class="top-actions"><span class="pill live"><i></i> LAB MODE</span><button class="icon-button" aria-label="Settings">•••</button></div>
+        </header>
+
+        <section class="run-strip" aria-label="Current simulation">
+          <div class="run-main"><span class="run-label">CURRENT EXERCISE</span><strong id="exerciseName">Silent Beacon / v04</strong><span class="mono muted" id="runId">RIFT-8472</span></div>
+          <div class="agent-line"><span class="agent-dot red"></span><b>RED</b><span id="redState">mutating telemetry</span><span class="agent-arrow">→</span><span class="agent-dot blue"></span><b>BLUE</b><span id="blueState">watching rules</span></div>
+          <button class="primary" id="runButton"><span class="play">▶</span> Run next variant</button>
+        </section>
+
+        <div class="main-grid">
+          <section class="coverage-card panel" id="coverage" aria-labelledby="coverageTitle">
+            <div class="section-head"><div><p class="section-label">LIVE COVERAGE</p><h2 id="coverageTitle">MITRE ATT&amp;CK matrix</h2></div><div class="coverage-score"><strong id="score">58%</strong><span>coverage</span></div></div>
+            <div class="matrix-wrap"><div class="matrix" id="matrix" aria-label="ATT&CK technique coverage matrix"></div></div>
+            <div class="legend"><span><i class="legend-box covered"></i> covered</span><span><i class="legend-box gap"></i> gap found</span><span><i class="legend-box testing"></i> under test</span><span class="matrix-note" id="matrixNote">8 of 14 technique paths covered</span></div>
+          </section>
+
+          <aside class="mission-card panel">
+            <p class="section-label">RED TEAM BRIEF</p>
+            <div class="persona"><div class="persona-badge">RF</div><div><strong id="personaName">Ransomware affiliate</strong><span id="personaDesc">Fast, noisy, profit-motivated</span></div></div>
+            <div class="brief-row"><span>OBJECTIVE</span><b id="objective">C2 beacon blend-in</b></div>
+            <div class="brief-row"><span>ATT&amp;CK PATH</span><b id="attackPath">T1071.001 · Web protocols</b></div>
+            <div class="brief-row"><span>VARIANT</span><b class="mono" id="variant">04 / 12</b></div>
+            <div class="safety"><span>✓</span> Synthetic ECS events only. No payloads, no exploit code.</div>
+          </aside>
+        </div>
+
+        <div class="lower-grid">
+          <section class="timeline panel" id="telemetry" aria-labelledby="telemetryTitle">
+            <div class="section-head compact"><div><p class="section-label">ELASTIC / EVENT STREAM</p><h2 id="telemetryTitle">Blended telemetry</h2></div><span class="stream-live"><i></i> streaming</span></div>
+            <div class="event-list" id="eventList" aria-live="polite"></div>
+            <div class="stream-bottom"><span class="mono">ECS 8.11 · 4,981 normal events blended</span><span id="streamStatus">Awaiting simulation</span></div>
+          </section>
+
+          <section class="rule-card panel" id="detections" aria-labelledby="ruleTitle">
+            <div class="section-head compact"><div><p class="section-label">DETECTION-AS-CODE</p><h2 id="ruleTitle">Rule evaluation</h2></div><span class="result initial" id="ruleResult">READY</span></div>
+            <div class="rule-body"><div class="rule-line"><span class="line-no">01</span><code id="ruleQuery">where process.name == "curl"</code></div><div class="rule-line"><span class="line-no">02</span><code id="ruleQuery2">and destination.port == 443</code></div></div>
+            <div class="rule-meta"><span class="repo-mark">◆</span><span>security/detection-rules</span><span class="branch" id="branch">main</span></div>
+            <div class="workflow" id="workflow"><div class="workflow-step"><span>1</span><p><b>Evaluate</b><small>test event against ES|QL</small></p></div><div class="workflow-step"><span>2</span><p><b>Open PR</b><small>Composio → GitHub</small></p></div><div class="workflow-step"><span>3</span><p><b>Re-test</b><small>merge trigger → Elastic</small></p></div></div>
+          </section>
+        </div>
+
+        <footer><span>Riftline turns novel attacker behavior into detection coverage.</span><span class="mono">SIMULATED · 2026-09-19 13:45 EDT</span></footer>
+      </section>
+    </main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
