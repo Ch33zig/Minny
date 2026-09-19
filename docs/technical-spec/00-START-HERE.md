@@ -2,6 +2,8 @@
 
 Draft 2 · 19 September 2026 · Prepared for four parallel builders
 
+> **This is the integration reference, not the current build plan.** The plan being built is [docs/handoff/README.md](../handoff/README.md), which is scoped to the actual deadline and says which parts of this package apply tonight (Composio tool slugs and webhooks, Elastic mapping, Gmail scopes, the shared JSON schemas) and which are out of scope (invite-only accounts, PostgreSQL, migrations, the durable job queue, the outbox, Render deployment). The four-person ownership table below is superseded by the A/B/C/D track split in the handoff.
+
 This package specifies the remaining build from an unprovisioned starting point. It is a proposed implementation contract, not a claim that accounts, integrations, deployment, or live tests already exist. Product code has not been changed. Repository inspection: `Ch33zig/Minny`, `main`, commit `675ad48d76638f71e1ce35708f1f4294d269c6e5`, refreshed during this review.
 
 ## Read in this order
