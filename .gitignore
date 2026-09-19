@@ -1,0 +1,24 @@
+# Dataset and every artifact derived from it. This repo is public and the
+# logs are competition material, so data/ is shared out of band and verified
+# by SHA-256. Rebuild with: python -m minny.build_events
+data/
+
+# Local environment
+.env
+.venv/
+venv/
+
+# Worktrees used for parallel track development
+.worktrees/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Generated at run time
+*.log
