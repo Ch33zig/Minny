@@ -4,6 +4,7 @@ Four people, four branches, one merge target. Read this file, then read **only y
 
 | File | Owner | Covers |
 |---|---|---|
+| [GROUND-TRUTH.md](GROUND-TRUTH.md) | A | **Read first.** Verified facts from the real dataset. Overrides every other document |
 | [00-CONTRACTS.md](00-CONTRACTS.md) | A (frozen at 20:15) | Every JSON/parquet shape that crosses an owner boundary |
 | [A-forensics-and-case-file.md](A-forensics-and-case-file.md) | A | M0 parser, M1 case file, M9 demo + Devpost |
 | [B-detection.md](B-detection.md) | B | M2 baselines, M3 detector + correlator + API/SSE |
@@ -106,8 +107,8 @@ Sentry, then ES|QL translation, then the GitHub PR (keep Slack), then the blue a
 
 These are honest gaps, not pessimism. Each has an owner and a checkpoint.
 
-- **`logs.txt` is not in this repo and not configured** — `CSE_DATA_DIR=` in `docs/technical-spec/environment.example` is empty. Everything downstream of M0 is blocked until A has the file. Resolve by 19:50 or the night is in trouble.
-- **Every line number in these docs (168311 through 168346, and the rest) comes from the dataset brief, not from a file anyone here has parsed.** A re-derives them in M0/M1 from saved queries. If a number disagrees with the data, the data wins and A posts the correction to the team.
+- ~~`logs.txt` is missing~~ **Resolved at Wave 0.** The dataset is in place, parsed, and verified: 180,800 lines, `sha256 9f773643…70575`. It is gitignored because this repository is public, so set `MINNY_DATA_DIR` in a worktree.
+- ~~Line numbers are unverified~~ **Resolved at Wave 0.** Every line number in the brief checked out. The incident **date and several paths did not** — see [GROUND-TRUTH.md](GROUND-TRUTH.md), which overrides the brief and these documents wherever they disagree.
 - **Post authorship is a heuristic.** The logs record no author for forum posts. We infer it from a `302` on `forum/new` followed within seconds by a view of the new post ID. Label it as a heuristic in the UI and say so on stage. Do not let it become the load-bearing claim.
 - **No service is provisioned.** No OpenAI project, Elastic deployment, Composio project, Slack workspace, or GitHub rules repo was found in this repository. D's M8 starts from zero, so budget the OAuth round trip and make every integration fail soft.
 - **The evidence mailbox is seeded by us, and we say so.** There is no real corporate mailbox for this dataset, so D seeds a demo account with messages matching the story timeline. The UI and the Devpost both label it a seeded demonstration mailbox. Mail headers are forgeable and we do not verify DKIM, which is why email corroborates a finding and never carries one alone — see [00-CONTRACTS.md](00-CONTRACTS.md) section 11.

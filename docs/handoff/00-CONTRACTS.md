@@ -1,6 +1,6 @@
 # Shared contracts
 
-Owner: **A**. Frozen at **20:15**. After that, propose changes in chat and let A edit; a unilateral change here breaks three other people at once.
+Owner: **A**. Frozen at **20:15**. Verified dataset facts live in [GROUND-TRUTH.md](GROUND-TRUTH.md) and override any example below. After that, propose changes in chat and let A edit; a unilateral change here breaks three other people at once.
 
 These are the only shapes that cross an owner boundary. Everything inside your own module is yours. Every example below is a valid fixture: **D copies each JSON block verbatim into `fixtures/mock/` in the first commit** and builds the entire UI against them, so the front end never waits on anyone.
 
@@ -8,7 +8,7 @@ Rules that apply to all of them:
 
 - **`line` is the universal event ID.** 1-indexed line number in the original `logs.txt`. Every alert, finding, incident, and variant refers to evidence by line number, and any of them can be resolved to raw text through `GET /api/events`.
 - **Logs are primary evidence; email is corroborating evidence.** Anything sourced from the mailbox lives in a separate `evidence_emails` array and can raise a claim's richness but never its confidence above `medium` on its own. See section 13.
-- **Timestamps are ISO 8601 with offset**, preserving the dataset's UTC−4: `2026-03-27T14:32:07-04:00`. Never serialize a naive datetime.
+- **Timestamps are ISO 8601 with offset**, preserving the dataset's UTC−4: `2026-03-15T14:32:07-04:00`. Never serialize a naive datetime.
 - **Unknown is `null`, never `0` or `""`.** A missing IP owner is `null`; it is not "unknown".
 - **Additive changes only after the freeze.** Adding a field is free, renaming one is not.
 
@@ -56,17 +56,17 @@ The realism constraint for the red team. Every synthetic line C renders must car
     "302": 0
   },
   "by_path": {
-    "/intranet/login": { "200": 128, "401": 88 },
-    "/intranet/logout": { "302": 0 },
+    "/api/auth/login": { "200": 128, "401": 88 },
+    "/logout": { "302": 0 },
     "/intranet/forum/new": { "302": 112 },
     "/intranet/forum/edit": { "302": 112 },
-    "/files/q1_draft_CONFIDENTIAL.zip": { "200": 8459200, "403": 245 }
+    "/finance/reports/q1_draft_CONFIDENTIAL.zip": { "200": 8459200, "403": 245 }
   },
-  "variable_size_paths": ["/intranet/dashboard"]
+  "variable_size_paths": { "/dashboard": { "200": [1980, 2048, 2120] } }
 }
 ```
 
-A generates this by grouping the parsed events on `(base, status)` and recording the size where it is constant. Any `(base, status)` pair with more than one observed size goes in `variable_size_paths`, and C must sample a real observed size for those rather than inventing one.
+A generates this by grouping the parsed events on `(base, status)` and recording the size where it is constant. Any `(base, status)` pair with more than one observed size goes in `variable_size_paths` as `[min, median, max]` of what actually occurs, and C must sample from the real range rather than inventing a value. The real dataset has 102 fixed-size and 85 variable-size paths.
 
 ## 3. `data/access_matrix.json` — produced by A (M0), consumed by C
 
@@ -74,15 +74,19 @@ Who is actually allowed to read what, derived from the data rather than assumed.
 
 ```json
 {
-  "/files/q1_draft_CONFIDENTIAL.zip": {
-    "size": 8459200,
-    "authorized": ["sarah_j", "nicole_h"],
-    "denied": ["david_m", "michael_r", "jessica_l"]
+  "fit": { "cutoff": "2026-03-01T00:00:00-05:00" },
+  "paths": {
+    "/finance/reports/q1_draft_CONFIDENTIAL.zip": {
+      "size": 8459200,
+      "authorized": ["nicole_h", "sarah_j"],
+      "denied": ["amanda_l", "ashley_k", "chris_b", "david_m", "jessica_w", "joshua_c", "matthew_r", "michael_t"],
+      "confidential": true
+    }
   }
 }
 ```
 
-`authorized` is every user with at least one `200` on that path in the baseline window; `denied` is every user with a `403` and no `200`.
+`authorized` is every user with at least one `200` on that path **in the baseline window**; `denied` is every user with a `403` and no `200`. The window matters: the attacker succeeds exactly once on the confidential zip, so counting March would enrol him as an authorized reader of the file he stole.
 
 ## 4. `data/baselines.json` — produced by B (M2), consumed by B and C
 
@@ -96,16 +100,16 @@ Fit on `ts < 2026-03-01` only. March is held out and must never touch this file,
   "users": {
     "sarah_j": {
       "ips": ["10.0.5.12"],
-      "allowed_paths": ["/intranet/dashboard", "/files/q1_draft_CONFIDENTIAL.zip", "/api/admin/role_update"],
-      "denied_paths": ["/files/hr_salaries.csv"],
-      "templates_seen": ["/intranet/dashboard", "/intranet/forum/view/{id}"],
+      "allowed_paths": ["/dashboard", "/finance/reports/q1_draft_CONFIDENTIAL.zip", "/api/admin/role_update"],
+      "denied_paths": ["/hr/directory_full_CONFIDENTIAL.csv"],
+      "templates_seen": ["/dashboard", "/intranet/forum/view/{id}"],
       "hour_hist": { "0": 3, "9": 412, "14": 380 },
       "auth_fail": { "count": 14, "median_gap_s": 3600, "min_gap_s": 240 }
     }
   },
   "global": {
-    "template_freq": { "/intranet/dashboard": 41022, "/api/admin/role_update": 0 },
-    "param_keys": { "/intranet/forum/new": ["topic"], "/intranet/search": ["q"] },
+    "template_freq": { "/dashboard": 41022, "/api/admin/role_update": 0 },
+    "param_keys": { "/intranet/forum/new": ["topic"], "/api/auth/login": [] },
     "privileged_templates": ["/api/admin/role_update"]
   }
 }
@@ -113,7 +117,7 @@ Fit on `ts < 2026-03-01` only. March is held out and must never touch this file,
 
 `allowed_paths` means at least one `200`. `denied_paths` means at least one `403` and zero `200`s. `privileged_templates` is everything under `/api/admin/` plus any template seen fewer than *k* times globally that returns `200` to a `POST`; B picks and records *k*.
 
-`hour_hist` exists for explanation text only. **It never triggers an alert** — the dataset contains legitimate off-hours access, including sarah_j downloading the same confidential zip at 00:19 on 6 March from her own IP. Alerting on hours would fire on her and make the demo an argument instead of a story.
+`hour_hist` exists for explanation text only. **It never triggers an alert** — the dataset contains legitimate off-hours access, including routine after-midnight downloads of the same confidential zip by its authorized readers from their own IPs. Alerting on hours would fire on her and make the demo an argument instead of a story.
 
 Load target: under one second, and it answers "has user X ever succeeded on Y, used IP Z, or sent param P to template T" without a scan.
 
@@ -124,14 +128,14 @@ One alert per signal firing on one event.
 ```json
 {
   "alert_id": "a_0f3c21",
-  "ts": "2026-03-27T14:32:07-04:00",
+  "ts": "2026-03-15T14:32:07-04:00",
   "signal": "S1",
   "signal_name": "ip_mismatch",
   "severity": "high",
   "user": "sarah_j",
   "ip": "10.0.8.45",
   "ip_owner": "david_m",
-  "template": "/intranet/login",
+  "template": "/api/auth/login",
   "obj_id": null,
   "value": { "known_ips": ["10.0.5.12"], "months_observed": 7 },
   "evidence_lines": [168343],
@@ -140,7 +144,7 @@ One alert per signal firing on one event.
 }
 ```
 
-Signal IDs are fixed: `S1` ip_mismatch, `S2` first_success_on_denied, `S3` auth_fail_burst, `S4` novel_template, `S5` unexpected_params, `S6` content_triggered_privileged_action, `S7` post_authorship. **S7 never emits an alert** — it is supporting evidence that the correlator reads for attribution. Severity is `low`, `medium`, or `high`. `incident_id` is `null` until the correlator claims it.
+Signal IDs are fixed: `S1` ip_mismatch, `S2` first_success_on_denied, `S3` auth_fail_burst, `S4` novel_template, `S5` unexpected_params, `S6` content_triggered_privileged_action, `S7` post_authorship, `S8` anomalous_status. **S7 never emits an alert** — it is supporting evidence that the correlator reads for attribution. Severity is `low`, `medium`, or `high`. `incident_id` is `null` until the correlator claims it.
 
 Explanations are **template-generated from signal values**. An LLM may smooth the wording; it must not add a fact that is not in `value` or `evidence_lines`. This is the rule that keeps the demo defensible under questioning.
 
@@ -151,19 +155,19 @@ Alerts sharing an entity (user, IP, IP owner, `obj_id`, or target file) within a
 ```json
 {
   "incident_id": "inc_7b21e0",
-  "opened_ts": "2026-03-27T13:58:11-04:00",
-  "last_ts": "2026-03-27T22:04:55-04:00",
+  "opened_ts": "2026-03-15T13:58:11-04:00",
+  "last_ts": "2026-03-15T22:04:55-04:00",
   "severity": "high",
   "status": "open",
   "title": "david_m escalated his own access through a forum post and took the Q1 confidential draft",
   "attacker": { "user": "david_m", "ip": "10.0.8.45", "confidence": "high", "basis": ["S1", "S6", "S7"] },
   "victim": { "user": "sarah_j", "confidence": "high", "basis": ["S6", "S1"] },
-  "asset": "/files/q1_draft_CONFIDENTIAL.zip",
+  "asset": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
   "vector": { "template": "/intranet/forum/view/{id}", "obj_id": 1042 },
   "narrative": [
-    { "ts": "2026-03-27T13:58:11-04:00", "text": "david_m posted to the forum with unusual query parameters.", "lines": [168330, 168331, 168332] },
-    { "ts": "2026-03-27T14:12:40-04:00", "text": "sarah_j viewed post 1042, and one second later her account performed an admin role update.", "lines": [168335, 168336] },
-    { "ts": "2026-03-27T14:32:07-04:00", "text": "david_m downloaded a file he had been denied 80+ times before.", "lines": [168338] }
+    { "ts": "2026-03-15T13:58:11-04:00", "text": "david_m posted to the forum with unusual query parameters.", "lines": [168330, 168331, 168332] },
+    { "ts": "2026-03-15T14:12:40-04:00", "text": "sarah_j viewed post 1042, and one second later her account performed an admin role update.", "lines": [168335, 168336] },
+    { "ts": "2026-03-15T14:32:07-04:00", "text": "david_m downloaded a file he had been denied 80+ times before.", "lines": [168338] }
   ],
   "alerts": ["a_0f3c21"],
   "evidence_lines": [168330, 168331, 168332, 168335, 168336, 168338, 168343],
@@ -192,7 +196,7 @@ The UI renders the entire case file from this file alone, with no other source.
   "actors": {
     "attacker": { "user": "david_m", "ip": "10.0.8.45" },
     "victim": { "user": "sarah_j", "ip": "10.0.5.12" },
-    "asset": "/files/q1_draft_CONFIDENTIAL.zip",
+    "asset": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
     "vector": { "obj_id": 1042, "template": "/intranet/forum/view/{id}" }
   },
   "findings": [
@@ -207,7 +211,7 @@ The UI renders the entire case file from this file alone, with no other source.
     },
     {
       "id": "F7",
-      "claim": "david_m was granted access to the finance group at 14:13 on 27 March, one second after sarah_j viewed post 1042.",
+      "claim": "david_m was granted access to the finance group at 14:13 on 15 March, one second after sarah_j viewed post 1042.",
       "confidence": "medium",
       "method": "The log shows sarah_j's account calling /api/admin/role_update. The mailbox shows the resulting automated notification, which names the grantee the log does not record.",
       "evidence_lines": [168336],
@@ -216,12 +220,12 @@ The UI renders the entire case file from this file alone, with no other source.
     }
   ],
   "timeline": [
-    { "ts": "2026-03-27T13:58:11-04:00", "line": 168332, "actor": "david_m", "action": "Created forum post 1042 carrying non-standard query parameters", "note": "Authorship is inferred, see U2" }
+    { "ts": "2026-03-15T13:58:11-04:00", "line": 168332, "actor": "david_m", "action": "Created forum post 1042 carrying non-standard query parameters", "note": "Authorship is inferred, see U2" }
   ],
   "unknowns": [
     { "id": "U1", "text": "How the login as sarah_j eventually succeeded. The logs show failures and then a success, with no mechanism recorded." },
     { "id": "U2", "text": "Post contents. The logs record requests, never bodies, so the payload is inferred from its effect." },
-    { "id": "U3", "text": "Who revoked david_m's access before the 403 on 27 March." }
+    { "id": "U3", "text": "Who revoked david_m's access before the 403 on 15 March." }
   ],
   "dismissed": [
     {
@@ -248,7 +252,7 @@ The UI renders the entire case file from this file alone, with no other source.
   "operators": ["slow_guess", "param_rename"],
   "attacker": "michael_r",
   "victim": "nicole_h",
-  "target": "/files/q1_draft_CONFIDENTIAL.zip",
+  "target": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
   "injected_lines": [180801, 180802, 180803],
   "first_malicious_line": 180801,
   "first_malicious_ts": "2026-03-14T11:20:00-04:00",
@@ -340,7 +344,7 @@ So Gmail is **both** an output channel and an evidence source. This section cove
   "source": "gmail",
   "message_id": "18f2c9a1b4d7",
   "thread_id": "18f2c9a1b4d0",
-  "ts": "2026-03-27T14:13:02-04:00",
+  "ts": "2026-03-15T14:13:02-04:00",
   "from": "no-reply@intranet.example.com",
   "to": ["sarah.j@example.com"],
   "subject": "Role updated: david.m added to finance-confidential",
@@ -406,7 +410,7 @@ Errors are `{"error": {"code": "...", "message": "..."}}` with a real HTTP statu
 Every frame is one JSON object on one `data:` line:
 
 ```json
-{ "type": "alert", "seq": 1042, "ts": "2026-03-27T14:32:07-04:00", "data": { } }
+{ "type": "alert", "seq": 1042, "ts": "2026-03-15T14:32:07-04:00", "data": { } }
 ```
 
 `type` is one of `event`, `alert`, `incident`, `replay_state`, or `heartbeat`. `data` holds the object from the matching section above; `replay_state` carries `{running, speed_hours_per_second, cursor_ts, events_emitted}`. A heartbeat every 15 seconds keeps proxies from closing the stream. `seq` increases monotonically so the UI can detect a gap after a reconnect.
