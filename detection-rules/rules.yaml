@@ -1,0 +1,39 @@
+# Detection rules, evaluated alongside the built-in signals S1 to S8.
+#
+# This file is read at startup and re-read whenever its modification time
+# changes, so a rule appended here lands in a running replay without a
+# restart. Everything in it goes through the grammar in minny/detect/rules.py
+# and nothing in it is ever executed: a rule is parsed into a fixed set of
+# nodes, capped at depth 4 and 30 nodes, and walked by a comparator. A rule
+# that fails to parse is skipped with its error surfaced at GET /api/rules,
+# never a crash, because the blue agent writes here unattended.
+#
+# Shape of an entry, per docs/handoff/00-CONTRACTS.md section 10:
+#
+#   - id: R003
+#     name: slow credential guessing from a foreign host
+#     severity: high                 # low | medium | high
+#     proposed_by: blue_agent
+#     created_ts: "2026-09-20T02:14:00-04:00"
+#     when: count(status=401, user=$u, window=24h) >= 5 AND ip_owner != $u
+#     explain: "{user} failed to log in {count} times in 24 hours from {ip}."
+#     gate: { ... }                  # written by the blue agent, read by C
+#
+# Fields: user, ip, ip_owner, template, obj_id, status, signal, query.
+# Operators: == != >= <= > < contains. Ordering is numeric fields only,
+# contains is query and template only. $u and $ip bind to the event's own
+# user and address.
+#
+# R001 ships as the one rule in the file. It is a rule somebody would
+# actually write, and it fires zero times across all 180,800 events: the only
+# admin call in the dataset comes from the account's own address. So the
+# loader has something real to parse at startup and the shipped detector's
+# measured numbers are the signals' alone.
+
+- id: R001
+  name: admin endpoint called from an address the account does not own
+  severity: high
+  proposed_by: track_b
+  created_ts: "2026-09-20T01:40:00-04:00"
+  when: template contains "/api/admin/" AND ip_owner != $u
+  explain: "{user} called {template} from {ip}, which belongs to {ip_owner}."

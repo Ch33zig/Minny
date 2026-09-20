@@ -84,13 +84,18 @@ def _alert(
     evidence_lines=None,
     ip_owner: str | None = None,
     obj_id: int | None = None,
+    signal_name: str | None = None,
 ) -> dict:
     lines = sorted(set(evidence_lines or [event.line]))
     return {
         "alert_id": _alert_id(signal, lines),
         "ts": event.ts.isoformat(),
         "signal": signal,
-        "signal_name": SIGNAL_NAMES[signal],
+        # A rule from rules.yaml carries its own id and name. Looking the name
+        # up with a fallback rather than indexing keeps one alert builder for
+        # both sources, so a rule alert is the same shape as a signal alert
+        # everywhere downstream reads it.
+        "signal_name": signal_name or SIGNAL_NAMES.get(signal, signal),
         "severity": severity,
         "user": event.user,
         "ip": event.ip,
@@ -107,6 +112,16 @@ def _alert(
 
 def _account(user: str | None) -> str:
     return user if user else "an unauthenticated session"
+
+
+def build_alert(*args, **kwargs) -> dict:
+    """Public entry to the alert builder, used by the rule engine.
+
+    A rule and a signal produce the same object, with the same deterministic
+    alert id, so the correlator, the API and the UI cannot tell which of the
+    two wrote a finding and nobody has to maintain a second shape.
+    """
+    return _alert(*args, **kwargs)
 
 
 @dataclass

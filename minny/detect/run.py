@@ -11,6 +11,10 @@ individually rather than summarised away.
 The baseline window is replayed too, as a control. Signals fitted on it should
 be silent across it; anything that fires there is a false positive by
 construction and has to be explained before the March numbers mean anything.
+
+This drives the same `Pipeline` the live stream drives, with the same rules
+loaded from detection-rules/rules.yaml. Batch and streaming are one code path,
+so a number printed here is the number the UI will show.
 """
 
 from __future__ import annotations
@@ -26,17 +30,15 @@ import pandas as pd
 from minny import paths
 from minny.baselines.model import Baselines
 from minny.build_events import BASELINE_CUTOFF
-from minny.detect.correlator import Correlator
 from minny.detect.events import from_frame
-from minny.detect.signals import Detector
+from minny.detect.replay import Pipeline
+from minny.detect.rules import RuleSet
 
 
-def replay(frame: pd.DataFrame, baselines: Baselines) -> tuple:
-    detector = Detector(baselines)
-    alerts = detector.run(from_frame(frame))
-    correlator = Correlator()
-    incidents = correlator.run(alerts)
-    return alerts, incidents, detector
+def replay(frame: pd.DataFrame, baselines: Baselines, rules=None) -> tuple:
+    pipeline = Pipeline(baselines, rules=rules)
+    alerts, incidents = pipeline.run(from_frame(frame))
+    return alerts, incidents, pipeline
 
 
 def _window(frame: pd.DataFrame, start=None, end=None) -> pd.DataFrame:
@@ -73,6 +75,11 @@ def main() -> None:
         action="store_true",
         help="skip the baseline-window replay that validates the thresholds",
     )
+    parser.add_argument(
+        "--no-rules",
+        action="store_true",
+        help="ignore detection-rules/rules.yaml and run the built-in signals only",
+    )
     args = parser.parse_args()
 
     frame = pd.read_parquet(paths.require(Path(args.events)))
@@ -80,9 +87,19 @@ def main() -> None:
     start = datetime.fromisoformat(args.start) if args.start else BASELINE_CUTOFF
     end = datetime.fromisoformat(args.end) if args.end else None
 
+    rules = None if args.no_rules else RuleSet.load()
+    if rules is not None:
+        enabled = sum(1 for rule in rules.rules if rule.ok)
+        print(
+            f"rules       {enabled} of {len(rules.rules)} loaded from "
+            f"{rules.path}, {len(rules.errors)} error(s)"
+        )
+        for failure in rules.errors:
+            print(f"            {failure.get('id') or 'file'}: {failure['error']}")
+
     if not args.skip_control:
         control = _window(frame, end=BASELINE_CUTOFF)
-        control_alerts, control_incidents, _ = replay(control, baselines)
+        control_alerts, control_incidents, _ = replay(control, baselines, rules)
         print(
             f"control     {len(control):,} baseline-window events -> "
             f"{len(control_alerts)} alerts, {len(control_incidents)} incidents"
@@ -97,7 +114,12 @@ def main() -> None:
     if held_out.empty:
         print(f"replayed    0 events from {start.isoformat()}; nothing to do")
         return
-    alerts, incidents, detector = replay(held_out, baselines)
+    if rules is not None:
+        # The control replay left its rolling history behind it. The held-out
+        # window is a separate run and must not count events from the fitted
+        # one towards a rule's window.
+        rules.reset()
+    alerts, incidents, pipeline = replay(held_out, baselines, rules)
 
     print(
         f"replayed    {len(held_out):,} events from {start.isoformat()} "
@@ -108,7 +130,10 @@ def main() -> None:
         f"alerts      {len(alerts)} "
         f"({', '.join(f'{k}={counts[k]}' for k in sorted(counts))})"
     )
-    print(f"authorship  {len(detector.state.authorships)} S7 links (no alerts emitted)")
+    print(
+        f"authorship  {len(pipeline.detector.state.authorships)} S7 links "
+        f"(no alerts emitted)"
+    )
     print(f"incidents   {len(incidents)}")
     for incident in incidents:
         attacker = incident["attacker"]

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from types import SimpleNamespace
 from typing import Iterable, Iterator
 
 import pandas as pd
@@ -71,6 +72,39 @@ def from_row(row) -> DetectEvent:
         obj_id=int(obj_id) if obj_id is not None else None,
         raw=getattr(row, "raw", "") or "",
     )
+
+
+def from_mapping(row: dict) -> DetectEvent:
+    """Build an event from a plain mapping.
+
+    This is the boundary the red team crosses. C renders synthetic log lines
+    as dictionaries, and the fields a parser would have derived are filled in
+    here rather than left to the caller, so an injected event cannot arrive
+    with a template that disagrees with its path and quietly dodge a signal
+    keyed on templates.
+    """
+    data = dict(row)
+    ts = data.get("ts")
+    if isinstance(ts, str):
+        ts = datetime.fromisoformat(ts)
+    path = data.get("path", "")
+    base = data.get("base") or path.split("?", 1)[0]
+    payload = {
+        "line": data.get("line", 0),
+        "ts": ts,
+        "ip": data.get("ip"),
+        "user": data.get("user"),
+        "method": data.get("method", "GET"),
+        "path": path,
+        "base": base,
+        "query": data.get("query") or {},
+        "status": data.get("status", 200),
+        "size": data.get("size", 0),
+        "template": data.get("template") or base,
+        "obj_id": data.get("obj_id"),
+        "raw": data.get("raw", ""),
+    }
+    return from_row(SimpleNamespace(**payload))
 
 
 def from_frame(frame: pd.DataFrame) -> Iterator[DetectEvent]:
