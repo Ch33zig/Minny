@@ -1,0 +1,16 @@
+{
+  "_comment": "Recorded envelope for SLACK_CHAT_POST_MESSAGE. Shaped like the live response so the adapter parses one thing in both modes: a Composio envelope with `successful`, wrapping a Slack body with its own `ok`. The recorded `ts` is what a permalink would be built from.",
+  "successful": true,
+  "error": null,
+  "data": {
+    "ok": true,
+    "channel": "C0MINNYSOC",
+    "ts": "1774022819.000100",
+    "message": {
+      "type": "message",
+      "subtype": "bot_message",
+      "username": "Minny",
+      "text": "recorded placeholder, the posted text is assembled by minny.integrations.slack and is never read back from here"
+    }
+  }
+}
