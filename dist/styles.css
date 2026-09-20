@@ -607,3 +607,146 @@ select, input[type="text"] {
 .fail-head { font-size: 17px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 7px; }
 .fail-why { margin: 0 0 8px; font-size: 12.5px; color: var(--stamp-ink); }
 .fail-fix { margin: 0 0 12px; font-size: 12.5px; color: var(--ink-2); }
+
+/* ============================================================= LIVE MONITOR */
+
+.mon-grid {
+  display: grid;
+  grid-template-columns: 392px minmax(0, 1fr);
+  grid-template-areas: "replay replay" "print board";
+  gap: 16px 20px;
+  align-items: start;
+}
+.replay { grid-area: replay; }
+.printout-col { grid-area: print; min-width: 0; }
+.mon-board { grid-area: board; position: relative; min-width: 0; }
+/* On this board the string is tucked under the cards it links, so a card
+   never has red line running through its text. */
+.mon-board .string-layer { z-index: 1; }
+
+/* The replay control: one long slip taped across the top of the board. */
+.replay {
+  position: relative;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 11px 16px 14px;
+  background-color: var(--paper-2); background-image: var(--grain);
+  box-shadow: var(--shadow-card);
+  transform: rotate(-.18deg);
+}
+.replay-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.replay-right { display: flex; align-items: center; gap: 14px; }
+.speed { display: flex; align-items: center; gap: 7px; }
+.speed .tw { font-size: 10px; }
+.speed select { width: 88px; }
+.replay-hint { font-size: 11px; color: var(--ink-meta); }
+.cursor { font-size: 13px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.progress {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: rgba(46,36,28,.16);
+}
+.progress i { display: block; height: 100%; width: 0; background: var(--stamp-dim); transition: width .2s linear; }
+
+/* The printout: continuous paper with sprocket holes, the flattest surface on
+   the board because it carries raw log lines. */
+.printout {
+  position: relative;
+  padding: 0 19px;
+  background: var(--photo);
+  border: 1px solid var(--ink-3);
+  box-shadow: var(--shadow-card);
+}
+.printout::before, .printout::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 19px;
+  background-color: rgba(201,168,124,.18);
+  background-image: radial-gradient(circle at 9.5px 9px, var(--board-dark) 0 3px, transparent 3.4px);
+  background-size: 19px 18px;
+  opacity: .5;
+}
+.printout::before { left: 0; border-right: 1px dashed rgba(138,118,96,.6); }
+.printout::after { right: 0; border-left: 1px dashed rgba(138,118,96,.6); }
+.printout-rows { max-height: min(56vh, 520px); overflow-y: auto; overflow-x: hidden; padding: 6px 0 8px; }
+.printout-rows::-webkit-scrollbar { width: 7px; }
+.printout-rows::-webkit-scrollbar-thumb { background: var(--kraft); }
+
+.tick {
+  display: grid; grid-template-columns: 52px 56px 66px minmax(0, 1fr) 40px;
+  gap: 7px; align-items: baseline;
+  font-family: var(--type); font-size: 11.5px; line-height: 1.85;
+  padding: 0 6px; font-variant-numeric: tabular-nums;
+}
+.tick:nth-child(even) { background: rgba(201,168,124,.13); }
+.tick-ln { color: var(--ink-meta); text-align: right; }
+.tick-ts { color: var(--ink-2); }
+.tick-user { color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+.tick-path { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tick-status { text-align: right; color: var(--ink-2); }
+.tick-status.serr, .tick-status.sdeny { color: var(--stamp-ink); font-weight: 700; }
+.tick-alert { background: rgba(180,52,42,.1) !important; border-left: 3px solid var(--stamp); padding-left: 3px; }
+.tick-alert-name { grid-column: 3 / 5; color: var(--ink); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tick-sev { text-align: right; font-size: 10px; color: var(--ink-meta); text-transform: uppercase; }
+.tick-sev.sev-high { color: var(--stamp-ink); font-weight: 700; }
+
+/* Alerts pin onto the cork as they arrive. */
+.alert-wall { position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: 16px 15px; padding: 6px 0 20px; min-height: 30px; }
+.acard {
+  position: relative; width: 142px; padding: 15px 11px 9px;
+  background-color: var(--paper); background-image: var(--grain);
+  box-shadow: var(--shadow-card);
+  transform: rotate(var(--rot, 0deg));
+}
+.acard.sev-high { background-color: var(--paper); box-shadow: var(--shadow-card), 0 0 0 1px rgba(180,52,42,.35); }
+.acard-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.asig { font-family: var(--elite); font-size: 15px; letter-spacing: .06em; color: var(--ink); }
+.acard.sev-high .asig { color: var(--stamp-ink); }
+.atime { font-size: 10.5px; color: var(--ink-meta); font-variant-numeric: tabular-nums; }
+.acard-name { font-size: 11.5px; line-height: 1.35; color: var(--ink); margin-top: 3px; }
+.acard-who { font-size: 11px; color: var(--ink-meta); margin-top: 3px; }
+
+/* The incident card: a folder that grows as the correlator fills it. */
+.inc-stack { position: relative; z-index: 2; display: grid; gap: 18px; padding-top: 4px; }
+.inc {
+  position: relative; padding: 17px 18px 11px;
+  background-color: var(--paper-2); background-image: var(--grain);
+  box-shadow: var(--shadow-lift);
+  transform: rotate(var(--rot, 0deg));
+  border-top: 3px solid var(--kraft);
+}
+.inc.inc-high { border-top-color: var(--stamp-dim); }
+.inc.synthetic { background-color: var(--paper-3); border-top-color: var(--pencil); }
+.inc-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.inc-tags { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.inc-counts { display: flex; align-items: baseline; gap: 7px; }
+.inc-alerts { font-family: var(--type); font-weight: 700; font-size: 26px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.inc-alerts-label { font-family: var(--elite); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-meta); }
+.inc-grew:not(:empty) {
+  font-family: var(--hand); font-size: 16px; color: var(--pencil);
+  transform: rotate(-1.6deg); display: inline-block;
+}
+.inc-title { font-size: 16px; line-height: 1.35; color: var(--ink); margin: 9px 0 8px; letter-spacing: .02em; }
+.inc-chain { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 9px; }
+.chain-node {
+  display: flex; flex-direction: column; gap: 0;
+  font-family: var(--type); font-weight: 700; font-size: 13px; color: var(--ink);
+  border-bottom: 2px solid var(--ink-3); padding-bottom: 1px; min-width: 0;
+}
+.chain-node i { font-style: normal; font-weight: 400; font-size: 10.5px; color: var(--ink-meta); }
+.chain-node.attacker { border-bottom-color: var(--stamp); }
+.chain-node.asset { font-size: 11.5px; word-break: break-all; }
+.chain-arrow { font-family: var(--elite); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-meta); }
+.inc-sigs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.sigchip {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  font-family: var(--type); font-size: 11px; color: var(--ink);
+  background: rgba(251,246,234,.75); border: 1px solid var(--ink-3); padding: 1px 6px;
+}
+.sigchip i { font-style: normal; font-size: 10px; color: var(--ink-meta); }
+.sigchip.unknown { color: var(--ink-meta); border-style: dashed; }
+.inc-narrative { display: grid; gap: 9px; border-top: 1px solid var(--ink-3); padding-top: 9px; }
+.nbeat { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.nbeat-ts { font-size: 11px; color: var(--ink-meta); font-variant-numeric: tabular-nums; }
+.nbeat p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink); }
+.nbeat .ev { grid-column: 2; margin-top: 4px; }
+.inc-foot {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; padding-top: 7px;
+  border-top: 1px dashed var(--ink-3); font-size: 11px; color: var(--ink-meta);
+}
