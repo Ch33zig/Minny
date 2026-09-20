@@ -30,6 +30,7 @@ import json
 import sys
 from pathlib import Path
 
+from minny import observability as obs
 from minny import paths
 from minny.baselines.model import Baselines
 from minny.eval import harness, metrics as metrics_module, report, stream
@@ -74,6 +75,8 @@ def _wallclock(events: int, seconds: float) -> dict:
 
 def run(*, seed: int, count: int, variants_path: Path, regenerate: bool) -> dict:
     baselines = Baselines.load(paths.require(paths.baselines_path()))
+    obs.register_identifiers(baselines.users)
+    obs.register_identifiers(baselines.ip_owner.values())
     variants = load_variants(
         variants_path, seed=seed, count=count, regenerate=regenerate
     )
@@ -152,12 +155,17 @@ def main(argv: list[str] | None = None) -> int:
     variants_path = (
         Path(args.variants) if args.variants else paths.data_dir() / "variants.json"
     )
-    metrics = run(
-        seed=args.seed,
-        count=args.count,
-        variants_path=variants_path,
-        regenerate=args.regenerate,
-    )
+    obs.init(service="eval")
+    with obs.span("eval.run", seed=args.seed, count=args.count) as active:
+        metrics = run(
+            seed=args.seed,
+            count=args.count,
+            variants_path=variants_path,
+            regenerate=args.regenerate,
+        )
+        active.set_data("detection_rate", metrics.get("detection", {}).get("rate"))
+    # Offline this writes data/sentry/; with a DSN it drains the SDK queue.
+    obs.flush()
 
     print()
     print(report.render(metrics))

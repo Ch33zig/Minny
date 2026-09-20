@@ -22,6 +22,7 @@ import json
 import time
 from pathlib import Path
 
+from minny import observability as obs
 from minny.elastic import documents
 from minny.elastic.client import ElasticClient
 
@@ -98,6 +99,8 @@ def index_pairs(
 ) -> dict:
     """Send or write one index's worth of documents and report completeness."""
     started = time.perf_counter()
+    span = obs.current()
+    span.set_data("index", index)
     written_files: list[str] = []
     failed: list = []
     accepted = 0

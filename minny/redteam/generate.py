@@ -20,6 +20,7 @@ import random
 from collections import Counter
 from pathlib import Path
 
+from minny import observability as obs
 from minny import paths
 from minny.parser import parse_line
 from minny.redteam import plan as planning
@@ -95,27 +96,44 @@ def generate_one(
     catalog = catalog if catalog is not None else load_catalog()
     size_table = size_table if size_table is not None else SizeTable(load_size_table())
 
-    plan = planning.plan_variant(
-        index=index,
-        seed=seed,
-        family=family,
-        persona=persona,
-        catalog=catalog,
-        proposal=proposal,
-        derive_operators=derive_operators,
-    )
-    rng = random.Random(planning.stream_seed(seed, index, family, "render"))
-    lines = render(
-        build_steps(plan),
-        catalog=catalog,
-        size_table=size_table,
-        start=plan.start_ts,
-        first_line=first_line,
-        rng=rng,
-        business_hours="business_hours" in plan.operators,
-    )
-    report, _events = review(lines, plan, catalog=catalog, size_table=size_table)
-    return _variant_label(plan, lines, report)
+    # Three stages, three spans. Planning can reach an API, rendering is
+    # pure CPU and the critic replays what it just built, so one span across
+    # all of it would average a network call into a loop and hide whichever
+    # one is actually slow.
+    with obs.span("redteam.generate_one", family=family, persona=persona) as active:
+        with obs.span("experiment.plan", llm=bool(proposal)):
+            plan = planning.plan_variant(
+                index=index,
+                seed=seed,
+                family=family,
+                persona=persona,
+                catalog=catalog,
+                proposal=proposal,
+                derive_operators=derive_operators,
+            )
+        rng = random.Random(planning.stream_seed(seed, index, family, "render"))
+        with obs.span("telemetry.compile") as compile_span:
+            lines = render(
+                build_steps(plan),
+                catalog=catalog,
+                size_table=size_table,
+                start=plan.start_ts,
+                first_line=first_line,
+                rng=rng,
+                business_hours="business_hours" in plan.operators,
+            )
+            compile_span.set_data("lines", len(lines))
+        with obs.span("telemetry.validate") as critic_span:
+            report, _events = review(
+                lines, plan, catalog=catalog, size_table=size_table
+            )
+            critic_span.set_data("accepted", bool(getattr(report, "accepted", False)))
+        active.update(
+            variant_id=plan.variant_id,
+            lines=len(lines),
+            accepted=bool(getattr(report, "accepted", False)),
+        )
+        return _variant_label(plan, lines, report)
 
 
 def generate(
@@ -143,40 +161,42 @@ def generate(
     next_line = FIRST_INJECTED_LINE
     attempts = max_attempts if max_attempts is not None else count * 2
 
-    for attempt in range(1, attempts + 1):
-        if len(accepted) >= count:
-            break
-        family = FAMILY_IDS[(attempt - 1) % len(FAMILY_IDS)]
-        persona = planning.PERSONAS[(attempt - 1) % len(planning.PERSONAS)]
+    with obs.span("redteam.generate", count=count, planner=planner) as batch:
+        for attempt in range(1, attempts + 1):
+            if len(accepted) >= count:
+                break
+            family = FAMILY_IDS[(attempt - 1) % len(FAMILY_IDS)]
+            persona = planning.PERSONAS[(attempt - 1) % len(planning.PERSONAS)]
 
-        proposal = (
-            planning.propose_parameters(
-                family=family, persona=persona, catalog=catalog, cache=cache
+            proposal = (
+                planning.propose_parameters(
+                    family=family, persona=persona, catalog=catalog, cache=cache
+                )
+                if use_llm
+                else None
             )
-            if use_llm
-            else None
-        )
-        label = generate_one(
-            seed=seed,
-            index=attempt,
-            family=family,
-            persona=persona,
-            proposal=proposal,
-            first_line=next_line,
-            derive_operators=derive_operators,
-            catalog=catalog,
-            size_table=size_table,
-        )
-        if label["critic"]["accepted"]:
-            accepted.append(label)
-            # Only accepted variants consume IDs. A rejected one is never
-            # injected, so reserving a block for it would leave holes the
-            # eval would have to explain.
-            next_line += len(label["injected_lines"])
-        else:
-            label["injected_lines"] = []
-            rejected.append(label)
+            label = generate_one(
+                seed=seed,
+                index=attempt,
+                family=family,
+                persona=persona,
+                proposal=proposal,
+                first_line=next_line,
+                derive_operators=derive_operators,
+                catalog=catalog,
+                size_table=size_table,
+            )
+            if label["critic"]["accepted"]:
+                accepted.append(label)
+                # Only accepted variants consume IDs. A rejected one is never
+                # injected, so reserving a block for it would leave holes the
+                # eval would have to explain.
+                next_line += len(label["injected_lines"])
+            else:
+                label["injected_lines"] = []
+                rejected.append(label)
 
+        batch.update(accepted=len(accepted), rejected=len(rejected))
     return accepted, rejected
 
 

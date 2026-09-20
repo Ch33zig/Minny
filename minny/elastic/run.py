@@ -24,6 +24,7 @@ import sys
 import time
 from pathlib import Path
 
+from minny import observability as obs
 from minny import paths
 from minny.elastic import documents, esql, executor, fidelity, mapping
 from minny.elastic.bulk import index_pairs
@@ -156,15 +157,20 @@ def translate_and_verify(
 
     prepared = fidelity.prepare(rules + probes, index=index)
     signals = fidelity.signal_index(alerts)
-    results = fidelity.compare(
-        prepared,
-        events,
-        baselines,
-        signals=signals,
-        workspace_id=client.workspace_id,
-        sample=SAMPLE_ROWS,
-        keep_documents=PROBE_DOCUMENTS,
-    )
+    with obs.span(
+        "elastic.fidelity", rules=len(rules), probes=len(probes)
+    ) as checking:
+        checking.set_data("index", index)
+        results = fidelity.compare(
+            prepared,
+            events,
+            baselines,
+            signals=signals,
+            workspace_id=client.workspace_id,
+            sample=SAMPLE_ROWS,
+            keep_documents=PROBE_DOCUMENTS,
+        )
+        checking.set_data("events", len(events))
 
     rule_ids = {entry["id"] for entry in rules}
     esql_dir = out_dir / "esql"
@@ -282,38 +288,53 @@ def build(*, limit: int | None = None, skip_bulk: bool = False) -> dict:
     signals = fidelity.signal_index(alerts)
 
     if not skip_bulk:
-        report["ingest"]["events"] = index_pairs(
-            client,
-            client.indices["events"],
-            event_pairs(
-                events,
-                workspace_id=client.workspace_id,
-                baselines=baselines,
-                signals=signals,
-                event_set_sha256=event_set_sha256,
-            ),
-            kind="events",
-            out_dir=out_dir / "bulk",
-            expected=row_count,
-            refresh="wait_for" if client.configured else None,
-        )
-        report["ingest"]["alerts"] = index_pairs(
-            client,
-            client.indices["alerts"],
-            alert_pairs(
-                alerts,
-                workspace_id=client.workspace_id,
-                event_set_sha256=event_set_sha256,
-            ),
-            kind="alerts",
-            out_dir=out_dir / "bulk",
-            expected=len(alerts),
-            refresh="wait_for" if client.configured else None,
-        )
+        with obs.span("elastic.bulk_ingest", mode=client.mode) as ingest:
+            report["ingest"]["events"] = index_pairs(
+                client,
+                client.indices["events"],
+                event_pairs(
+                    events,
+                    workspace_id=client.workspace_id,
+                    baselines=baselines,
+                    signals=signals,
+                    event_set_sha256=event_set_sha256,
+                ),
+                kind="events",
+                out_dir=out_dir / "bulk",
+                expected=row_count,
+                refresh="wait_for" if client.configured else None,
+            )
+            report["ingest"]["alerts"] = index_pairs(
+                client,
+                client.indices["alerts"],
+                alert_pairs(
+                    alerts,
+                    workspace_id=client.workspace_id,
+                    event_set_sha256=event_set_sha256,
+                ),
+                kind="alerts",
+                out_dir=out_dir / "bulk",
+                expected=len(alerts),
+                refresh="wait_for" if client.configured else None,
+            )
+            ingest.update(
+                events=report["ingest"]["events"]["accepted_count"],
+                alerts=report["ingest"]["alerts"]["accepted_count"],
+                complete=bool(
+                    report["ingest"]["events"]["complete"]
+                    and report["ingest"]["alerts"]["complete"]
+                ),
+            )
 
-    report["esql"] = translate_and_verify(
-        events, baselines, alerts, client=client, out_dir=out_dir
-    )
+    with obs.span("elastic.evaluate", events=row_count) as evaluate:
+        report["esql"] = translate_and_verify(
+            events, baselines, alerts, client=client, out_dir=out_dir
+        )
+        evaluate.update(
+            agreed=report["esql"]["summary"]["agreed"],
+            row_preserving=report["esql"]["summary"]["row_preserving"],
+            passed=report["esql"]["summary"]["passed"],
+        )
     report["source"] = {
         "events_path": str(paths.events_path()),
         "events_sha256": event_set_sha256,
@@ -365,7 +386,10 @@ def main() -> None:
         "--skip-bulk", action="store_true", help="translate and verify only"
     )
     args = parser.parse_args()
-    report = build(limit=args.limit, skip_bulk=args.skip_bulk)
+    obs.init()
+    with obs.span("elastic.build", limit=args.limit or 0):
+        report = build(limit=args.limit, skip_bulk=args.skip_bulk)
+    obs.flush()
     _print(report)
     summary = (report.get("esql") or {}).get("summary") or {}
     if summary and not summary.get("passed"):

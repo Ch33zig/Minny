@@ -37,6 +37,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from minny import observability as obs
 from minny.baselines.model import Baselines
 from minny.detect.correlator import Correlator, build_incident
 from minny.detect.events import DetectEvent
@@ -207,9 +208,16 @@ class Pipeline:
 
     def run(self, events) -> tuple:
         """Batch convenience: feed everything, hand back alerts and incidents."""
-        for event in events:
-            self.feed(event)
-        return self.alerts, self.incidents()
+        with obs.span("replay.evaluate", mode="batch") as active:
+            count = 0
+            for event in events:
+                count += 1
+                self.feed(event)
+            incidents = self.incidents()
+            active.update(
+                events=count, alerts=len(self.alerts), incidents=len(incidents)
+            )
+            return self.alerts, incidents
 
 
 class InjectionQueue:
@@ -565,6 +573,25 @@ class ReplayEngine:
         self._wake.wait(max(0.0, seconds))
         self._wake.clear()
 
+    def _paced_wait(self, seconds: float) -> None:
+        """Wait for pacing, and record what the wait actually cost.
+
+        Counters rather than a span per wait: a paced replay of the March
+        window waits tens of thousands of times, and a span each would cost
+        more than the sleep it was measuring. The totals land on whatever
+        span is already open, so `stream.replay` carries what the scheduler
+        did with the delays this engine asked for.
+        """
+        span = obs.current()
+        started = self.clock()
+        self._wait(seconds)
+        actual = self.clock() - started
+        span.add("pace.waits")
+        span.add("pace.requested_ms", seconds * 1000.0)
+        span.add("pace.actual_ms", actual * 1000.0)
+        if actual > seconds:
+            span.add("pace.overshoot_ms", (actual - seconds) * 1000.0)
+
     # ----------------------------------------------------------------- loop
 
     def frames(self, follow: bool | None = None):
@@ -612,7 +639,7 @@ class ReplayEngine:
                     self._due_at = self.clock() + self._delay_for(event.ts)
                 remaining = self._due_at - self.clock()
                 if remaining > MIN_SLEEP_S:
-                    self._wait(remaining)
+                    self._paced_wait(remaining)
                     continue
 
                 self._take(from_queue)
@@ -633,9 +660,15 @@ class ReplayEngine:
     def run(self, sink=None, follow: bool | None = None) -> None:
         """Drive the loop, handing every frame to the sink. Blocks."""
         target = sink if sink is not None else self.sink
-        for frame in self.frames(follow=follow):
-            if target is not None:
-                target(frame)
+        with obs.span(
+            "stream.replay", fast=self.fast, speed_hours_per_second=self.speed
+        ) as active:
+            frames = 0
+            for frame in self.frames(follow=follow):
+                frames += 1
+                if target is not None:
+                    target(frame)
+            active.update(frames=frames, events=self.events_emitted)
 
     def drain(self) -> tuple:
         """Run the whole window as fast as the machine allows.
@@ -644,7 +677,9 @@ class ReplayEngine:
         following, alerts and incidents at the end.
         """
         self.fast = True
-        self.start()
-        for _frame in self.frames(follow=False):
-            pass
+        with obs.span("stream.replay", fast=True) as active:
+            self.start()
+            for _frame in self.frames(follow=False):
+                pass
+            active.set_data("events", self.events_emitted)
         return self.pipeline.alerts, self.pipeline.incidents()
