@@ -724,6 +724,87 @@ def cover_download(
     )
 
 
+@saved("Does the log record any mechanism by which a failing login succeeds?")
+def credential_mechanism_gap(events: pd.DataFrame | None = None) -> QueryResult:
+    """The gap between the last failed login and the first successful one.
+
+    This grounds unknown U1 in a measurement rather than a shrug. An access
+    log records the outcome of authentication and never the mechanism: there
+    is no password reset, token issue or credential endpoint anywhere in the
+    27 templates, so nothing in this file can say how the guessing stopped
+    being guessing.
+    """
+    frame = _events(events)
+    burst = auth_fail_burst(frame)
+    if not burst.stats.get("bursts"):
+        return QueryResult(
+            name="credential_mechanism_gap",
+            question=credential_mechanism_gap.question,  # type: ignore[attr-defined]
+            lines=[],
+            stats={},
+        )
+
+    last = burst.stats["bursts"][-1]
+    user, ip = last["user"], last["ip"]
+    last_failure_line = last["lines"][-1]
+    last_failure_ts = frame[frame["line"] == last_failure_line].iloc[0]["ts"]
+
+    success = frame[
+        (frame["user"] == user)
+        & (frame["ip"] == ip)
+        & (frame["status"] == 200)
+        & (frame["line"] > last_failure_line)
+    ].sort_values("line")
+    first_success = success.head(1)
+    success_line = int(first_success.iloc[0]["line"]) if not first_success.empty else None
+
+    between = frame[
+        (frame["ip"] == ip)
+        & (frame["line"] > last_failure_line)
+        & (frame["line"] < (success_line or 0))
+    ]
+
+    templates = sorted(frame["template"].unique().tolist())
+    credential_hints = ("reset", "password", "passwd", "token", "credential", "mfa")
+    credential_templates = [
+        template
+        for template in templates
+        if any(hint in template.lower() for hint in credential_hints)
+    ]
+
+    return QueryResult(
+        name="credential_mechanism_gap",
+        question=credential_mechanism_gap.question,  # type: ignore[attr-defined]
+        lines=[last_failure_line] + ([success_line] if success_line else []),
+        stats={
+            "user": user,
+            "ip": ip,
+            "last_failure_line": last_failure_line,
+            "last_failure_ts": _iso(last_failure_ts),
+            "first_success_line": success_line,
+            "first_success_ts": (
+                _iso(first_success.iloc[0]["ts"]) if not first_success.empty else None
+            ),
+            "hours_between": (
+                round(
+                    float(
+                        (first_success.iloc[0]["ts"] - last_failure_ts).total_seconds()
+                        / 3600
+                    ),
+                    1,
+                )
+                if not first_success.empty
+                else None
+            ),
+            "requests_from_ip_between": int(len(between)),
+            "users_on_ip_between": sorted(between["user"].dropna().unique().tolist()),
+            "template_count": len(templates),
+            # Nothing to reset a password with, anywhere in the file.
+            "credential_templates": credential_templates,
+        },
+    )
+
+
 # --- dismissed leads -------------------------------------------------------
 
 
