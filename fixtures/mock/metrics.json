@@ -1,46 +1,1080 @@
 {
-  "placeholder": true,
-  "placeholder_note": "Layout fixture copied from 00-CONTRACTS.md section 9. eval.py has not been run. Every number below is a placeholder and the UI labels it as one until C ships a generated metrics.json without this flag.",
-  "generated_at": null,
+  "generated_at": "2026-09-19T21:11:10-04:00",
   "command": "python eval.py --seed 42",
   "seed": 42,
-  "rule_revision": "rules.yaml@a1b2c3d",
-  "variants": { "total": 212, "by_family": { "F1": 54, "F2": 61, "F3": 49, "F4": 48 } },
-  "detection": {
-    "overall": 0.0,
+  "rule_revision": "signals.py@4fee3c6",
+  "method": {
+    "injection": "one variant per replay, injected into the benign stream",
+    "replays": 202,
+    "benign_stream": "March 2026 minus labeled incident lines",
+    "detector": "minny.detect.signals.Detector, fed through minny.detect.events.merged",
+    "detected_when": "an incident cites at least one injected line"
+  },
+  "variants": {
+    "total": 200,
+    "by_family": {
+      "F1": 50,
+      "F2": 50,
+      "F3": 50,
+      "F4": 50
+    },
+    "by_persona": {
+      "impatient_insider": 67,
+      "careful_insider": 67,
+      "outsider_with_stolen_credentials": 66
+    },
     "by_operator": {
-      "slow_guess": { "n": 38, "detected": 0, "rate": 0.0 },
-      "own_ip_takeover": { "n": 0, "detected": 0, "rate": 0.0 },
-      "param_rename": { "n": 0, "detected": 0, "rate": 0.0 },
-      "victim_swap": { "n": 0, "detected": 0, "rate": 0.0 },
-      "target_swap": { "n": 0, "detected": 0, "rate": 0.0 },
-      "business_hours": { "n": 0, "detected": 0, "rate": 0.0 },
-      "delay_gap": { "n": 0, "detected": 0, "rate": 0.0 },
-      "no_cleanup": { "n": 0, "detected": 0, "rate": 0.0 },
-      "no_cover_download": { "n": 0, "detected": 0, "rate": 0.0 }
+      "slow_guess": 46,
+      "own_ip_takeover": 71,
+      "param_rename": 50,
+      "victim_swap": 66,
+      "target_swap": 73,
+      "business_hours": 104,
+      "delay_gap": 91,
+      "no_cleanup": 44,
+      "no_cover_download": 25
+    },
+    "declared_operators": 570,
+    "without_operators": 14
+  },
+  "detection": {
+    "overall": 1.0,
+    "n": 200,
+    "detected": 200,
+    "by_operator": {
+      "slow_guess": {
+        "n": 46,
+        "detected": 46,
+        "rate": 1.0,
+        "attacker_correct": 22,
+        "victim_correct": 46,
+        "both_correct": 22,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 46,
+          "S2": 23,
+          "S3": 0,
+          "S4": 23,
+          "S5": 13,
+          "S6": 7,
+          "S7": 0,
+          "S8": 8
+        }
+      },
+      "own_ip_takeover": {
+        "n": 71,
+        "detected": 71,
+        "rate": 1.0,
+        "attacker_correct": 8,
+        "victim_correct": 71,
+        "both_correct": 8,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 71,
+          "S2": 26,
+          "S3": 22,
+          "S4": 26,
+          "S5": 17,
+          "S6": 9,
+          "S7": 0,
+          "S8": 11
+        }
+      },
+      "param_rename": {
+        "n": 50,
+        "detected": 50,
+        "rate": 1.0,
+        "attacker_correct": 25,
+        "victim_correct": 34,
+        "both_correct": 25,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 27,
+          "S2": 50,
+          "S3": 11,
+          "S4": 50,
+          "S5": 17,
+          "S6": 19,
+          "S7": 0,
+          "S8": 20
+        }
+      },
+      "victim_swap": {
+        "n": 66,
+        "detected": 66,
+        "rate": 1.0,
+        "attacker_correct": 35,
+        "victim_correct": 57,
+        "both_correct": 35,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 48,
+          "S2": 30,
+          "S3": 16,
+          "S4": 30,
+          "S5": 16,
+          "S6": 18,
+          "S7": 0,
+          "S8": 13
+        }
+      },
+      "target_swap": {
+        "n": 73,
+        "detected": 73,
+        "rate": 1.0,
+        "attacker_correct": 34,
+        "victim_correct": 61,
+        "both_correct": 34,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 53,
+          "S2": 32,
+          "S3": 22,
+          "S4": 32,
+          "S5": 21,
+          "S6": 17,
+          "S7": 0,
+          "S8": 18
+        }
+      },
+      "business_hours": {
+        "n": 104,
+        "detected": 104,
+        "rate": 1.0,
+        "attacker_correct": 45,
+        "victim_correct": 86,
+        "both_correct": 45,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 78,
+          "S2": 55,
+          "S3": 21,
+          "S4": 55,
+          "S5": 33,
+          "S6": 20,
+          "S7": 0,
+          "S8": 23
+        }
+      },
+      "delay_gap": {
+        "n": 91,
+        "detected": 91,
+        "rate": 1.0,
+        "attacker_correct": 28,
+        "victim_correct": 67,
+        "both_correct": 28,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 67,
+          "S2": 49,
+          "S3": 17,
+          "S4": 49,
+          "S5": 30,
+          "S6": 0,
+          "S7": 0,
+          "S8": 11
+        }
+      },
+      "no_cleanup": {
+        "n": 44,
+        "detected": 44,
+        "rate": 1.0,
+        "attacker_correct": 27,
+        "victim_correct": 37,
+        "both_correct": 27,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 26,
+          "S2": 44,
+          "S3": 16,
+          "S4": 44,
+          "S5": 34,
+          "S6": 27,
+          "S7": 0,
+          "S8": 31
+        }
+      },
+      "no_cover_download": {
+        "n": 25,
+        "detected": 25,
+        "rate": 1.0,
+        "attacker_correct": 16,
+        "victim_correct": 25,
+        "both_correct": 16,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 25,
+          "S2": 25,
+          "S3": 12,
+          "S4": 25,
+          "S5": 16,
+          "S6": 11,
+          "S7": 0,
+          "S8": 12
+        }
+      }
     },
     "by_family": {
-      "F1": { "n": 54, "detected": 0, "rate": 0.0 },
-      "F2": { "n": 61, "detected": 0, "rate": 0.0 },
-      "F3": { "n": 49, "detected": 0, "rate": 0.0 },
-      "F4": { "n": 48, "detected": 0, "rate": 0.0 }
+      "F1": {
+        "n": 50,
+        "detected": 50,
+        "rate": 1.0,
+        "attacker_correct": 25,
+        "victim_correct": 50,
+        "both_correct": 25,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 50,
+          "S2": 0,
+          "S3": 27,
+          "S4": 0,
+          "S5": 0,
+          "S6": 0,
+          "S7": 0,
+          "S8": 0
+        }
+      },
+      "F2": {
+        "n": 50,
+        "detected": 50,
+        "rate": 1.0,
+        "attacker_correct": 19,
+        "victim_correct": 22,
+        "both_correct": 19,
+        "median_log_seconds": 2868.0,
+        "signals": {
+          "S1": 0,
+          "S2": 50,
+          "S3": 0,
+          "S4": 50,
+          "S5": 35,
+          "S6": 26,
+          "S7": 0,
+          "S8": 21
+        }
+      },
+      "F3": {
+        "n": 50,
+        "detected": 50,
+        "rate": 1.0,
+        "attacker_correct": 30,
+        "victim_correct": 50,
+        "both_correct": 30,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 50,
+          "S2": 0,
+          "S3": 0,
+          "S4": 0,
+          "S5": 0,
+          "S6": 0,
+          "S7": 0,
+          "S8": 0
+        }
+      },
+      "F4": {
+        "n": 50,
+        "detected": 50,
+        "rate": 1.0,
+        "attacker_correct": 32,
+        "victim_correct": 50,
+        "both_correct": 32,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 50,
+          "S2": 50,
+          "S3": 27,
+          "S4": 50,
+          "S5": 32,
+          "S6": 25,
+          "S7": 0,
+          "S8": 26
+        }
+      }
+    },
+    "by_persona": {
+      "careful_insider": {
+        "n": 67,
+        "detected": 67,
+        "rate": 1.0,
+        "attacker_correct": 29,
+        "victim_correct": 51,
+        "both_correct": 29,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 50,
+          "S2": 34,
+          "S3": 7,
+          "S4": 34,
+          "S5": 17,
+          "S6": 2,
+          "S7": 0,
+          "S8": 2
+        }
+      },
+      "impatient_insider": {
+        "n": 67,
+        "detected": 67,
+        "rate": 1.0,
+        "attacker_correct": 60,
+        "victim_correct": 62,
+        "both_correct": 60,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 51,
+          "S2": 33,
+          "S3": 32,
+          "S4": 33,
+          "S5": 27,
+          "S6": 32,
+          "S7": 0,
+          "S8": 24
+        }
+      },
+      "outsider_with_stolen_credentials": {
+        "n": 66,
+        "detected": 66,
+        "rate": 1.0,
+        "attacker_correct": 17,
+        "victim_correct": 59,
+        "both_correct": 17,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 49,
+          "S2": 33,
+          "S3": 15,
+          "S4": 33,
+          "S5": 23,
+          "S6": 17,
+          "S7": 0,
+          "S8": 21
+        }
+      }
+    },
+    "by_signal": {
+      "S1": {
+        "signal_name": "ip_mismatch",
+        "caught": 150,
+        "rate": 0.75,
+        "sole": 73,
+        "detection_without": 0.635
+      },
+      "S2": {
+        "signal_name": "first_success_on_denied",
+        "caught": 100,
+        "rate": 0.5,
+        "sole": 0,
+        "detection_without": 1.0
+      },
+      "S3": {
+        "signal_name": "auth_fail_burst",
+        "caught": 54,
+        "rate": 0.27,
+        "sole": 0,
+        "detection_without": 1.0
+      },
+      "S4": {
+        "signal_name": "novel_template",
+        "caught": 100,
+        "rate": 0.5,
+        "sole": 0,
+        "detection_without": 1.0
+      },
+      "S5": {
+        "signal_name": "unexpected_params",
+        "caught": 67,
+        "rate": 0.335,
+        "sole": 0,
+        "detection_without": 1.0
+      },
+      "S6": {
+        "signal_name": "content_triggered_privileged_action",
+        "caught": 51,
+        "rate": 0.255,
+        "sole": 0,
+        "detection_without": 1.0
+      },
+      "S7": {
+        "signal_name": "post_authorship",
+        "caught": 0,
+        "rate": 0.0,
+        "sole": 0,
+        "detection_without": 1.0
+      },
+      "S8": {
+        "signal_name": "anomalous_status",
+        "caught": 47,
+        "rate": 0.235,
+        "sole": 0,
+        "detection_without": 1.0
+      }
     }
   },
-  "attribution": { "n_detected": 0, "attacker_correct": 0, "victim_correct": 0, "both_correct_rate": 0.0 },
+  "attribution": {
+    "n_detected": 200,
+    "attacker_correct": 106,
+    "victim_correct": 172,
+    "both_correct": 106,
+    "attacker_correct_rate": 0.53,
+    "victim_correct_rate": 0.86,
+    "both_correct_rate": 0.53,
+    "unnamed_attacker": 94,
+    "unnamed_victim": 28,
+    "misattributed_attacker": 0,
+    "misattributed_victim": 0,
+    "by_operator": {
+      "slow_guess": {
+        "n": 46,
+        "detected": 46,
+        "rate": 1.0,
+        "attacker_correct": 22,
+        "victim_correct": 46,
+        "both_correct": 22,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 46,
+          "S2": 23,
+          "S3": 0,
+          "S4": 23,
+          "S5": 13,
+          "S6": 7,
+          "S7": 0,
+          "S8": 8
+        }
+      },
+      "own_ip_takeover": {
+        "n": 71,
+        "detected": 71,
+        "rate": 1.0,
+        "attacker_correct": 8,
+        "victim_correct": 71,
+        "both_correct": 8,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 71,
+          "S2": 26,
+          "S3": 22,
+          "S4": 26,
+          "S5": 17,
+          "S6": 9,
+          "S7": 0,
+          "S8": 11
+        }
+      },
+      "param_rename": {
+        "n": 50,
+        "detected": 50,
+        "rate": 1.0,
+        "attacker_correct": 25,
+        "victim_correct": 34,
+        "both_correct": 25,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 27,
+          "S2": 50,
+          "S3": 11,
+          "S4": 50,
+          "S5": 17,
+          "S6": 19,
+          "S7": 0,
+          "S8": 20
+        }
+      },
+      "victim_swap": {
+        "n": 66,
+        "detected": 66,
+        "rate": 1.0,
+        "attacker_correct": 35,
+        "victim_correct": 57,
+        "both_correct": 35,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 48,
+          "S2": 30,
+          "S3": 16,
+          "S4": 30,
+          "S5": 16,
+          "S6": 18,
+          "S7": 0,
+          "S8": 13
+        }
+      },
+      "target_swap": {
+        "n": 73,
+        "detected": 73,
+        "rate": 1.0,
+        "attacker_correct": 34,
+        "victim_correct": 61,
+        "both_correct": 34,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 53,
+          "S2": 32,
+          "S3": 22,
+          "S4": 32,
+          "S5": 21,
+          "S6": 17,
+          "S7": 0,
+          "S8": 18
+        }
+      },
+      "business_hours": {
+        "n": 104,
+        "detected": 104,
+        "rate": 1.0,
+        "attacker_correct": 45,
+        "victim_correct": 86,
+        "both_correct": 45,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 78,
+          "S2": 55,
+          "S3": 21,
+          "S4": 55,
+          "S5": 33,
+          "S6": 20,
+          "S7": 0,
+          "S8": 23
+        }
+      },
+      "delay_gap": {
+        "n": 91,
+        "detected": 91,
+        "rate": 1.0,
+        "attacker_correct": 28,
+        "victim_correct": 67,
+        "both_correct": 28,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 67,
+          "S2": 49,
+          "S3": 17,
+          "S4": 49,
+          "S5": 30,
+          "S6": 0,
+          "S7": 0,
+          "S8": 11
+        }
+      },
+      "no_cleanup": {
+        "n": 44,
+        "detected": 44,
+        "rate": 1.0,
+        "attacker_correct": 27,
+        "victim_correct": 37,
+        "both_correct": 27,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 26,
+          "S2": 44,
+          "S3": 16,
+          "S4": 44,
+          "S5": 34,
+          "S6": 27,
+          "S7": 0,
+          "S8": 31
+        }
+      },
+      "no_cover_download": {
+        "n": 25,
+        "detected": 25,
+        "rate": 1.0,
+        "attacker_correct": 16,
+        "victim_correct": 25,
+        "both_correct": 16,
+        "median_log_seconds": 0.0,
+        "signals": {
+          "S1": 25,
+          "S2": 25,
+          "S3": 12,
+          "S4": 25,
+          "S5": 16,
+          "S6": 11,
+          "S7": 0,
+          "S8": 12
+        }
+      }
+    }
+  },
   "false_positives": {
     "benign_stream": "March 2026 minus labeled incident lines",
     "alerts_total": 0,
     "incidents_total": 0,
+    "days": 31,
     "alerts_per_day": 0.0,
+    "incidents_per_day": 0.0,
     "by_day": {
-      "2026-03-01": 0, "2026-03-02": 0, "2026-03-03": 0, "2026-03-04": 0, "2026-03-05": 0,
-      "2026-03-06": 0, "2026-03-07": 0, "2026-03-08": 0, "2026-03-09": 0, "2026-03-10": 0,
-      "2026-03-11": 0, "2026-03-12": 0, "2026-03-16": 0, "2026-03-17": 0, "2026-03-18": 0,
-      "2026-03-19": 0, "2026-03-20": 0, "2026-03-21": 0, "2026-03-22": 0, "2026-03-23": 0,
-      "2026-03-24": 0, "2026-03-25": 0, "2026-03-26": 0, "2026-03-27": 0, "2026-03-28": 0,
-      "2026-03-29": 0, "2026-03-30": 0, "2026-03-31": 0
+      "2026-03-01": 0,
+      "2026-03-02": 0,
+      "2026-03-03": 0,
+      "2026-03-04": 0,
+      "2026-03-05": 0,
+      "2026-03-06": 0,
+      "2026-03-07": 0,
+      "2026-03-08": 0,
+      "2026-03-09": 0,
+      "2026-03-10": 0,
+      "2026-03-11": 0,
+      "2026-03-12": 0,
+      "2026-03-13": 0,
+      "2026-03-14": 0,
+      "2026-03-15": 0,
+      "2026-03-16": 0,
+      "2026-03-17": 0,
+      "2026-03-18": 0,
+      "2026-03-19": 0,
+      "2026-03-20": 0,
+      "2026-03-21": 0,
+      "2026-03-22": 0,
+      "2026-03-23": 0,
+      "2026-03-24": 0,
+      "2026-03-25": 0,
+      "2026-03-26": 0,
+      "2026-03-27": 0,
+      "2026-03-28": 0,
+      "2026-03-29": 0,
+      "2026-03-30": 0,
+      "2026-03-31": 0
     }
   },
-  "time_to_detect": { "median_log_seconds": 0, "p90_log_seconds": 0, "wallclock_ms_per_event": 0.0 },
-  "real_incident": { "detected": true, "attribution_correct": true, "alert_count": 9 }
+  "time_to_detect": {
+    "n": 200,
+    "median_log_seconds": 0.0,
+    "p90_log_seconds": 3158.5,
+    "min_log_seconds": 0.0,
+    "max_log_seconds": 19504.0,
+    "wallclock_ms_per_event": 0.002,
+    "wallclock_events": 4638948,
+    "wallclock_seconds": 9.113
+  },
+  "real_incident": {
+    "detected": true,
+    "attribution_correct": true,
+    "alert_count": 25,
+    "incident_id": "inc_e30fc0",
+    "named_attacker": "david_m",
+    "named_victim": "sarah_j",
+    "attacker_correct": true,
+    "victim_correct": true,
+    "labeled_lines_cited": 22,
+    "labeled_lines_total": 26
+  },
+  "evasions": [],
+  "signal_suppression": [
+    {
+      "operator": "delay_gap",
+      "signal": "S6",
+      "signal_name": "content_triggered_privileged_action",
+      "n": 91,
+      "fired": 0,
+      "rate": 0.0,
+      "control_n": 109,
+      "control_fired": 51,
+      "control_rate": 0.4679,
+      "suppression": 1.0
+    },
+    {
+      "operator": "slow_guess",
+      "signal": "S3",
+      "signal_name": "auth_fail_burst",
+      "n": 46,
+      "fired": 0,
+      "rate": 0.0,
+      "control_n": 54,
+      "control_fired": 54,
+      "control_rate": 1.0,
+      "suppression": 1.0
+    },
+    {
+      "operator": "param_rename",
+      "signal": "S5",
+      "signal_name": "unexpected_params",
+      "n": 50,
+      "fired": 17,
+      "rate": 0.34,
+      "control_n": 50,
+      "control_fired": 50,
+      "control_rate": 1.0,
+      "suppression": 0.66
+    },
+    {
+      "operator": "delay_gap",
+      "signal": "S8",
+      "signal_name": "anomalous_status",
+      "n": 91,
+      "fired": 11,
+      "rate": 0.1209,
+      "control_n": 109,
+      "control_fired": 36,
+      "control_rate": 0.3303,
+      "suppression": 0.634
+    },
+    {
+      "operator": "slow_guess",
+      "signal": "S6",
+      "signal_name": "content_triggered_privileged_action",
+      "n": 46,
+      "fired": 7,
+      "rate": 0.1522,
+      "control_n": 54,
+      "control_fired": 18,
+      "control_rate": 0.3333,
+      "suppression": 0.5434
+    },
+    {
+      "operator": "slow_guess",
+      "signal": "S8",
+      "signal_name": "anomalous_status",
+      "n": 46,
+      "fired": 8,
+      "rate": 0.1739,
+      "control_n": 54,
+      "control_fired": 18,
+      "control_rate": 0.3333,
+      "suppression": 0.4782
+    },
+    {
+      "operator": "delay_gap",
+      "signal": "S3",
+      "signal_name": "auth_fail_burst",
+      "n": 91,
+      "fired": 17,
+      "rate": 0.1868,
+      "control_n": 109,
+      "control_fired": 37,
+      "control_rate": 0.3394,
+      "suppression": 0.4496
+    },
+    {
+      "operator": "business_hours",
+      "signal": "S3",
+      "signal_name": "auth_fail_burst",
+      "n": 104,
+      "fired": 21,
+      "rate": 0.2019,
+      "control_n": 96,
+      "control_fired": 33,
+      "control_rate": 0.3438,
+      "suppression": 0.4127
+    },
+    {
+      "operator": "param_rename",
+      "signal": "S6",
+      "signal_name": "content_triggered_privileged_action",
+      "n": 50,
+      "fired": 19,
+      "rate": 0.38,
+      "control_n": 50,
+      "control_fired": 32,
+      "control_rate": 0.64,
+      "suppression": 0.4062
+    },
+    {
+      "operator": "business_hours",
+      "signal": "S6",
+      "signal_name": "content_triggered_privileged_action",
+      "n": 104,
+      "fired": 20,
+      "rate": 0.1923,
+      "control_n": 96,
+      "control_fired": 31,
+      "control_rate": 0.3229,
+      "suppression": 0.4045
+    },
+    {
+      "operator": "own_ip_takeover",
+      "signal": "S6",
+      "signal_name": "content_triggered_privileged_action",
+      "n": 71,
+      "fired": 9,
+      "rate": 0.1268,
+      "control_n": 79,
+      "control_fired": 16,
+      "control_rate": 0.2025,
+      "suppression": 0.3738
+    },
+    {
+      "operator": "victim_swap",
+      "signal": "S5",
+      "signal_name": "unexpected_params",
+      "n": 66,
+      "fired": 16,
+      "rate": 0.2424,
+      "control_n": 134,
+      "control_fired": 51,
+      "control_rate": 0.3806,
+      "suppression": 0.3631
+    },
+    {
+      "operator": "param_rename",
+      "signal": "S3",
+      "signal_name": "auth_fail_burst",
+      "n": 50,
+      "fired": 11,
+      "rate": 0.22,
+      "control_n": 50,
+      "control_fired": 16,
+      "control_rate": 0.32,
+      "suppression": 0.3125
+    },
+    {
+      "operator": "param_rename",
+      "signal": "S8",
+      "signal_name": "anomalous_status",
+      "n": 50,
+      "fired": 20,
+      "rate": 0.4,
+      "control_n": 50,
+      "control_fired": 27,
+      "control_rate": 0.54,
+      "suppression": 0.2593
+    },
+    {
+      "operator": "own_ip_takeover",
+      "signal": "S3",
+      "signal_name": "auth_fail_burst",
+      "n": 71,
+      "fired": 22,
+      "rate": 0.3099,
+      "control_n": 79,
+      "control_fired": 32,
+      "control_rate": 0.4051,
+      "suppression": 0.235
+    },
+    {
+      "operator": "victim_swap",
+      "signal": "S8",
+      "signal_name": "anomalous_status",
+      "n": 66,
+      "fired": 13,
+      "rate": 0.197,
+      "control_n": 134,
+      "control_fired": 34,
+      "control_rate": 0.2537,
+      "suppression": 0.2235
+    },
+    {
+      "operator": "no_cover_download",
+      "signal": "S6",
+      "signal_name": "content_triggered_privileged_action",
+      "n": 25,
+      "fired": 11,
+      "rate": 0.44,
+      "control_n": 25,
+      "control_fired": 14,
+      "control_rate": 0.56,
+      "suppression": 0.2143
+    },
+    {
+      "operator": "target_swap",
+      "signal": "S5",
+      "signal_name": "unexpected_params",
+      "n": 73,
+      "fired": 21,
+      "rate": 0.2877,
+      "control_n": 127,
+      "control_fired": 46,
+      "control_rate": 0.3622,
+      "suppression": 0.2057
+    },
+    {
+      "operator": "no_cover_download",
+      "signal": "S3",
+      "signal_name": "auth_fail_burst",
+      "n": 25,
+      "fired": 12,
+      "rate": 0.48,
+      "control_n": 25,
+      "control_fired": 15,
+      "control_rate": 0.6,
+      "suppression": 0.2
+    },
+    {
+      "operator": "slow_guess",
+      "signal": "S5",
+      "signal_name": "unexpected_params",
+      "n": 46,
+      "fired": 13,
+      "rate": 0.2826,
+      "control_n": 54,
+      "control_fired": 19,
+      "control_rate": 0.3519,
+      "suppression": 0.1969
+    },
+    {
+      "operator": "own_ip_takeover",
+      "signal": "S8",
+      "signal_name": "anomalous_status",
+      "n": 71,
+      "fired": 11,
+      "rate": 0.1549,
+      "control_n": 79,
+      "control_fired": 15,
+      "control_rate": 0.1899,
+      "suppression": 0.1843
+    },
+    {
+      "operator": "target_swap",
+      "signal": "S2",
+      "signal_name": "first_success_on_denied",
+      "n": 73,
+      "fired": 32,
+      "rate": 0.4384,
+      "control_n": 127,
+      "control_fired": 68,
+      "control_rate": 0.5354,
+      "suppression": 0.1812
+    },
+    {
+      "operator": "target_swap",
+      "signal": "S4",
+      "signal_name": "novel_template",
+      "n": 73,
+      "fired": 32,
+      "rate": 0.4384,
+      "control_n": 127,
+      "control_fired": 68,
+      "control_rate": 0.5354,
+      "suppression": 0.1812
+    },
+    {
+      "operator": "victim_swap",
+      "signal": "S3",
+      "signal_name": "auth_fail_burst",
+      "n": 66,
+      "fired": 16,
+      "rate": 0.2424,
+      "control_n": 134,
+      "control_fired": 38,
+      "control_rate": 0.2836,
+      "suppression": 0.1453
+    },
+    {
+      "operator": "no_cover_download",
+      "signal": "S8",
+      "signal_name": "anomalous_status",
+      "n": 25,
+      "fired": 12,
+      "rate": 0.48,
+      "control_n": 25,
+      "control_fired": 14,
+      "control_rate": 0.56,
+      "suppression": 0.1429
+    },
+    {
+      "operator": "victim_swap",
+      "signal": "S2",
+      "signal_name": "first_success_on_denied",
+      "n": 66,
+      "fired": 30,
+      "rate": 0.4545,
+      "control_n": 134,
+      "control_fired": 70,
+      "control_rate": 0.5224,
+      "suppression": 0.13
+    },
+    {
+      "operator": "victim_swap",
+      "signal": "S4",
+      "signal_name": "novel_template",
+      "n": 66,
+      "fired": 30,
+      "rate": 0.4545,
+      "control_n": 134,
+      "control_fired": 70,
+      "control_rate": 0.5224,
+      "suppression": 0.13
+    },
+    {
+      "operator": "target_swap",
+      "signal": "S6",
+      "signal_name": "content_triggered_privileged_action",
+      "n": 73,
+      "fired": 17,
+      "rate": 0.2329,
+      "control_n": 127,
+      "control_fired": 34,
+      "control_rate": 0.2677,
+      "suppression": 0.13
+    },
+    {
+      "operator": "business_hours",
+      "signal": "S8",
+      "signal_name": "anomalous_status",
+      "n": 104,
+      "fired": 23,
+      "rate": 0.2212,
+      "control_n": 96,
+      "control_fired": 24,
+      "control_rate": 0.25,
+      "suppression": 0.1152
+    },
+    {
+      "operator": "business_hours",
+      "signal": "S5",
+      "signal_name": "unexpected_params",
+      "n": 104,
+      "fired": 33,
+      "rate": 0.3173,
+      "control_n": 96,
+      "control_fired": 34,
+      "control_rate": 0.3542,
+      "suppression": 0.1042
+    },
+    {
+      "operator": "target_swap",
+      "signal": "S1",
+      "signal_name": "ip_mismatch",
+      "n": 73,
+      "fired": 53,
+      "rate": 0.726,
+      "control_n": 127,
+      "control_fired": 97,
+      "control_rate": 0.7638,
+      "suppression": 0.0495
+    },
+    {
+      "operator": "victim_swap",
+      "signal": "S1",
+      "signal_name": "ip_mismatch",
+      "n": 66,
+      "fired": 48,
+      "rate": 0.7273,
+      "control_n": 134,
+      "control_fired": 102,
+      "control_rate": 0.7612,
+      "suppression": 0.0445
+    },
+    {
+      "operator": "delay_gap",
+      "signal": "S1",
+      "signal_name": "ip_mismatch",
+      "n": 91,
+      "fired": 67,
+      "rate": 0.7363,
+      "control_n": 109,
+      "control_fired": 83,
+      "control_rate": 0.7615,
+      "suppression": 0.0331
+    },
+    {
+      "operator": "delay_gap",
+      "signal": "S5",
+      "signal_name": "unexpected_params",
+      "n": 91,
+      "fired": 30,
+      "rate": 0.3297,
+      "control_n": 109,
+      "control_fired": 37,
+      "control_rate": 0.3394,
+      "suppression": 0.0286
+    }
+  ],
+  "notes": [
+    "No detected variant was blamed on the wrong account. Every attribution miss in this run is the correlator declining to name anyone, not naming the wrong person, which are the same number above and nothing like the same failure in an investigation.",
+    "Detection is high because the signals overlap, not because the evasions failed. S1 ip_mismatch is the load-bearing one: it is the only signal to fire on 73 of 200 variants, and without it detection would be 63.5%. Read the signal_suppression list, not the per-operator rates, to see which assumption each evasion actually broke.",
+    "Attacker attribution has a ceiling in the data, not in the detector. 71 of 200 variants carry own_ip_takeover, where the session arrives from a host no baseline can attribute to anyone. No line in the log names the attacker, so the correlator reports the address and drops confidence to low rather than guessing. Those variants score attacker-incorrect, which caps overall attacker attribution at about 64%. A figure near 100% would mean the harness was reading the answer key.",
+    "False positives are counted on March with the 26 labeled incident lines removed. Leaving them in would score the one thing the system exists to find as noise it made up.",
+    "Every variant is replayed alone into the benign stream with a fresh detector and correlator. Injecting them together would let two variants sharing a victim inside the 72-hour correlation window collapse into one incident and each be scored as detected on the other's evidence."
+  ]
 }
