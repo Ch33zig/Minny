@@ -31,6 +31,7 @@ from minny.baselines.model import Baselines
 from minny.detect.correlator import Correlator
 from minny.detect.events import DetectEvent
 from minny.detect.replay import (
+    MAX_CATCHUP_S,
     Frame,
     InjectionQueue,
     Pipeline,
@@ -369,6 +370,47 @@ def test_speed_is_simulated_hours_per_wall_clock_second(baselines):
     # The clamp keeps a quiet stretch of log from being a quiet stretch of demo.
     engine.max_gap_s = 0.25
     assert engine._delay_for(datetime(2026, 3, 16, 10, 0, tzinfo=LOG_TZ)) == 0.25
+
+
+def test_pacing_absorbs_an_overrun_instead_of_compounding_it(baselines):
+    """Each deadline comes from the last deadline, not from the clock.
+
+    Anchoring on the clock makes every event's gap start when the previous
+    event actually came out, so a scheduler that overshoots by ten
+    milliseconds adds ten milliseconds to the replay, every event, forever.
+    Measured over two days of March at the default speed that was a 62%
+    overrun: 7.0 seconds of requested sleep taking 11.9, because this
+    platform's timer rounds every wait between 2 and 15 ms up to a full
+    16 ms tick and 481 waits carried the error forward.
+    """
+    now = {"t": 100.0}
+    engine = ReplayEngine.from_events(
+        quiet(2), baselines, speed_hours_per_second=6.0, clock=lambda: now["t"]
+    )
+    base = datetime(2026, 3, 15, 10, 0, tzinfo=LOG_TZ)
+    engine._last_sim = base
+
+    # One simulated hour at six hours per second is a sixth of a second.
+    first = engine._schedule(base + timedelta(hours=1))
+    assert first == pytest.approx(100.0 + 1 / 6)
+
+    engine._due_at = first
+    engine._last_sim = base + timedelta(hours=1)
+    # The wait overran its deadline by ten milliseconds.
+    now["t"] = first + 0.010
+    second = engine._schedule(base + timedelta(hours=2))
+    assert second == pytest.approx(first + 1 / 6)
+    # Anchoring on the clock would have put it ten milliseconds later, and
+    # the next event ten milliseconds after that.
+    assert second < now["t"] + 1 / 6
+
+    # A pause longer than the catch-up clamp restarts the schedule from now
+    # rather than sprinting through a backlog on resume.
+    engine._due_at = second
+    engine._last_sim = base + timedelta(hours=2)
+    now["t"] = second + MAX_CATCHUP_S + 5.0
+    third = engine._schedule(base + timedelta(hours=3))
+    assert third == pytest.approx(now["t"] + 1 / 6)
 
 
 def test_fast_mode_does_not_sleep(baselines):

@@ -37,6 +37,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from minny import observability as obs
 from minny.baselines.model import Baselines
 from minny.detect.correlator import Correlator, build_incident
 from minny.detect.events import DetectEvent
@@ -63,6 +64,18 @@ IDLE_POLL_S = 0.2
 # and a fast replay spends all its time in the scheduler rather than in the
 # detector. Below the floor the event is simply due now.
 MIN_SLEEP_S = 0.002
+
+# How far behind its own schedule the replay will try to catch up. Each
+# event's deadline is measured from the previous event's deadline rather
+# than from the moment the previous one actually came out, so a wait that
+# overran is absorbed by the next gap instead of being added to it. Without
+# that, every overshoot compounds: measured over two days of March at the
+# default speed, the loop asked for 7,040 ms of sleep and spent 11,907 ms,
+# because a timer that rounds every request up to a 16 ms tick overshoots by
+# about 9.8 ms each time and 496 waits carried the error forward. The clamp
+# is what stops a paused or stalled replay from sprinting through a backlog
+# when it resumes; past this much lateness the schedule restarts from now.
+MAX_CATCHUP_S = 0.25
 
 # Checked between events. A stat call per event would be wasteful and a
 # reload per minute would be too slow to demo, so the rules file is polled on
@@ -207,9 +220,16 @@ class Pipeline:
 
     def run(self, events) -> tuple:
         """Batch convenience: feed everything, hand back alerts and incidents."""
-        for event in events:
-            self.feed(event)
-        return self.alerts, self.incidents()
+        with obs.span("replay.evaluate", mode="batch") as active:
+            count = 0
+            for event in events:
+                count += 1
+                self.feed(event)
+            incidents = self.incidents()
+            active.update(
+                events=count, alerts=len(self.alerts), incidents=len(incidents)
+            )
+            return self.alerts, incidents
 
 
 class InjectionQueue:
@@ -552,6 +572,27 @@ class ReplayEngine:
             delay = min(delay, float(self.max_gap_s))
         return delay
 
+    def _schedule(self, ts: datetime) -> float:
+        """When this event is due, measured from the last deadline.
+
+        Anchoring on `self.clock()` instead would make the schedule relative
+        to when the previous event actually came out, which folds every
+        scheduler overshoot into the next gap and compounds it. The span
+        counters on a paced run are what made that visible: the loop was
+        asking for 7.0 seconds of sleep across two days of March and taking
+        11.9, so a replay advertising six log-hours per second was delivering
+        about four.
+
+        Only wall-clock timing changes. The event order, the log timestamps,
+        the alerts and the incidents are all unaffected, because none of them
+        has ever been a function of when the emitting thread woke up.
+        """
+        now = self.clock()
+        anchor = self._due_at
+        if anchor <= 0.0 or anchor < now - MAX_CATCHUP_S:
+            anchor = now
+        return anchor + self._delay_for(ts)
+
     def _maybe_reload_rules(self) -> bool:
         if self.rules is None:
             return False
@@ -564,6 +605,25 @@ class ReplayEngine:
     def _wait(self, seconds: float) -> None:
         self._wake.wait(max(0.0, seconds))
         self._wake.clear()
+
+    def _paced_wait(self, seconds: float) -> None:
+        """Wait for pacing, and record what the wait actually cost.
+
+        Counters rather than a span per wait: a paced replay of the March
+        window waits tens of thousands of times, and a span each would cost
+        more than the sleep it was measuring. The totals land on whatever
+        span is already open, so `stream.replay` carries what the scheduler
+        did with the delays this engine asked for.
+        """
+        span = obs.current()
+        started = self.clock()
+        self._wait(seconds)
+        actual = self.clock() - started
+        span.add("pace.waits")
+        span.add("pace.requested_ms", seconds * 1000.0)
+        span.add("pace.actual_ms", actual * 1000.0)
+        if actual > seconds:
+            span.add("pace.overshoot_ms", (actual - seconds) * 1000.0)
 
     # ----------------------------------------------------------------- loop
 
@@ -609,10 +669,10 @@ class ReplayEngine:
                 key = (event.ts, event.line, from_queue)
                 if self._chosen_key != key:
                     self._chosen_key = key
-                    self._due_at = self.clock() + self._delay_for(event.ts)
+                    self._due_at = self._schedule(event.ts)
                 remaining = self._due_at - self.clock()
                 if remaining > MIN_SLEEP_S:
-                    self._wait(remaining)
+                    self._paced_wait(remaining)
                     continue
 
                 self._take(from_queue)
@@ -633,9 +693,15 @@ class ReplayEngine:
     def run(self, sink=None, follow: bool | None = None) -> None:
         """Drive the loop, handing every frame to the sink. Blocks."""
         target = sink if sink is not None else self.sink
-        for frame in self.frames(follow=follow):
-            if target is not None:
-                target(frame)
+        with obs.span(
+            "stream.replay", fast=self.fast, speed_hours_per_second=self.speed
+        ) as active:
+            frames = 0
+            for frame in self.frames(follow=follow):
+                frames += 1
+                if target is not None:
+                    target(frame)
+            active.update(frames=frames, events=self.events_emitted)
 
     def drain(self) -> tuple:
         """Run the whole window as fast as the machine allows.
@@ -644,7 +710,9 @@ class ReplayEngine:
         following, alerts and incidents at the end.
         """
         self.fast = True
-        self.start()
-        for _frame in self.frames(follow=False):
-            pass
+        with obs.span("stream.replay", fast=True) as active:
+            self.start()
+            for _frame in self.frames(follow=False):
+                pass
+            active.set_data("events", self.events_emitted)
         return self.pipeline.alerts, self.pipeline.incidents()

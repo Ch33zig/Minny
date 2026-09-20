@@ -755,7 +755,19 @@ class RuleSet:
             self.stamp = stamp
             return
 
-        self.rules, self.errors = _compile(document)
+        # The one place a proposal written by the blue agent becomes a live
+        # rule, so it is the one place worth timing: a proposal that takes
+        # longer to validate than an event takes to evaluate would stall a
+        # running replay on the reload poll.
+        from minny import observability as obs
+
+        with obs.span("rule.validate", source=str(self.path)) as active:
+            self.rules, self.errors = _compile(document)
+            active.update(
+                rules=len(self.rules),
+                enabled=sum(1 for rule in self.rules if rule.ok),
+                errors=len(self.errors),
+            )
         self._window_cache = None
         self.stamp = stamp
         self.loaded_ts = _dt.datetime.now().astimezone().isoformat(timespec="seconds")

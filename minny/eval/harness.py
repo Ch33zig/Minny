@@ -21,6 +21,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 
+from minny import observability as obs
 from minny.baselines.model import Baselines
 from minny.detect.correlator import Correlator
 from minny.detect.events import DetectEvent, merged
@@ -89,20 +90,27 @@ def replay(
     alerts: list = []
     count = 0
 
-    started = time.perf_counter()
-    for event in events:
-        count += 1
-        for alert in detector.feed(event):
-            if injected and injected.intersection(alert["evidence_lines"]):
-                # The correlator reads these off the alerts when it builds the
-                # incident, so the tag has to land before the alert is claimed.
-                alert["synthetic"] = True
-                alert["variant_id"] = variant_id
-            correlator.add(alert)
-            alerts.append(alert)
-    seconds = time.perf_counter() - started
+    with obs.span("replay.evaluate", variant_id=variant_id) as active:
+        started = time.perf_counter()
+        for event in events:
+            count += 1
+            for alert in detector.feed(event):
+                if injected and injected.intersection(alert["evidence_lines"]):
+                    # The correlator reads these off the alerts when it builds
+                    # the incident, so the tag has to land before the alert is
+                    # claimed.
+                    alert["synthetic"] = True
+                    alert["variant_id"] = variant_id
+                correlator.add(alert)
+                alerts.append(alert)
+        seconds = time.perf_counter() - started
+        incidents = correlator.incidents()
+        # Counts and identifiers only. An alert body carries a username, an
+        # address and an explanation quoting a log line, and none of that
+        # belongs in a span.
+        active.update(events=count, alerts=len(alerts), incidents=len(incidents))
 
-    return Replay(alerts, correlator.incidents(), count, seconds)
+    return Replay(alerts, incidents, count, seconds)
 
 
 def _ts(value) -> datetime:
@@ -187,14 +195,20 @@ def evaluate_variant(
     variant: dict, benign: list[DetectEvent], baselines: Baselines
 ) -> Outcome:
     """Inject one variant into the benign stream and score the result."""
-    stream = merged(benign, variant_events(variant))
-    result = replay(
-        stream,
-        baselines,
-        injected=frozenset(variant["injected_lines"]),
-        variant_id=variant["variant_id"],
-    )
-    return score(variant, result)
+    with obs.span("eval.variant", variant_id=variant["variant_id"]) as active:
+        active.update(family=variant.get("family"), operators=len(variant.get("operators") or ()))
+        with obs.span("eval.stream_merge") as merge:
+            stream = merged(benign, variant_events(variant))
+            merge.set_data("benign_events", len(benign))
+        result = replay(
+            stream,
+            baselines,
+            injected=frozenset(variant["injected_lines"]),
+            variant_id=variant["variant_id"],
+        )
+        outcome = score(variant, result)
+        active.update(detected=outcome.detected, alerts=outcome.alert_count)
+        return outcome
 
 
 def evaluate_all(
@@ -204,9 +218,11 @@ def evaluate_all(
     *,
     progress=None,
 ) -> list[Outcome]:
-    outcomes = []
-    for index, variant in enumerate(variants, start=1):
-        outcomes.append(evaluate_variant(variant, benign, baselines))
-        if progress is not None:
-            progress(index, len(variants))
-    return outcomes
+    with obs.span("eval.evaluate_all", variants=len(variants)) as active:
+        outcomes = []
+        for index, variant in enumerate(variants, start=1):
+            outcomes.append(evaluate_variant(variant, benign, baselines))
+            if progress is not None:
+                progress(index, len(variants))
+        active.set_data("detected", sum(1 for o in outcomes if o.detected))
+        return outcomes
