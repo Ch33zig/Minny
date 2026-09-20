@@ -44,18 +44,18 @@ Everything else that needs to be distinguished is distinguished without hue:
 <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 ```
 
-**Doto**, uppercase, for large text with few words. View titles, the verdict headline, big metric numbers, section labels. It is a dot matrix face: it reads as instrumentation at size and becomes illegible small. Never below 18px, never for a sentence, never for body copy. Letterspace it (`0.08em` at display sizes, `0.14em` for small caps labels) because the dot grid needs air.
+**Doto**, uppercase, for large text with few words. View titles, the verdict headline, big metric numbers, section labels. It is a dot matrix face: it reads as instrumentation at size and becomes illegible in between. Use it at 26px and up for display, or at exactly 11px for small caps labels where the dot grid resolves cleanly again. Nothing between those two. Never for a sentence and never for body copy. Letterspace it, `0.08em` at display sizes and `0.14em` for labels, because the dot grid needs air.
 
 **Barlow Semi Condensed** for everything a person actually reads. Narrative, findings, table text, controls, buttons, help text. 400 for body, 500 for table headers, 600 for emphasis, 700 only where something must be found at a glance. Its condensed width is doing real work here: the case file is dense and this fits more evidence per column without shrinking the type.
 
-**JetBrains Mono** for raw log lines and nothing else. Evidence must align by column and must look unmistakably like a file rather than like prose. 400 weight, 12.5px, `--text-2` on `--surface-2`.
+**JetBrains Mono** for machine text that is quoted verbatim: raw log lines, the rule DSL body, saved query names, and hash digests. Not for ids, counts or timestamps, which belong in the condensed face with tabular figures. Evidence must align by column and must look unmistakably like a file rather than like prose. 400 weight, 12.5px, `--text-2` on `--surface-2`.
 
 Scale:
 
 | Role | Face | Size | Weight | Case |
 |---|---|---|---|---|
-| View title | Doto | 34px | 700 | upper |
-| Verdict headline | Doto | 26px | 700 | upper |
+| View name | Doto | 34px | 700 | upper |
+| Verdict label | Doto | 26px | 700 | upper |
 | Metric figure | Doto | 40px | 900 | upper |
 | Section label | Doto | 11px | 400 | upper, `0.14em` |
 | Card title | Barlow SC | 17px | 600 | sentence |
@@ -63,6 +63,10 @@ Scale:
 | Table | Barlow SC | 13.5px | 400 | sentence |
 | Metadata | Barlow SC | 12px | 500 | upper, `0.06em` |
 | Evidence | JetBrains Mono | 12.5px | 400 | as written |
+
+### One placement rule learned in the build
+
+Doto names the **view**, never the content. The topbar reads `CASE FILE` in Doto with the case id and its title underneath in Barlow, because a case title is a sentence and Doto cannot carry a sentence. The verdict block reads `VERDICT` in Doto with the summary paragraph under it. Apply the same split anywhere a heading would otherwise be prose.
 
 ## Motion
 
