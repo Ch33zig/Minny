@@ -13,6 +13,7 @@ iterating on signals and restarting the demo.
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -57,6 +58,13 @@ def _missing(path: Path, command: str) -> JSONResponse:
     )
 
 
+def _opened(incident: dict) -> datetime:
+    try:
+        return datetime.fromisoformat(incident["opened_ts"])
+    except (KeyError, TypeError, ValueError):
+        return datetime.min.replace(tzinfo=None)
+
+
 def _incidents_path() -> Path:
     return paths.data_dir() / "incidents.json"
 
@@ -80,7 +88,10 @@ def list_incidents():
     incidents = _load(_incidents_path())
     if incidents is None:
         return _missing(_incidents_path(), "python -m minny.detect.run")
-    return sorted(incidents, key=lambda inc: inc.get("opened_ts", ""), reverse=True)
+    # Parsed rather than compared as text. The dataset spans a DST change, so
+    # two incidents on the same wall-clock date can carry different offsets and
+    # string order would put them the wrong way round.
+    return sorted(incidents, key=_opened, reverse=True)
 
 
 @router.get("/incidents/{incident_id}")

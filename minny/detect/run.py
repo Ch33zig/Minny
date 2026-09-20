@@ -94,6 +94,9 @@ def main() -> None:
             print("            S3 at 3-in-30s produces 0 baseline-window hits")
 
     held_out = _window(frame, start=start, end=end)
+    if held_out.empty:
+        print(f"replayed    0 events from {start.isoformat()}; nothing to do")
+        return
     alerts, incidents, detector = replay(held_out, baselines)
 
     print(
