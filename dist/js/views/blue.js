@@ -82,7 +82,7 @@ function memo(r, passed) {
       <div class="memo-foot">
         <span>${r.created_ts ? esc(fmtTs(r.created_ts, { withYear: true })) : 'no timestamp'}</span>
         <span>${r.pull_request ? esc(r.pull_request) : 'no pull request opened'}</span>
-        ${r.placeholder ? '<span class="stamp faint">FIXTURE</span>' : ''}
+        ${r.placeholder ? '<span class="stamp faint ink">FIXTURE</span>' : ''}
       </div>
     </article>`;
 }

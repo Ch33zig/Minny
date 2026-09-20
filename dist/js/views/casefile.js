@@ -370,7 +370,7 @@ function dismissed(d) {
     <div class="slip-head-row"><span class="tw">Why it is nothing</span><span class="meta">${esc(d.query || '')}</span></div>
     <p class="slip-body">${esc(d.why || '')}</p>`;
   return `
-    <article class="card cleared pinned" style="--rot:${rot(d.id || d.lead, 1.5)}">
+    <article class="card cleared pinned" style="--rot:${rot(d.id || d.lead, 1.2)}">
       <span class="pin"></span>
       <span class="stamp big ink cleared-stamp">CLEARED</span>
       <div class="index-top"><span class="card-id">${esc(d.id || '')}</span></div>
@@ -384,7 +384,7 @@ function unknown(u) {
   const text = firstSentence(u.text);
   const detail = `<p class="slip-body">${esc(u.text || '')}</p>`;
   return `
-    <article class="card open-note pinned" style="--rot:${rot(u.id || u.text, 1.5)}">
+    <article class="card open-note pinned" style="--rot:${rot(u.id || u.text, 1.2)}">
       <span class="pin"></span>
       <div class="index-top">
         <span class="card-id">${esc(u.id || '')}</span>

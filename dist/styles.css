@@ -20,7 +20,7 @@
   --pencil:     #3F5166;  /* handwritten annotation, 6.7:1 on paper */
 
   --stamp:      #B4342A;  /* the one accent: this is the finding */
-  --stamp-ink:  #9E2A21;  /* the same red where it has to carry small text */
+  --stamp-ink:  #8B2018;  /* the same red where it has to carry text: 7.5:1 on paper */
   --stamp-dim:  #8E5A52;  /* stamp at low emphasis, string, pin shadow */
 
   --elite: 'Special Elite', 'Courier Prime', ui-monospace, monospace;
@@ -157,10 +157,10 @@ code { font-family: var(--type); }
   white-space: nowrap;
 }
 /* CONFIRMED solid, PROBABLE outlined, UNVERIFIED faint and turned further. */
-.stamp.solid { background: rgba(180,52,42,.12); border-width: 2.5px; }
-.stamp.outline { background: none; }
-.stamp.faint { opacity: .78; border-style: dashed; transform: rotate(-6deg); }
-.stamp.ink { color: var(--ink-2); }
+.stamp.solid { background-color: rgba(180,52,42,.12); border-width: 2.5px; }
+.stamp.outline { background-color: transparent; }
+.stamp.faint { opacity: .88; border-style: dashed; transform: rotate(-6deg); }
+.stamp.ink { color: var(--ink); }
 .stamp.pencil-stamp { color: var(--pencil); border-style: double; border-width: 4px; }
 .stamp.big {
   font-size: 19px; padding: 7px 14px; border-width: 3px; letter-spacing: .12em;
@@ -195,7 +195,7 @@ code { font-family: var(--type); }
 .case-no {
   flex: none;
   font-family: var(--elite); font-size: 12.5px; letter-spacing: .1em;
-  color: var(--ink-2); border: 2px solid currentColor; padding: 6px 9px;
+  color: var(--ink); border: 2px solid currentColor; padding: 6px 9px;
   transform: rotate(-2deg); opacity: .9;
 }
 .jacket-label { min-width: 0; }
@@ -205,11 +205,11 @@ code { font-family: var(--type); }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .jacket-sub { margin: 5px 0 0; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
-.view-title { font-family: var(--elite); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
-.jacket-window { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.view-title { font-family: var(--elite); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); }
+.jacket-window { font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .jacket-window::before {
   content: 'window '; font-family: var(--elite); font-size: 10px; letter-spacing: .1em;
-  color: var(--ink-2); text-transform: uppercase;
+  color: var(--ink); text-transform: uppercase;
 }
 
 .jacket-slips { display: flex; align-items: flex-start; gap: 10px; flex: none; }
@@ -233,7 +233,7 @@ code { font-family: var(--type); }
 .mode-slip {
   align-self: center;
   font-family: var(--elite); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink-2); border: 1.5px dashed var(--ink-3); background-color: var(--paper);
+  color: var(--ink); border: 1.5px dashed var(--ink-3); background-color: var(--paper);
 }
 .mode-slip.mock { color: var(--pencil); border-color: var(--pencil); }
 
@@ -383,7 +383,7 @@ select, input[type="text"] {
 .mail-strip {
   position: relative; margin: 16px 6px 4px; padding: 12px 12px 10px;
   background-color: var(--paper-2); background-image: var(--grain);
-  box-shadow: var(--shadow-card); transform: rotate(-1.1deg);
+  box-shadow: var(--shadow-card); transform: rotate(-.6deg);
 }
 .mail-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 7px; }
 .mail-row + .mail-row { margin-top: 9px; border-top: 1px dotted var(--ink-3); padding-top: 9px; }
@@ -422,7 +422,7 @@ select, input[type="text"] {
   pointer-events: none;
   filter: drop-shadow(0 1.5px 1px rgba(22,14,7,.5));
 }
-.string-hit { fill: none; stroke: transparent; stroke-width: 18; pointer-events: stroke; cursor: pointer; }
+.string-hit { fill: none; stroke: transparent; stroke-width: 22; pointer-events: stroke; cursor: pointer; }
 .string-line { fill: none; stroke: var(--stamp); stroke-opacity: .88; stroke-width: 2; stroke-linecap: round; }
 .string.conf-medium .string-line { stroke-dasharray: 7 5; stroke-opacity: .6; }
 .string.conf-low .string-line { stroke: var(--stamp-dim); stroke-dasharray: 3 5; }
@@ -440,8 +440,9 @@ select, input[type="text"] {
 }
 .ent.lit { box-shadow: var(--shadow-lift), 0 0 0 2px var(--stamp-dim); }
 .mugshot {
-  position: relative; height: 88px; margin-bottom: 9px;
-  background:
+  position: relative; height: 80px; margin-bottom: 9px;
+  background-color: #6E5C46;
+  background-image:
     radial-gradient(ellipse at 50% 34%, rgba(255,240,214,.22), transparent 62%),
     linear-gradient(158deg, #8E7B62 0%, #6E5C46 58%, #574733 100%);
   border: 4px solid #FBF6EA;
@@ -449,12 +450,13 @@ select, input[type="text"] {
   display: flex; align-items: center; justify-content: center;
 }
 .monogram {
-  font-family: var(--elite); font-size: 40px; letter-spacing: .1em;
+  font-family: var(--elite); font-size: 36px; letter-spacing: .1em;
   color: #F6EEDC; text-shadow: 0 2px 4px rgba(20,12,6,.5);
 }
-.role-stamp {
+.mugshot .role-stamp {
   position: absolute; left: 7px; bottom: 7px; z-index: 4;
-  background-color: var(--paper); box-shadow: 0 1px 3px rgba(28,18,10,.35);
+  background-color: var(--paper); background-image: none;
+  box-shadow: 0 1px 3px rgba(28,18,10,.35);
 }
 .ent-name {
   font-family: var(--elite); font-size: 17px; letter-spacing: .04em; color: var(--ink);
@@ -516,6 +518,10 @@ select, input[type="text"] {
 }
 .card:hover { box-shadow: var(--shadow-lift); }
 .findings-col .card + .card { margin-top: 14px; }
+/* A loose column, not a stack: each card is pinned a little off the line. */
+.findings-col .card:nth-child(odd) { margin-left: 12px; }
+.findings-col .card:nth-child(even) { margin-right: 14px; }
+.findings-col .card:nth-child(3n) { margin-left: 4px; margin-right: 6px; }
 
 /* An index card is ruled. The rules are pencil blue at low alpha, never red:
    red on this board means the finding, not the stationery. */
@@ -532,7 +538,9 @@ select, input[type="text"] {
   color: var(--ink);
 }
 .claim.small { font-size: 13.5px; }
-.hand.aside { margin: 6px 0 0; transform: rotate(-.9deg); }
+/* A margin note tilts, but it is added to the card angle underneath it and
+   the total has to stay under 2 degrees with a sentence on it. */
+.hand.aside { margin: 6px 0 0; transform: rotate(-.45deg); }
 .findings-col .hand.aside {
   float: right; width: 156px; margin: 2px -4px 4px 14px;
   padding-left: 11px; border-left: 2px solid rgba(63,81,102,.35);
@@ -957,4 +965,15 @@ select, input[type="text"] {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
   padding-top: 8px; border-top: 1px dashed var(--ink-3);
   font-size: 11px; color: var(--ink-meta);
+}
+
+/* ---------------------------------------------------------- reduced motion */
+
+/* A judge may be on a machine with reduced motion set. The resting angle of a
+   card is not motion, so it stays: only the moving parts stop. */
+@media (prefers-reduced-motion: reduce) {
+  .pinned, .card, .ent, .beat, .acard, .inc, .tab, .ctl {
+    transition-duration: 0.01ms !important;
+  }
+  .progress i { transition: none; }
 }
