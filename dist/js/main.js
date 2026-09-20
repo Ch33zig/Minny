@@ -38,12 +38,12 @@ async function setHeader() {
     $('#caseId').textContent = (cf.case_id || 'minny').toUpperCase();
     $('#caseTitle').textContent = cf.title || 'Case file';
     if (cf.window) {
-      $('#windowChip').textContent = `${fmtDate(cf.window.start)} – ${fmtDate(cf.window.end)}`;
+      $('#windowChip').textContent = `${fmtDate(cf.window.start)} to ${fmtDate(cf.window.end)}`;
       $('#windowChip').hidden = false;
     }
     if (cf.source) {
       $('#srcLines').textContent = `${fmtNum(cf.source.lines)} lines`;
-      $('#srcHash').textContent = String(cf.source.sha256 || '').slice(0, 12) || '—';
+      $('#srcHash').textContent = String(cf.source.sha256 || '').slice(0, 12) || 'n/a';
       $('#srcHash').title = cf.source.sha256 || '';
     }
     document.title = `Minny · ${cf.title}`;

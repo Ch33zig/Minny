@@ -89,7 +89,7 @@ function gateRow(key, v) {
     : v.required !== undefined ? `required ${v.required}` : '';
   const measured = v.measured !== undefined
     ? (v.threshold !== undefined ? fmtPct(v.measured) : String(v.measured))
-    : '—';
+    : 'n/a';
   return `
     <div class="gate-row ${v.pass ? 'pass' : 'fail'}">
       <span class="gate-mark mono">${v.pass ? '✓' : '✕'}</span>

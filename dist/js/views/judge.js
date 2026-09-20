@@ -35,11 +35,11 @@ export async function render(container) {
             <select id="jTarget">${access.targets.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
           </label>
           <label class="field">
-            <span>VICTIM — an account authorized to read it</span>
+            <span>VICTIM: an account authorized to read it</span>
             <select id="jVictim"></select>
           </label>
           <label class="field">
-            <span>ATTACKER — an account that is not</span>
+            <span>ATTACKER: an account that is not</span>
             <select id="jAttacker"></select>
           </label>
           <label class="field">
@@ -48,7 +48,7 @@ export async function render(container) {
           </label>
 
           <div class="field">
-            <span>OPERATORS — at most ${MAX_OPERATORS}</span>
+            <span>OPERATORS: at most ${MAX_OPERATORS}</span>
             <div class="ops" id="jOps">
               ${OPERATORS.map((o) => `<label class="op"><input type="checkbox" value="${esc(o)}"><span class="mono">${esc(o)}</span></label>`).join('')}
             </div>

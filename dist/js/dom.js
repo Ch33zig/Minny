@@ -32,7 +32,7 @@ const ISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d
  * is worse than no timeline.
  */
 export function fmtTs(iso, { withYear = false, withOffset = false } = {}) {
-  if (!iso) return '—';
+  if (!iso) return 'n/a';
   const m = ISO.exec(iso);
   if (!m) return iso;
   const [, y, mo, d, hh, mm, ss, off] = m;
@@ -43,21 +43,21 @@ export function fmtTs(iso, { withYear = false, withOffset = false } = {}) {
 
 export function fmtDate(iso) {
   const m = ISO.exec(iso || '');
-  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : (iso || '—');
+  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : (iso || 'n/a');
 }
 
 export function fmtNum(n) {
-  if (n === null || n === undefined) return '—';
+  if (n === null || n === undefined) return 'n/a';
   return Number(n).toLocaleString('en-US');
 }
 
 export function fmtPct(rate) {
-  if (rate === null || rate === undefined) return '—';
+  if (rate === null || rate === undefined) return 'n/a';
   return `${(Number(rate) * 100).toFixed(0)}%`;
 }
 
 export function fmtBytes(n) {
-  if (n === null || n === undefined) return '—';
+  if (n === null || n === undefined) return 'n/a';
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1048576).toFixed(2)} MB`;

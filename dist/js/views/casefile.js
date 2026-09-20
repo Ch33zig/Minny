@@ -77,18 +77,18 @@ function verdict(cf) {
       <p class="verdict-text">${esc(vd.summary || 'No verdict recorded.')}</p>
       ${vd.basis ? `<p class="verdict-basis">${esc(vd.basis)}</p>` : ''}
       <div class="verdict-facts">
-        <div><span>ATTACKER</span><b>${esc((actors.attacker || {}).user || '—')}</b></div>
-        <div><span>VICTIM ACCOUNT</span><b>${esc((actors.victim || {}).user || '—')}</b></div>
-        <div class="wide"><span>ASSET</span><b class="mono">${esc(actors.asset || '—')}</b></div>
+        <div><span>ATTACKER</span><b>${esc((actors.attacker || {}).user || 'n/a')}</b></div>
+        <div><span>VICTIM ACCOUNT</span><b>${esc((actors.victim || {}).user || 'n/a')}</b></div>
+        <div class="wide"><span>ASSET</span><b class="mono">${esc(actors.asset || 'n/a')}</b></div>
         <div><span>VECTOR</span><b class="mono">${esc(vectorLabel(actors.vector))}</b></div>
       </div>
     </section>`;
 }
 
 function vectorLabel(vector) {
-  if (!vector) return '—';
+  if (!vector) return 'n/a';
   const t = vector.template || '';
-  if (vector.obj_id === null || vector.obj_id === undefined) return t || '—';
+  if (vector.obj_id === null || vector.obj_id === undefined) return t || 'n/a';
   return t.includes('{id}') ? t.replace('{id}', vector.obj_id) : `${t} · ${vector.obj_id}`;
 }
 
@@ -145,7 +145,7 @@ function beat(t) {
     <article class="beat conf-edge-${esc(level)}">
       <div class="beat-head">
         <span class="beat-ts mono">${esc(fmtTs(t.ts))}</span>
-        <span class="beat-actor">${esc(t.actor || '—')}</span>
+        <span class="beat-actor">${esc(t.actor || 'n/a')}</span>
         ${level === 'high' ? '' : confChip(t.confidence)}
       </div>
       <p class="beat-action">${esc(t.action || '')}</p>

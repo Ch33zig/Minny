@@ -112,7 +112,7 @@
       "id": "F8",
       "claim": "The account returned that night from the same workstation and took the file a second time.",
       "confidence": "high",
-      "method": "At 22:29:43 a login for sarah_j succeeds from 10.0.8.45 — the only success for her account from that host in the file — then dashboard, the zip, logout, inside four minutes.",
+      "method": "At 22:29:43 a login for sarah_j succeeds from 10.0.8.45 (the only success for her account from that host in the file), then dashboard, the zip, logout, inside four minutes.",
       "evidence_lines": [168343, 168344, 168345, 168346],
       "evidence_emails": [],
       "query": "casefile.queries.ip_user_mismatch"
@@ -129,15 +129,15 @@
   ],
   "timeline": [
     { "ts": "2026-03-13T23:10:19-04:00", "line": 168311, "actor": "sarah_j", "action": "Four failed logins for sarah_j from 10.0.8.45, gaps of 6s, 3s and 4s", "note": "First appearance of her account on a host she has never used", "confidence": "high", "evidence_lines": [168311, 168312, 168313, 168314] },
-    { "ts": "2026-03-14T09:19:15-04:00", "line": 168315, "actor": "david_m", "action": "Denied the Q1 confidential draft — the 80th such denial", "note": null, "confidence": "high", "evidence_lines": [168315] },
+    { "ts": "2026-03-14T09:19:15-04:00", "line": 168315, "actor": "david_m", "action": "Denied the Q1 confidential draft, the 80th such denial", "note": null, "confidence": "high", "evidence_lines": [168315] },
     { "ts": "2026-03-14T22:11:26-04:00", "line": 168321, "actor": "sarah_j", "action": "Six more failed logins from 10.0.8.45, gaps down to 2s", "note": "Tighter than any gap in her seven-month baseline", "confidence": "high", "evidence_lines": [168321, 168322, 168323, 168324, 168325, 168326] },
-    { "ts": "2026-03-15T09:20:20-04:00", "line": 168330, "actor": "david_m", "action": "POST forum/new?topic=lunch_menu&payload=csrf_test — the only 500 in the file", "note": null, "confidence": "high", "evidence_lines": [168330] },
-    { "ts": "2026-03-15T09:42:35-04:00", "line": 168331, "actor": "david_m", "action": "POST forum/new?topic=q1_updates&action=csrf_role_update — the only 400 in the file", "note": null, "confidence": "high", "evidence_lines": [168331] },
-    { "ts": "2026-03-15T10:18:52-04:00", "line": 168332, "actor": "david_m", "action": "POST forum/new?topic=parking_issues&script=success — accepted, 302", "note": "Third attempt, third parameter name", "confidence": "high", "evidence_lines": [168332] },
+    { "ts": "2026-03-15T09:20:20-04:00", "line": 168330, "actor": "david_m", "action": "POST forum/new?topic=lunch_menu&payload=csrf_test, the only 500 in the file", "note": null, "confidence": "high", "evidence_lines": [168330] },
+    { "ts": "2026-03-15T09:42:35-04:00", "line": 168331, "actor": "david_m", "action": "POST forum/new?topic=q1_updates&action=csrf_role_update, the only 400 in the file", "note": null, "confidence": "high", "evidence_lines": [168331] },
+    { "ts": "2026-03-15T10:18:52-04:00", "line": 168332, "actor": "david_m", "action": "POST forum/new?topic=parking_issues&script=success (accepted, 302)", "note": "Third attempt, third parameter name", "confidence": "high", "evidence_lines": [168332] },
     { "ts": "2026-03-15T10:18:55-04:00", "line": 168333, "actor": "david_m", "action": "Reads forum/view/1042 three seconds later", "note": "Authorship of 1042 is inferred from this adjacency, see F5 and U2", "confidence": "medium", "evidence_lines": [168333] },
     { "ts": "2026-03-15T11:07:56-04:00", "line": 168335, "actor": "sarah_j", "action": "Opens forum/view/1042 from her own workstation", "note": null, "confidence": "high", "evidence_lines": [168335] },
-    { "ts": "2026-03-15T11:07:57-04:00", "line": 168336, "actor": "sarah_j", "action": "POST /api/admin/role_update — one second later, the only call in the file", "note": "Grantee is not recorded in the log, see F7", "confidence": "high", "evidence_lines": [168336] },
-    { "ts": "2026-03-15T11:07:59-04:00", "line": 168337, "actor": "sarah_j", "action": "GET /assets/avatar_1042.png — the other once-only template", "note": null, "confidence": "high", "evidence_lines": [168337] },
+    { "ts": "2026-03-15T11:07:57-04:00", "line": 168336, "actor": "sarah_j", "action": "POST /api/admin/role_update (one second later, the only call in the file)", "note": "Grantee is not recorded in the log, see F7", "confidence": "high", "evidence_lines": [168336] },
+    { "ts": "2026-03-15T11:07:59-04:00", "line": 168337, "actor": "sarah_j", "action": "GET /assets/avatar_1042.png, the other once-only template", "note": null, "confidence": "high", "evidence_lines": [168337] },
     { "ts": "2026-03-15T11:26:59-04:00", "line": 168338, "actor": "david_m", "action": "Downloads the Q1 confidential draft, 8,459,200 bytes, 19 minutes after the escalation", "note": null, "confidence": "high", "evidence_lines": [168338] },
     { "ts": "2026-03-15T11:48:01-04:00", "line": 168339, "actor": "david_m", "action": "Edits post 1042", "note": "Read as cleanup; the body is not in the log", "confidence": "medium", "evidence_lines": [168339] },
     { "ts": "2026-03-15T12:34:21-04:00", "line": 168340, "actor": "david_m", "action": "Downloads /finance/templates/expense.docx, a file he is authorized to read", "note": "Read as a cover download", "confidence": "medium", "evidence_lines": [168340] },
@@ -152,7 +152,7 @@
     {
       "id": "D1",
       "lead": "Late-night access to the confidential draft",
-      "why": "Four of the five reads of that file outside 08:00–18:59 are benign: sarah_j at 07:00 in August, nicole_h at 21:17 in November and 19:00 in December, sarah_j at 00:19 on 6 March — every one of them an authorized reader on her own workstation. The hour of day does not separate the theft from ordinary work; the source IP does. The detector never reads hour-of-day.",
+      "why": "Four of the five reads of that file outside 08:00-18:59 are benign: sarah_j at 07:00 in August, nicole_h at 21:17 in November and 19:00 in December, sarah_j at 00:19 on 6 March. Every one of them was an authorized reader on her own workstation. The hour of day does not separate the theft from ordinary work; the source IP does. The detector never reads hour-of-day.",
       "confidence": "high",
       "query": "casefile.queries.offhours_access",
       "evidence_lines": [8326, 72117, 100280, 162048]
@@ -168,7 +168,7 @@
     {
       "id": "D3",
       "lead": "Failed logins as a signal on their own",
-      "why": "899 login failures, 70 to 102 per account, near-uniform — including david_m failing his own login on the first day of the window. A wrong password is not evidence. Only two clusters of four or more failures inside ten minutes exist in the entire file, and both are sarah_j from a host she has never used.",
+      "why": "899 login failures, 70 to 102 per account, near-uniform (including david_m failing his own login on the first day of the window). A wrong password is not evidence. Only two clusters of four or more failures inside ten minutes exist in the entire file, and both are sarah_j from a host she has never used.",
       "confidence": "high",
       "query": "casefile.queries.auth_fail_base_rate",
       "evidence_lines": [74, 32059, 65551, 96711]
