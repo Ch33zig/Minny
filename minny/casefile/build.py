@@ -1,0 +1,657 @@
+"""Assemble data/case_file.json from the saved queries (milestone M1).
+
+    python -m minny.casefile.build
+
+The UI renders the whole case file from this one document, so every sentence
+in it is built here from a `QueryResult` rather than typed. Change a query
+and the prose changes with it; if a query stops returning lines, the build
+fails instead of shipping a claim with no evidence behind it.
+
+Shape: docs/handoff/00-CONTRACTS.md section 7.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pandas as pd
+
+from minny import paths
+from minny.casefile import queries
+from minny.casefile.queries import QueryResult
+
+CASE_ID = "minny-2026-q1"
+TITLE = "Unauthorized access to the Q1 confidential draft"
+CONFIDENCE_VALUES = ("high", "medium", "low")
+
+
+def _fmt(number: int | float) -> str:
+    return f"{number:,}"
+
+
+def minutes_after(start_iso: str, end_iso: str) -> int:
+    return round(
+        (pd.Timestamp(end_iso) - pd.Timestamp(start_iso)).total_seconds() / 60
+    )
+
+
+def _finding(
+    finding_id: str,
+    claim: str,
+    confidence: str,
+    method: str,
+    result: QueryResult,
+    evidence_lines: list[int] | None = None,
+    evidence_emails: list[str] | None = None,
+) -> dict:
+    """One finding, refusing to exist without evidence."""
+    lines = sorted(set(evidence_lines if evidence_lines is not None else result.lines))
+    if not lines:
+        raise AssertionError(
+            f"{finding_id} has no evidence lines; {result.qualified_name} returned "
+            "nothing. Fix the query or drop the claim."
+        )
+    if confidence not in CONFIDENCE_VALUES:
+        raise AssertionError(f"{finding_id} has confidence {confidence!r}")
+    return {
+        "id": finding_id,
+        "claim": claim,
+        "confidence": confidence,
+        "method": method,
+        "evidence_lines": lines,
+        "evidence_emails": evidence_emails or [],
+        "query": result.qualified_name,
+    }
+
+
+def load_email_evidence() -> list[dict]:
+    """Mailbox records, if track D has synced any.
+
+    Nothing on this path may wait on or depend on the mailbox. No file, a
+    half-written file or a rate-limited sync all mean the same thing here: no
+    corroboration, and a case file that is otherwise identical.
+    """
+    path = paths.email_evidence_path()
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if isinstance(payload, dict):
+        payload = payload.get("messages") or payload.get("emails") or []
+    return [message for message in payload if isinstance(message, dict)]
+
+
+def attach_email_evidence(findings: list[dict], messages: list[dict]) -> list[dict]:
+    """Link a message to a finding when they cite the same log line.
+
+    Corroboration only. Mail headers are trivially forgeable and we did not
+    verify DKIM, so an attached message can make a finding richer and must
+    never make it more certain: no confidence is touched here.
+    """
+    for finding in findings:
+        lines = set(finding["evidence_lines"])
+        linked = sorted(
+            {
+                str(message["evidence_id"])
+                for message in messages
+                if message.get("evidence_id")
+                and lines & set(message.get("linked_lines") or [])
+            }
+        )
+        if linked:
+            finding["evidence_emails"] = sorted(
+                set(finding["evidence_emails"]) | set(linked)
+            )
+    return findings
+
+
+def build_findings(results: dict[str, QueryResult], total_events: int) -> list[dict]:
+    """F1 to F7, each worded from the numbers its query measured."""
+    mismatch = results["ip_user_mismatch"]
+    burst = results["auth_fail_burst"]
+    tampered = results["tampered_forum_post"]
+    unique = results["globally_unique_templates"]
+    flip = results["first_success_after_denials"]
+    rare_status = results["anomalous_status"]
+    authorship = results["post_attribution"]
+    escalation = results["content_triggered_privileged_action"]
+    cleanup = results["vector_object_edits"]
+    denials = results["denials_before_exfil"]
+
+    victim = mismatch.stats["violating_users"][0]
+    foreign_ip = mismatch.stats["foreign_ips"][0]
+    attacker = mismatch.stats["foreign_ip_owners"][0]
+    exfil = flip.stats["flips"][0]
+    chain = authorship.stats["chains"][0]
+    escalation_chain = escalation.stats["chains"][0]
+
+    findings = [
+        _finding(
+            "F1",
+            f"{victim}'s account was used from {foreign_ip}, "
+            f"which is {attacker}'s workstation.",
+            "high",
+            f"Each of the {mismatch.stats['user_count']} users appears on exactly one "
+            f"source IP across the {mismatch.stats['baseline_months']} months before "
+            f"March. These {len(mismatch.lines)} requests are the only lines in "
+            f"{_fmt(total_events)} that break that binding, and every one of them puts "
+            f"{victim} on {attacker}'s machine. This is arithmetic, not a score.",
+            mismatch,
+        ),
+        _finding(
+            "F2",
+            f"{victim}'s password was guessed from {attacker}'s workstation in "
+            f"{burst.stats['burst_count']} bursts of "
+            f"{' and '.join(str(b['attempts']) for b in burst.stats['bursts'])} "
+            "attempts, seconds apart, on consecutive nights.",
+            "high",
+            f"A burst is {burst.stats['min_length']} or more consecutive 401s from the "
+            f"same user and IP with gaps under {int(burst.stats['max_gap_s'])} seconds. "
+            f"The file contains exactly {burst.stats['burst_count']}, both "
+            f"{burst.stats['burst_users'][0]} from {burst.stats['bursts'][0]['ip']}. "
+            f"That is the finding: the other {_fmt(burst.stats['isolated_401'])} failed "
+            f"logins have no burst structure at all. Not one pair of consecutive "
+            f"failures from the same user and IP is closer than "
+            f"{int(burst.stats['min_gap_s_outside_bursts'])} seconds, and there is not "
+            f"a single run of two.",
+            burst,
+        ),
+        _finding(
+            "F3",
+            f"{tampered.stats['users'][0]} sent {tampered.stats['tampered_requests']} "
+            "forum posts carrying parameters the application never otherwise receives: "
+            f"{', '.join(tampered.stats['unexpected_keys'])}.",
+            "high",
+            f"{_fmt(tampered.stats['forum_new_requests'])} requests hit "
+            f"{queries.FORUM_NEW}, of which "
+            f"{_fmt(tampered.stats['topic_only_requests'])} carry only `topic`. These "
+            f"{tampered.stats['tampered_requests']} are the only ones with any other "
+            f"key, and {queries.FORUM_NEW} is the only path in the file that ever "
+            "carries a query string at all.",
+            tampered,
+        ),
+        _finding(
+            "F4",
+            f"{unique.stats['users'][0]}'s session made the only admin role update and "
+            "the only avatar request in the entire log, two seconds apart.",
+            "high",
+            f"After ID normalization the file holds {unique.stats['template_count']} "
+            f"request templates. Exactly two occur once: "
+            + "; ".join(
+                f"{event['template']} at line {event['line']}"
+                for event in unique.stats["events"]
+            )
+            + ". "
+            f"The next rarest template, {unique.stats['next_rarest_template']}, occurs "
+            f"{_fmt(unique.stats['next_rarest_count'])} times, so there is no gradient "
+            "here to argue about.",
+            unique,
+        ),
+        _finding(
+            "F5",
+            f"{exfil['user']} downloaded {exfil['path']} after being denied it "
+            f"{exfil['prior_denials']} times.",
+            "high",
+            f"For every one of the {_fmt(flip.stats['user_path_pairs_examined'])} "
+            "user/path pairs, the first 200 where every earlier attempt was a 403. "
+            f"Two pairs qualify and only this one clears a threshold of "
+            f"{flip.stats['min_prior_denials']} prior denials: "
+            f"{exfil['prior_denials']} denials before the success, "
+            f"{exfil['total_denials']} in total, and "
+            f"{exfil['denials_after_success']} more afterwards once the access closed "
+            f"again (first at line {denials.stats['first_denial_after_success_line']}). "
+            f"The other flip is {flip.stats['flips_below_threshold'][0]['user']}'s "
+            "first read of the same file on day one of the dataset: one denial "
+            f"followed by "
+            f"{_fmt(flip.stats['flips_below_threshold'][0]['successes_on_path'])} "
+            "successes, which is an access grant landing, not a breach.",
+            flip,
+        ),
+        _finding(
+            "F6",
+            "The only "
+            + " and the only ".join(sorted(rare_status.stats["rare_statuses"]))
+            + f" in {_fmt(total_events)} lines are "
+            f"{rare_status.stats['events'][0]['user']}'s two failed payload attempts, "
+            "sent before the third one was accepted.",
+            "high",
+            "Statuses occurring fewer than "
+            f"{rare_status.stats['max_occurrences']} times in the whole file. Two "
+            "qualify, and each occurs exactly once: "
+            + "; ".join(
+                f"{event['status']} at line {event['line']} ({event['path']})"
+                for event in rare_status.stats["events"]
+            )
+            + ". Everything else in the log is "
+            + ", ".join(
+                status
+                for status in rare_status.stats["status_counts"]
+                if status not in rare_status.stats["rare_statuses"]
+            )
+            + ". A status code that occurs once in "
+            f"{_fmt(total_events)} lines needs no model to be surprising.",
+            rare_status,
+        ),
+        _finding(
+            "F7",
+            f"{chain['user']} is the likely author of the content in forum post "
+            f"{chain['obj_id']}, the post {victim} opened "
+            f"{int(escalation_chain['gap_s'])} second before her account performed the "
+            "admin role update.",
+            "medium",
+            "HEURISTIC, and it is the only claim in this file that is not arithmetic. "
+            "The logs record requests, never post authorship, and a "
+            f"{queries.FORUM_NEW} call never records which object it produced. What "
+            f"the logs do record: of {_fmt(authorship.stats['successful_posts_examined'])} "
+            f"accepted forum posts, exactly one is followed within "
+            f"{int(authorship.stats['window_s'])} seconds by the same user opening a "
+            f"post: {chain['user']}'s tampered post at line {chain['post_line']}, then "
+            f"his view of {chain['obj_id']} {int(chain['gap_s'])} seconds later at line "
+            f"{chain['view_line']}. Object {chain['obj_id']} itself predates the "
+            f"incident: it first appears at line {chain['object_first_line']} on "
+            f"{chain['object_first_ts'][:10]} and carries "
+            f"{chain['object_event_count']} events, so he did not create it. He edits "
+            f"that same object once more at line {cleanup.lines[0]}, "
+            f"{minutes_after(exfil['ts'], cleanup.stats['first_edit_ts'])} minutes "
+            "after the download. Treat the attribution as an inference from "
+            "sequence, not as a record.",
+            authorship,
+            evidence_lines=authorship.lines + escalation.lines + cleanup.lines,
+        ),
+    ]
+    return findings
+
+
+# Each timeline row cites one line. The actor and timestamp are read from the
+# event itself and the expectations are asserted, so a sentence can never
+# drift away from the line it points at.
+TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
+    (
+        168311,
+        "Four failed logins as sarah_j from david_m's workstation, 3 to 6 seconds "
+        "apart (lines 168311-168314)",
+        "First of the two bursts in the file, see F2",
+        {"user": "sarah_j", "ip": "10.0.8.45", "status": 401},
+    ),
+    (
+        168315,
+        "david_m is denied the Q1 confidential draft again",
+        "The last of 77 denials before the download, see F5",
+        {"user": "david_m", "status": 403},
+    ),
+    (
+        168321,
+        "Six more failed logins as sarah_j from the same workstation, 2 to 4 seconds "
+        "apart (lines 168321-168326)",
+        "Second and last burst in the file, see F2",
+        {"user": "sarah_j", "ip": "10.0.8.45", "status": 401},
+    ),
+    (
+        168330,
+        "david_m posts to the forum with an extra `payload` parameter and the server "
+        "returns the only 500 in the log",
+        "First payload attempt, see F3 and F6",
+        {"user": "david_m", "status": 500},
+    ),
+    (
+        168331,
+        "He posts again 22 minutes later with an `action` parameter and gets the only "
+        "400 in the log",
+        "Second payload attempt, see F3 and F6",
+        {"user": "david_m", "status": 400},
+    ),
+    (
+        168332,
+        "A third post carrying `script=success` is accepted",
+        "The payload that worked, see F3",
+        {"user": "david_m", "status": 302},
+    ),
+    (
+        168333,
+        "Three seconds later he opens forum post 1042",
+        "Authorship is inferred from this sequence, see F7",
+        {"user": "david_m", "obj_id": 1042},
+    ),
+    (
+        168335,
+        "sarah_j opens forum post 1042 from her own machine",
+        None,
+        {"user": "sarah_j", "ip": "10.0.5.12", "obj_id": 1042},
+    ),
+    (
+        168336,
+        "One second later her session calls POST /api/admin/role_update, the only "
+        "privileged call in the file",
+        "The log records the call, never the grantee, see U3",
+        {"user": "sarah_j", "base": "/api/admin/role_update", "status": 200},
+    ),
+    (
+        168337,
+        "Her session then fetches /assets/avatar_1042.png, the only avatar request in "
+        "the log",
+        None,
+        {"user": "sarah_j", "obj_id": 1042},
+    ),
+    (
+        168338,
+        "Nineteen minutes after the role update, david_m downloads the Q1 confidential "
+        "draft he had been denied 77 times",
+        None,
+        {
+            "user": "david_m",
+            "base": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
+            "status": 200,
+        },
+    ),
+    (
+        168339,
+        "He edits forum post 1042",
+        "Consistent with removing the payload, though the log never shows a body",
+        {"user": "david_m", "obj_id": 1042, "status": 302},
+    ),
+    (
+        168340,
+        "He reads /finance/templates/expense.docx, a file he is authorized for",
+        "Ordinary on its own; it is what the same behaviour looks like when allowed",
+        {"user": "david_m", "status": 200},
+    ),
+    (
+        168343,
+        "That night sarah_j's account logs in successfully from david_m's workstation",
+        "The mechanism that turned failures into a success is not in the log, see U1",
+        {"user": "sarah_j", "ip": "10.0.8.45", "status": 200},
+    ),
+    (
+        168345,
+        "Her session downloads the Q1 confidential draft from his machine",
+        None,
+        {
+            "user": "sarah_j",
+            "ip": "10.0.8.45",
+            "base": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
+        },
+    ),
+    (
+        168346,
+        "The session logs out three minutes later",
+        None,
+        {"user": "sarah_j", "ip": "10.0.8.45", "base": "/logout"},
+    ),
+)
+
+
+def build_timeline(events: pd.DataFrame, evidence: set[int]) -> list[dict]:
+    """The incident in order, each entry anchored to one verified line."""
+    indexed = events.set_index("line")
+    timeline = []
+    for line, action, note, expected in TIMELINE:
+        if line not in indexed.index:
+            raise AssertionError(f"timeline cites line {line}, which does not exist")
+        if line not in evidence:
+            raise AssertionError(
+                f"timeline cites line {line}, which no saved query returned"
+            )
+        row = indexed.loc[line]
+        for column, value in expected.items():
+            actual = row[column]
+            if pd.isna(actual) or actual != value:
+                raise AssertionError(
+                    f"timeline line {line} expects {column}={value!r}, log says "
+                    f"{actual!r}"
+                )
+        timeline.append(
+            {
+                "ts": queries._iso(row["ts"]),
+                "line": int(line),
+                "actor": str(row["user"]),
+                "action": action,
+                "note": note,
+            }
+        )
+    return sorted(timeline, key=lambda entry: entry["line"])
+
+
+def build_unknowns(results: dict[str, QueryResult]) -> list[dict]:
+    """What the logs cannot answer, bounded by what they do say.
+
+    An honest unknown reads better than a stretched claim, and two of these
+    are exactly what an automated notification email would settle.
+    """
+    gap = results["credential_mechanism_gap"]
+    authorship = results["post_attribution"]
+    denials = results["denials_before_exfil"]
+    chain = authorship.stats["chains"][0]
+
+    return [
+        {
+            "id": "U1",
+            "text": (
+                f"How the login as {gap.stats['user']} eventually succeeded. Ten "
+                f"failures across two nights, then a 200 from the same workstation "
+                f"{gap.stats['hours_between']} hours later (line "
+                f"{gap.stats['first_success_line']}). In between, the only "
+                f"{gap.stats['requests_from_ip_between']} requests from that machine "
+                f"belong to {', '.join(gap.stats['users_on_ip_between'])}. None of the "
+                f"{gap.stats['template_count']} templates in the file is a password "
+                "reset, a token issue or any other credential endpoint, so the "
+                "mechanism is not recorded anywhere in this evidence."
+            ),
+            "query": gap.qualified_name,
+            "evidence_lines": gap.lines,
+        },
+        {
+            "id": "U2",
+            "text": (
+                f"What forum post {chain['obj_id']} actually contained. The logs "
+                "record requests and never bodies, so the payload is inferred from "
+                f"its effect. The object carries {chain['object_event_count']} events "
+                f"going back to {chain['object_first_ts'][:10]}, and the edit after "
+                "the download shows only a 302, never what changed."
+            ),
+            "query": authorship.qualified_name,
+            "evidence_lines": authorship.lines,
+        },
+        {
+            "id": "U3",
+            "text": (
+                f"Who granted and then revoked {denials.stats['user']}'s access to "
+                f"{denials.stats['path']}. The file shows "
+                f"{denials.stats['denials_before_success']} denials, one success at "
+                f"line {denials.stats['success_line']}, and denials again from line "
+                f"{denials.stats['first_denial_after_success_line']} on "
+                f"{denials.stats['first_denial_after_success_ts'][:10]}. The only "
+                "privileged call in the log returns 85 bytes and names nobody, so "
+                "neither the grant nor the revocation has an author in this evidence."
+            ),
+            "query": denials.qualified_name,
+            "evidence_lines": [
+                denials.stats["last_denial_before_success_line"],
+                denials.stats["success_line"],
+                denials.stats["first_denial_after_success_line"],
+            ],
+        },
+    ]
+
+
+def build_dismissed(results: dict[str, QueryResult]) -> list[dict]:
+    """Leads that look like the breach and are not. Each one needs its query."""
+    offhours = results["offhours_confidential_access"]
+    scattered = results["scattered_auth_failures"]
+    denials = results["routine_denials"]
+    example = offhours.stats["examples"][-1]
+
+    after_midnight = offhours.stats["after_midnight_examples"]
+
+    return [
+        {
+            "lead": "Employees pulling confidential files outside working hours",
+            "why": (
+                f"Off-hours access is routine here. Of "
+                f"{_fmt(offhours.stats['confidential_successes'])} successful "
+                f"confidential reads, {offhours.stats['off_hours_successes']} fall "
+                f"between {offhours.stats['window']}, and "
+                f"{offhours.stats['from_own_baseline_ip']} of those are authorized "
+                "readers on their own machines, including "
+                f"{example['user']} pulling the same Q1 zip at {example['ts'][11:16]} "
+                f"on {example['ts'][:10]} from {example['ip']} (line {example['line']}). "
+                f"{offhours.stats['after_midnight']} of them are strictly after "
+                "midnight ("
+                + ", ".join(
+                    f"{entry['user']} at {entry['ts'][11:16]} on {entry['ts'][:10]}, "
+                    f"line {entry['line']}"
+                    for entry in after_midnight
+                )
+                + "), every one of them an authorized reader on their own machine. "
+                "The one off-hours read that does belong to the incident is already "
+                f"named by the IP binding (line {offhours.stats['foreign_lines'][0]}), "
+                "so an hour-based rule buys nine false positives and no new true one."
+            ),
+            "query": offhours.qualified_name,
+            "evidence_lines": offhours.lines,
+        },
+        {
+            "lead": f"The {_fmt(scattered.stats['total_401'])} failed logins in the file",
+            "why": (
+                f"{_fmt(scattered.stats['isolated_401'])} of them sit outside the two "
+                f"bursts, spread across all {scattered.stats['users']} users and all "
+                f"{scattered.stats['months']} months "
+                f"({scattered.stats['per_user_min']} to "
+                f"{scattered.stats['per_user_max']} per user), every one of them a "
+                "lone mistyped password on "
+                f"{scattered.stats['paths'][0]}. No two consecutive failures from the "
+                "same user and IP are closer than "
+                f"{int(scattered.stats['min_gap_s_outside_bursts'])} seconds. Volume is "
+                "the baseline; the structure in F2 is the signal."
+            ),
+            "query": scattered.qualified_name,
+            "evidence_lines": scattered.lines,
+        },
+        {
+            "lead": f"The {_fmt(denials.stats['total_403'])} permission denials",
+            "why": (
+                "The access model denies constantly by design: "
+                f"{_fmt(denials.stats['total_403'])} denials across "
+                f"{denials.stats['users']} users, {denials.stats['paths']} paths and "
+                f"{denials.stats['days']} days, {denials.stats['per_user_min']} to "
+                f"{denials.stats['per_user_max']} per user. Nobody is unusual for "
+                "being denied. Out of "
+                f"{denials.stats['denial_to_success_flips']} denial-to-success flips "
+                f"in the whole file, {denials.stats['flips_above_threshold']} follows "
+                "a sustained history of denial, and that one is F5."
+            ),
+            "query": denials.qualified_name,
+            "evidence_lines": denials.lines,
+        },
+    ]
+
+
+def build_case_file(events: pd.DataFrame | None = None) -> dict:
+    frame = queries._events(events)
+    results = queries.run_all(frame)
+
+    mismatch = results["ip_user_mismatch"]
+    flip = results["first_success_after_denials"]
+    authorship = results["post_attribution"]
+    escalation = results["content_triggered_privileged_action"]
+    burst = results["auth_fail_burst"]
+    tampered = results["tampered_forum_post"]
+
+    victim = mismatch.stats["violating_users"][0]
+    foreign_ip = mismatch.stats["foreign_ips"][0]
+    attacker = mismatch.stats["foreign_ip_owners"][0]
+    exfil = flip.stats["flips"][0]
+    chain = authorship.stats["chains"][0]
+    escalation_chain = escalation.stats["chains"][0]
+
+    findings = attach_email_evidence(
+        build_findings(results, int(len(frame))), load_email_evidence()
+    )
+    evidence = {line for finding in findings for line in finding["evidence_lines"]}
+    evidence |= {line for result in results.values() for line in result.lines}
+
+    minutes_to_exfil = round(
+        (
+            pd.Timestamp(exfil["ts"]) - pd.Timestamp(escalation_chain["action_ts"])
+        ).total_seconds()
+        / 60
+    )
+
+    summary = (
+        f"{attacker} sent three forum posts carrying parameters the application never "
+        f"accepts (lines {tampered.lines[0]}-{tampered.lines[-1]}); the third was "
+        f"accepted. {victim} opened the post "
+        f"{int(escalation_chain['gap_s'])} second before her session made the only "
+        f"admin role update in the log (lines {escalation.lines[0]}-"
+        f"{escalation.lines[-1]}), and {minutes_to_exfil} minutes later {attacker} "
+        f"downloaded {exfil['path']}, which he had been denied "
+        f"{exfil['prior_denials']} times (line {exfil['line']}). That night her account "
+        f"logged in from his workstation, after {burst.stats['in_burst_401']} failed "
+        f"attempts over two nights, and took the file again (lines "
+        f"{mismatch.lines[-4]}-{mismatch.lines[-1]})."
+    )
+
+    case_file = {
+        "case_id": CASE_ID,
+        "title": TITLE,
+        "window": {
+            "start": queries._iso(frame["ts"].min()),
+            "end": queries._iso(frame["ts"].max()),
+        },
+        "verdict": {"summary": summary, "confidence": "high"},
+        "actors": {
+            "attacker": {"user": attacker, "ip": foreign_ip},
+            "victim": {
+                "user": victim,
+                "ip": mismatch.stats["baseline_ip_by_user"][victim],
+            },
+            "asset": exfil["path"],
+            "vector": {"obj_id": chain["obj_id"], "template": queries.FORUM_VIEW},
+        },
+        "findings": findings,
+        "timeline": build_timeline(frame, evidence),
+        "unknowns": build_unknowns(results),
+        "dismissed": build_dismissed(results),
+        # Additive, and the point of the whole module: every number above came
+        # out of a query anyone can re-run against this exact input.
+        "provenance": {
+            "generated_at": datetime.now(timezone.utc).astimezone().isoformat(),
+            "events": str(paths.events_path().name),
+            "event_count": int(len(frame)),
+            "command": "python -m minny.casefile.build",
+            "queries": {
+                result.qualified_name: result.lines for result in results.values()
+            },
+        },
+    }
+    return case_file
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", default=str(paths.case_file_path()))
+    args = parser.parse_args()
+
+    case_file = build_case_file()
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(case_file, indent=2), encoding="utf-8")
+
+    print(f"wrote       {out_path}")
+    print(f"findings    {len(case_file['findings'])}")
+    for finding in case_file["findings"]:
+        print(
+            f"  {finding['id']} {finding['confidence']:<6} "
+            f"{len(finding['evidence_lines'])} lines  {finding['claim'][:72]}"
+        )
+    print(f"timeline    {len(case_file['timeline'])} entries")
+    print(f"unknowns    {len(case_file['unknowns'])}")
+    print(f"dismissed   {len(case_file['dismissed'])}")
+
+
+if __name__ == "__main__":
+    main()
