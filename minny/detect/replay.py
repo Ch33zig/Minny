@@ -65,6 +65,18 @@ IDLE_POLL_S = 0.2
 # detector. Below the floor the event is simply due now.
 MIN_SLEEP_S = 0.002
 
+# How far behind its own schedule the replay will try to catch up. Each
+# event's deadline is measured from the previous event's deadline rather
+# than from the moment the previous one actually came out, so a wait that
+# overran is absorbed by the next gap instead of being added to it. Without
+# that, every overshoot compounds: measured over two days of March at the
+# default speed, the loop asked for 7,040 ms of sleep and spent 11,907 ms,
+# because a timer that rounds every request up to a 16 ms tick overshoots by
+# about 9.8 ms each time and 496 waits carried the error forward. The clamp
+# is what stops a paused or stalled replay from sprinting through a backlog
+# when it resumes; past this much lateness the schedule restarts from now.
+MAX_CATCHUP_S = 0.25
+
 # Checked between events. A stat call per event would be wasteful and a
 # reload per minute would be too slow to demo, so the rules file is polled on
 # a wall-clock interval.
@@ -560,6 +572,27 @@ class ReplayEngine:
             delay = min(delay, float(self.max_gap_s))
         return delay
 
+    def _schedule(self, ts: datetime) -> float:
+        """When this event is due, measured from the last deadline.
+
+        Anchoring on `self.clock()` instead would make the schedule relative
+        to when the previous event actually came out, which folds every
+        scheduler overshoot into the next gap and compounds it. The span
+        counters on a paced run are what made that visible: the loop was
+        asking for 7.0 seconds of sleep across two days of March and taking
+        11.9, so a replay advertising six log-hours per second was delivering
+        about four.
+
+        Only wall-clock timing changes. The event order, the log timestamps,
+        the alerts and the incidents are all unaffected, because none of them
+        has ever been a function of when the emitting thread woke up.
+        """
+        now = self.clock()
+        anchor = self._due_at
+        if anchor <= 0.0 or anchor < now - MAX_CATCHUP_S:
+            anchor = now
+        return anchor + self._delay_for(ts)
+
     def _maybe_reload_rules(self) -> bool:
         if self.rules is None:
             return False
@@ -636,7 +669,7 @@ class ReplayEngine:
                 key = (event.ts, event.line, from_queue)
                 if self._chosen_key != key:
                     self._chosen_key = key
-                    self._due_at = self.clock() + self._delay_for(event.ts)
+                    self._due_at = self._schedule(event.ts)
                 remaining = self._due_at - self.clock()
                 if remaining > MIN_SLEEP_S:
                     self._paced_wait(remaining)
