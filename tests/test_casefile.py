@@ -257,6 +257,29 @@ def test_case_file_matches_the_contract_shape(case_file):
     assert case_file["window"]["start"].endswith("-04:00")
 
 
+def test_the_source_rail_names_the_file_it_read(case_file):
+    source = case_file.get("source")
+    if source is None:
+        pytest.skip("data/logs.txt is shared out of band")
+    assert source["file"].endswith("logs.txt")
+    assert source["lines"] == 180800
+    assert len(source["sha256"]) == 64
+    assert source["sha256"] == build.sha256_of(paths.logs_path())
+
+
+def test_a_missing_log_drops_the_source_rail_and_nothing_else(monkeypatch, tmp_path):
+    monkeypatch.setattr(build.paths, "logs_path", lambda: tmp_path / "absent.txt")
+    assert build.build_source() is None
+
+
+def test_the_verdict_carries_a_basis_a_judge_can_check(case_file):
+    basis = case_file["verdict"]["basis"]
+    # Counts over the whole file, and the single inference named as one.
+    assert "180,800" in basis
+    assert "not scores" in basis
+    assert "F7" in basis
+
+
 def test_every_finding_is_backed_by_a_re_runnable_query(case_file, events):
     assert [finding["id"] for finding in case_file["findings"]] == [
         f"F{n}" for n in range(1, 8)

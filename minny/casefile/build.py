@@ -20,12 +20,14 @@ from pathlib import Path
 import pandas as pd
 
 from minny import paths
+from minny.build_events import sha256_of
 from minny.casefile import queries
 from minny.casefile.queries import QueryResult
 
 CASE_ID = "minny-2026-q1"
 TITLE = "Unauthorized access to the Q1 confidential draft"
 CONFIDENCE_VALUES = ("high", "medium", "low")
+NEWLINE = b"\n"
 
 
 def _fmt(number: int | float) -> str:
@@ -64,6 +66,33 @@ def _finding(
         "evidence_lines": lines,
         "evidence_emails": evidence_emails or [],
         "query": result.qualified_name,
+    }
+
+
+def build_source() -> dict | None:
+    """Provenance for the raw log: which file, how many lines, which bytes.
+
+    Additive and optional. The log is shared out of band, so a checkout
+    without it still builds a case file; the UI simply renders no hash in the
+    rail. The hash is what lets anyone else prove they read the same file.
+    """
+    path = paths.logs_path()
+    if not path.exists():
+        return None
+
+    lines = 0
+    tail = NEWLINE
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            lines += chunk.count(NEWLINE)
+            tail = chunk[-1:]
+    if tail not in (NEWLINE, b""):
+        lines += 1
+
+    return {
+        "file": f"{path.parent.name}/{path.name}",
+        "lines": lines,
+        "sha256": sha256_of(path),
     }
 
 
@@ -631,6 +660,8 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
     burst = results["auth_fail_burst"]
     tampered = results["tampered_forum_post"]
     denials = results["denials_before_exfil"]
+    unique = results["globally_unique_templates"]
+    rare_status = results["anomalous_status"]
 
     victim = mismatch.stats["violating_users"][0]
     foreign_ip = mismatch.stats["foreign_ips"][0]
@@ -666,6 +697,19 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
         f"{mismatch.lines[-4]}-{mismatch.lines[-1]})."
     )
 
+    # One sentence under the verdict for the reader who wants to know why any
+    # of this should be believed before they read seven findings.
+    basis = (
+        f"{len(mismatch.lines)} of {_fmt(len(frame))} lines break the one user, one "
+        "IP binding; the only "
+        + " and the only ".join(sorted(rare_status.stats["rare_statuses"]))
+        + f" in the file are {attacker}'s two failed payload attempts; and "
+        f"{len(unique.stats['unique_templates'])} templates occur exactly once, one "
+        "of them the single admin role update. Those are counts over the whole file, "
+        f"not scores. The one inference is who wrote post {chain['obj_id']}, and F7 "
+        "carries medium confidence for it."
+    )
+
     case_file = {
         "case_id": CASE_ID,
         "title": TITLE,
@@ -673,7 +717,10 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
             "start": queries._iso(frame["ts"].min()),
             "end": queries._iso(frame["ts"].max()),
         },
-        "verdict": {"summary": summary, "confidence": "high"},
+        # Additive: the UI puts this in the provenance rail, and renders
+        # without it when the raw log is not on this machine.
+        "source": build_source(),
+        "verdict": {"summary": summary, "confidence": "high", "basis": basis},
         "actors": {
             "attacker": {"user": attacker, "ip": foreign_ip},
             "victim": {
@@ -707,6 +754,8 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
             },
         },
     }
+    if case_file["source"] is None:
+        del case_file["source"]
     return case_file
 
 
