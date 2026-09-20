@@ -82,13 +82,10 @@ export async function render(container) {
   if (new URLSearchParams(location.search).get('autoplay') === '1') stream.start();
 }
 
-export function enter() {
-  if (stream && !running && incidents.size === 0) {
-    // leave it paused; the operator presses play
-  }
-}
-
-export function leave() { /* the stream keeps running in the background */ }
+// The replay is never started for you: an analyst presses play, and it keeps
+// running in the background while other views are open.
+export function enter() {}
+export function leave() {}
 
 export function togglePlay() {
   if (!stream) return;
