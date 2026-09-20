@@ -8,7 +8,7 @@ Rules that apply to all of them:
 
 - **`line` is the universal event ID.** 1-indexed line number in the original `logs.txt`. Every alert, finding, incident, and variant refers to evidence by line number, and any of them can be resolved to raw text through `GET /api/events`.
 - **Logs are primary evidence; email is corroborating evidence.** Anything sourced from the mailbox lives in a separate `evidence_emails` array and can raise a claim's richness but never its confidence above `medium` on its own. See section 13.
-- **Timestamps are ISO 8601 with offset**, preserving the dataset's UTC−4: `2026-03-15T14:32:07-04:00`. Never serialize a naive datetime.
+- **Timestamps are ISO 8601 with offset**, preserving the dataset's fixed −04:00: `2026-03-15T11:26:59-04:00`. Never serialize a naive datetime.
 - **Unknown is `null`, never `0` or `""`.** A missing IP owner is `null`; it is not "unknown".
 - **Additive changes only after the freeze.** Adding a field is free, renaming one is not.
 
@@ -100,7 +100,7 @@ Fit on `ts < 2026-03-01` only. March is held out and must never touch this file,
   "users": {
     "sarah_j": {
       "ips": ["10.0.5.12"],
-      "allowed_paths": ["/dashboard", "/finance/reports/q1_draft_CONFIDENTIAL.zip", "/api/admin/role_update"],
+      "allowed_paths": ["/dashboard", "/finance/reports/q1_draft_CONFIDENTIAL.zip"],
       "denied_paths": ["/hr/directory_full_CONFIDENTIAL.csv"],
       "templates_seen": ["/dashboard", "/intranet/forum/view/{id}"],
       "hour_hist": { "0": 3, "9": 412, "14": 380 },
@@ -108,16 +108,19 @@ Fit on `ts < 2026-03-01` only. March is held out and must never touch this file,
     }
   },
   "global": {
-    "template_freq": { "/dashboard": 41022, "/api/admin/role_update": 0 },
+    "template_freq": { "/dashboard": 16572, "/intranet/forum/view/{id}": 18385 },
     "param_keys": { "/intranet/forum/new": ["topic"], "/api/auth/login": [] },
-    "privileged_templates": ["/api/admin/role_update"]
+    "privileged_templates": [],
+    "privileged_rule": { "prefixes": ["/api/admin/"], "rare_post_success_k": 100 }
   }
 }
 ```
 
-`allowed_paths` means at least one `200`. `denied_paths` means at least one `403` and zero `200`s. `privileged_templates` is everything under `/api/admin/` plus any template seen fewer than *k* times globally that returns `200` to a `POST`; B picks and records *k*.
+`allowed_paths` means at least one `200`. `denied_paths` means at least one `403` and zero `200`s.
 
-`hour_hist` exists for explanation text only. **It never triggers an alert**: the dataset contains legitimate off-hours access, including routine after-midnight downloads of the same confidential zip by its authorized readers from their own IPs. Alerting on hours would fire on her and make the demo an argument instead of a story.
+`privileged_templates` comes back **empty on this dataset, and that is correct**. The baseline window contains no `/api/admin/` traffic at all, so listing the endpoint would mean reading it out of March, which is the detector peeking at the answer. Store `privileged_rule` instead and evaluate it at detection time. The rule also catches a renamed endpoint, since a `POST` returning `200` on a template the baseline never saw is privileged whatever it is called, which is what survives the red team's rename operators.
+
+`hour_hist` exists for explanation text only. **It never triggers an alert.** The dataset contains legitimate off-hours access, including one after-midnight read of the same confidential zip by an authorized reader from her own IP, at 00:19 on 6 March, line 162048. Alerting on hours would fire on her and turn the demo into an argument about false positives instead of a story about the attacker.
 
 Load target: under one second, and it answers "has user X ever succeeded on Y, used IP Z, or sent param P to template T" without a scan.
 
@@ -128,7 +131,7 @@ One alert per signal firing on one event.
 ```json
 {
   "alert_id": "a_0f3c21",
-  "ts": "2026-03-15T14:32:07-04:00",
+  "ts": "2026-03-15T11:26:59-04:00",
   "signal": "S1",
   "signal_name": "ip_mismatch",
   "severity": "high",
@@ -167,7 +170,7 @@ Alerts sharing an entity (user, IP, IP owner, `obj_id`, or target file) within a
   "narrative": [
     { "ts": "2026-03-15T13:58:11-04:00", "text": "david_m posted to the forum with unusual query parameters.", "lines": [168330, 168331, 168332] },
     { "ts": "2026-03-15T14:12:40-04:00", "text": "sarah_j viewed post 1042, and one second later her account performed an admin role update.", "lines": [168335, 168336] },
-    { "ts": "2026-03-15T14:32:07-04:00", "text": "david_m downloaded a file he had been denied 80+ times before.", "lines": [168338] }
+    { "ts": "2026-03-15T11:26:59-04:00", "text": "david_m downloaded a file he had been denied 80+ times before.", "lines": [168338] }
   ],
   "alerts": ["a_0f3c21"],
   "evidence_lines": [168330, 168331, 168332, 168335, 168336, 168338, 168343],
@@ -211,7 +214,7 @@ The UI renders the entire case file from this file alone, with no other source.
     },
     {
       "id": "F7",
-      "claim": "david_m was granted access to the finance group at 14:13 on 15 March, one second after sarah_j viewed post 1042.",
+      "claim": "david_m was granted access to the finance group at 11:07:57 on 15 March, one second after sarah_j opened post 1042.",
       "confidence": "medium",
       "method": "The log shows sarah_j's account calling /api/admin/role_update. The mailbox shows the resulting automated notification, which names the grantee the log does not record.",
       "evidence_lines": [168336],
@@ -230,9 +233,9 @@ The UI renders the entire case file from this file alone, with no other source.
   "dismissed": [
     {
       "lead": "Employees accessing files after midnight",
-      "why": "Off-hours access is routine here, including sarah_j pulling this same zip at 00:19 on 6 March from her own IP.",
+      "why": "Four confidential reads fall outside business hours across eight months, every one by an authorized reader on their own workstation. Exactly one touches this zip: sarah_j at 00:19 on 6 March from 10.0.5.12.",
       "query": "casefile.queries.offhours_access",
-      "evidence_lines": [161204]
+      "evidence_lines": [162048]
     }
   ]
 }
@@ -344,11 +347,11 @@ So Gmail is **both** an output channel and an evidence source. This section cove
   "source": "gmail",
   "message_id": "18f2c9a1b4d7",
   "thread_id": "18f2c9a1b4d0",
-  "ts": "2026-03-15T14:13:02-04:00",
+  "ts": "2026-03-15T11:07:58-04:00",
   "from": "no-reply@intranet.example.com",
   "to": ["sarah.j@example.com"],
   "subject": "Role updated: david.m added to finance-confidential",
-  "snippet": "david.m was added to the group finance-confidential by sarah.j at 14:13 EDT.",
+  "snippet": "david.m was added to the group finance-confidential by sarah.j at 11:07 EDT.",
   "category": "permission_change",
   "matched_entities": { "users": ["david_m", "sarah_j"], "assets": [], "groups": ["finance-confidential"], "ips": [] },
   "linked_lines": [168336],
@@ -410,7 +413,7 @@ Errors are `{"error": {"code": "...", "message": "..."}}` with a real HTTP statu
 Every frame is one JSON object on one `data:` line:
 
 ```json
-{ "type": "alert", "seq": 1042, "ts": "2026-03-15T14:32:07-04:00", "data": { } }
+{ "type": "alert", "seq": 1042, "ts": "2026-03-15T11:26:59-04:00", "data": { } }
 ```
 
 `type` is one of `event`, `alert`, `incident`, `replay_state`, or `heartbeat`. `data` holds the object from the matching section above; `replay_state` carries `{running, speed_hours_per_second, cursor_ts, events_emitted}`. A heartbeat every 15 seconds keeps proxies from closing the stream. `seq` increases monotonically so the UI can detect a gap after a reconnect.

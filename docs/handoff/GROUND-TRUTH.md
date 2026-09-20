@@ -94,6 +94,12 @@ So the defensible chain is:
 
 1042 is the vector by **temporal association**. Anyone saying "David planted the post" on stage is asserting something the logs do not contain. Say "David was at the vector immediately before and after": it is just as damning and it survives cross-examination.
 
+## Off-hours access, and why it is a dismissed lead rather than a finding
+
+Four confidential reads fall outside business hours across eight months. Every one is an authorized reader on their own workstation, so the pattern is ordinary. **Exactly one of them touches the Q1 zip**: sarah_j at 00:19 on 6 March from 10.0.5.12, line 162048.
+
+Do not describe after-hours downloads of this file as "routine" on stage. One is not routine. The defensible sentence is that off-hours access happens here and every instance outside the incident belongs to someone entitled to the file, working from their own machine.
+
 ## Access model
 
 Fitted on the pre-March window, so the attack cannot enrol the attacker as an authorized reader. Full detail in `data/access_matrix.json`.
@@ -109,7 +115,7 @@ Fitted on the pre-March window, so the attack cannot enrol the attacker as an au
 | `/hr/policies_2026.pdf` | michael_t | 9 |
 | `/it/scripts/backup.sh` | amanda_l | 9 |
 
-**`david_m` was denied the Q1 zip exactly 80 times, then succeeded exactly once**, on line 168338. `sarah_j` succeeded 1,528 times and `nicole_h` 1,532, which is what ordinary authorized use looks like.
+**`david_m` was denied the Q1 zip 77 times, then succeeded exactly once**, on line 168338. Three further denials follow on 27 March once access closed again (line 178028), which is the evidence behind unknown U3, so the whole-file count is 80. `sarah_j` succeeded 1,528 times and `nicole_h` 1,532, which is what ordinary authorized use looks like.
 
 Three confidential files with three different authorized sets gives C real material for `target_swap` and `victim_swap`.
 
