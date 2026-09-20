@@ -19,8 +19,8 @@ Your track is over-budget (roughly 13 hours of estimate in a 9.5-hour window), s
 - [ ] **00:00** Switch case file and monitor to the real API; report mismatches to A and B immediately
 - [x] **01:00** Judge panel built; posts to `POST /api/redteam/generate` in live mode (**C4**)
 - [x] **02:00** Metrics panel and blue-agent panel from JSON (fixtures flagged as placeholders until C generates)
-- [ ] **03:00** M8: Slack alert fires; Gmail evidence sync returns real messages (**C5**)
-- [ ] **04:00** GitHub PR on accepted rule, or cut
+- [x] **03:00** M8: Slack alert fires; Gmail evidence sync returns real messages (**C5**)
+- [x] **04:00** GitHub PR on accepted rule, or cut
 - [ ] **05:00** Freeze, mock path re-verified end to end
 
 ## M7: the UI (start now, finish by 03:00)
@@ -114,9 +114,52 @@ Built and verified against the fixtures. Open `python web/serve.py` then
 | Metrics | Every figure from `metrics.json`, with a placeholder ribbon until the evaluation is actually run. |
 | Blue agent | Accepted rule beside the rejected `csrf` rule, with per-check gate results and before/after numbers. |
 
-Not started, for the next wave: M8 (Slack out, Gmail evidence sync,
-`routes_integrations.py`), and switching both case file and monitor onto the
+Not started, for the next wave: switching both case file and monitor onto the
 live API once A and B are up.
+
+## Wave 2 state: M8
+
+`minny/integrations/` is built and `minny/api/routes_integrations.py` is wired.
+Everything below works with **no credentials on the machine**, which is the
+state this repository is in and the state the demo runs in.
+
+| Capability | Tool slug | Mock mode does | Credentials would add |
+|---|---|---|---|
+| `slack.post` | `SLACK_CHAT_POST_MESSAGE` | Assembles and returns the exact text, with the recorded Slack envelope | The actual post and a real message `ts` |
+| `gmail.read` | `GMAIL_FETCH_EMAILS` | Runs the three bounded queries against the recorded mailbox and writes the evidence store | The same queries against a real account |
+| `gmail.send` | `GMAIL_SEND_EMAIL` | Reported as a separate capability, not exercised | The notification channel in document 08 |
+| `github.pr` | `GITHUB_CREATE_A_PULL_REQUEST` | Produces the exact pull request body and stores it as an artifact | The branch, the commit and the PR URL |
+
+Run it: `python -m minny.integrations.gmail_evidence` writes
+`data/email_evidence.json`, or `POST /api/integrations/gmail/sync` does the
+same thing from the UI.
+
+### What the other tracks should know
+
+1. **`data/email_evidence.json` exists.** Five section 11 objects, four of them
+   linked. B's correlator can attach `evidence_emails` by reading
+   `linked_lines` on each message: any incident whose `evidence_lines`
+   intersect a message's `linked_lines` may carry that `evidence_id`. Nothing
+   in the file feeds a signal and nothing in it may raise a confidence.
+2. **The messages that matter to A's unknowns.** `gmail:18f2c9a1b4d7` names
+   the grantee behind line 168336, which is the sentence U3's grant half is
+   missing. `gmail:18f2c9a1b4e9` is the revocation. U1 stays open on purpose:
+   the only credential reset in the window belongs to `davidson.k`, which does
+   not normalize to `david_m`, and time proximity alone is never evidence.
+3. **Two additive fields on each message**, neither required by the contract:
+   `seeded_demo_mailbox` so any view can label the record, and `matched_by`
+   naming which bounded query returned it.
+4. **`GET /api/evidence/email` takes `?lines=` as well as `?ids=`.** It returns
+   the stored messages already pinned to those log lines. The case file view
+   uses it to hang corroboration under a finding without re-implementing the
+   linking rules.
+5. **Nothing here is on a critical path.** No route in this module is awaited by
+   the detector, the case file or the evaluation, and every vendor failure is a
+   200 that says nothing happened.
+6. **Delivery status is not detection status.** `GET /api/integrations/status`
+   reports one state per capability plus the last delivery attempt. There is no
+   single connected boolean anywhere, because Gmail read and Gmail send are two
+   grants.
 
 ### What the other tracks should know
 
