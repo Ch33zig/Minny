@@ -1,116 +1,3315 @@
 [
   {
-    "id": "R003",
-    "name": "slow credential guessing from a foreign host",
+    "id": "R002",
+    "name": "repeated login failures from a host the account does not own",
     "severity": "high",
     "proposed_by": "blue_agent",
-    "created_ts": "2026-09-20T02:14:00-04:00",
+    "created_ts": "2026-09-19T22:24:27-04:00",
     "evaded_family": "F1",
     "evaded_family_name": "credential_takeover",
+    "evaded_families": [
+      "F1",
+      "F4"
+    ],
+    "evaded_operator": "slow_guess",
     "evaded_operators": [
       "slow_guess"
     ],
-    "rationale": "The shipped burst detector keys on four failures inside ten minutes. Variants using slow_guess spread the same ten failures over eighteen hours and walk straight past it. Counting failures per day instead of per burst keeps the signal and loses the timing assumption.",
-    "when": "count(status=401, user=$u, window=24h) >= 5 AND ip_owner != $u",
-    "explain": "{user} failed to log in {count} times in 24 hours from {ip}, which belongs to {ip_owner}.",
+    "rationale": "S3 counts authentication failures inside a thirty second window. The 27 training variants spread 3 to 5 failures over up to 21.4 hours, so the burst never forms and the signal never fires. Counting the same failures per 24h and only from a host the account does not own keeps the claim and drops the timing assumption. The benign sample's worst run of failures from a host the account does not own is 0, so the threshold is set at 3.",
+    "when": "ip_owner != $u AND count(status=401, user=$u, ip=$ip, window=24h) >= 3",
+    "explain": "{user} failed to authenticate {count} times from {ip} within 24 hours, and that host does not belong to the account.",
     "parse": {
       "ok": true,
       "depth": 2,
-      "nodes": 7,
+      "nodes": 8,
       "error": null
+    },
+    "proposer": "deterministic",
+    "strategy": "auth_burst",
+    "derivation": {
+      "training_bursts": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5
+      ],
+      "smallest_training_burst": 3,
+      "widest_training_burst_s": 77146,
+      "benign_worst_foreign_burst": 0,
+      "window": "24h",
+      "threshold": 3
+    },
+    "in_sample": {
+      "parses": true,
+      "error": null,
+      "variants": 27,
+      "caught": 27,
+      "rate": 1.0,
+      "benign_sample_events": 6000,
+      "benign_hits": 0
+    },
+    "evidence": {
+      "operator": "slow_guess",
+      "evaded_signal": "S3",
+      "evaded_signal_name": "auth_fail_burst",
+      "suppression": {
+        "operator": "slow_guess",
+        "signal": "S3",
+        "signal_name": "auth_fail_burst",
+        "n": 46,
+        "fired": 0,
+        "rate": 0.0,
+        "control_n": 54,
+        "control_fired": 54,
+        "control_rate": 1.0,
+        "suppression": 1.0
+      },
+      "training_variants": 27,
+      "training_seeds": [
+        42
+      ],
+      "training_personas": [
+        "careful_insider"
+      ],
+      "training_variant_ids": [
+        "v_0005",
+        "v_0008",
+        "v_0017",
+        "v_0029",
+        "v_0032",
+        "v_0041",
+        "v_0044",
+        "v_0053",
+        "v_0068",
+        "v_0077",
+        "v_0080",
+        "v_0089",
+        "v_0092",
+        "v_0113",
+        "v_0116",
+        "v_0125",
+        "v_0128",
+        "v_0137",
+        "v_0149",
+        "v_0152",
+        "v_0161",
+        "v_0173",
+        "v_0176",
+        "v_0185",
+        "v_0188",
+        "v_0197",
+        "v_0200"
+      ],
+      "benign_sample_events": 6000,
+      "incident_lines": 26
+    },
+    "heldout": {
+      "operator": "slow_guess",
+      "variants": 40,
+      "seeds": [
+        4204,
+        4208,
+        4210,
+        4212,
+        4216,
+        4220,
+        4223,
+        4226,
+        4238,
+        4244,
+        4248,
+        4254,
+        4258,
+        4262,
+        4264,
+        4266,
+        4270,
+        4274,
+        4275,
+        4276,
+        4282,
+        4290,
+        4292,
+        4294,
+        4296,
+        4302,
+        4304,
+        4306,
+        4307,
+        4310,
+        4312,
+        4314,
+        4318,
+        4320,
+        4328,
+        4330,
+        4334,
+        4336,
+        4342,
+        4344
+      ],
+      "personas": [
+        "impatient_insider",
+        "outsider_with_stolen_credentials"
+      ],
+      "by_persona": {
+        "outsider_with_stolen_credentials": 37,
+        "impatient_insider": 3
+      },
+      "by_family": {
+        "F4": 37,
+        "F1": 3
+      },
+      "variant_ids": [
+        "h_0001",
+        "h_0002",
+        "h_0003",
+        "h_0004",
+        "h_0005",
+        "h_0006",
+        "h_0007",
+        "h_0008",
+        "h_0009",
+        "h_0010",
+        "h_0011",
+        "h_0012",
+        "h_0013",
+        "h_0014",
+        "h_0015",
+        "h_0016",
+        "h_0017",
+        "h_0018",
+        "h_0019",
+        "h_0020",
+        "h_0021",
+        "h_0022",
+        "h_0023",
+        "h_0024",
+        "h_0025",
+        "h_0026",
+        "h_0027",
+        "h_0028",
+        "h_0029",
+        "h_0030",
+        "h_0031",
+        "h_0032",
+        "h_0033",
+        "h_0034",
+        "h_0035",
+        "h_0036",
+        "h_0037",
+        "h_0038",
+        "h_0039",
+        "h_0040"
+      ],
+      "first_line": 190001,
+      "last_line": 190608
     },
     "gate": {
       "heldout_detection": {
         "threshold": 0.6,
-        "measured": 0.71,
-        "pass": true
+        "measured": 1.0,
+        "pass": true,
+        "variants": 40,
+        "caught": 40,
+        "seed_range": [
+          4204,
+          4344
+        ],
+        "personas": [
+          "impatient_insider",
+          "outsider_with_stolen_credentials"
+        ],
+        "evaded_signal": "S3"
       },
       "benign_fp_delta": {
         "budget": 2,
         "measured": 0,
-        "pass": true
+        "pass": true,
+        "stream": "March 2026 minus labeled incident lines",
+        "events": 22956,
+        "days": 31,
+        "alerts_before": 0,
+        "alerts_after": 0,
+        "incidents_after": 0,
+        "alerts_per_day_before": 0.0,
+        "alerts_per_day_after": 0.0,
+        "lines": []
       },
       "baseline_window_hits": {
         "required": 0,
         "measured": 0,
-        "pass": true
+        "pass": true,
+        "stream": "baseline window, August 2025 to February 2026",
+        "events": 157818,
+        "lines": []
       },
-      "accepted": true
+      "accepted": true,
+      "rejected_reason": null
     },
     "before_after": {
+      "measured_on": "held-out variants only",
+      "held_out_variants": 40,
       "family_detection": {
-        "before": 0.24,
-        "after": 0.71
+        "before": 1.0,
+        "after": 1.0
+      },
+      "overall_detection": {
+        "before": 1.0,
+        "after": 1.0
       },
       "benign_alerts_per_day": {
         "before": 0.0,
         "after": 0.0
       },
-      "overall_detection": {
-        "before": 0.58,
-        "after": 0.71
+      "evaded_signal": {
+        "signal": "S3",
+        "name": "auth_fail_burst",
+        "fired_before": 0,
+        "rate_before": 0.0
+      },
+      "rule_coverage": {
+        "before": 0.0,
+        "after": 1.0
+      },
+      "detection_without_s1": {
+        "before": 0.925,
+        "after": 1.0
+      },
+      "alerts_on_injected_lines": {
+        "before": 521,
+        "after": 666
+      },
+      "median_log_seconds_to_detect": {
+        "before": 0.0,
+        "after": 0.0
       }
     },
+    "real_incident": {
+      "gating": false,
+      "alerts": 8,
+      "lines": [
+        168313,
+        168314,
+        168321,
+        168322,
+        168323,
+        168324,
+        168325,
+        168326
+      ],
+      "labeled_lines_matched": [
+        168313,
+        168314,
+        168321,
+        168322,
+        168323,
+        168324,
+        168325,
+        168326
+      ],
+      "first_line": 168313,
+      "first_ts": "2026-03-13T23:10:28-04:00",
+      "explanation": "sarah_j failed to authenticate 3 times from 10.0.8.45 within 24 hours, and that host does not belong to the account."
+    },
     "status": "accepted",
+    "appended_to": "detection-rules/rules.yaml",
     "pull_request": null,
-    "placeholder": true
+    "rows": [
+      {
+        "variant_id": "h_0001",
+        "seed": 4204,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "business_hours"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 1,
+        "rule_lines": [
+          190003
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 16,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22973
+      },
+      {
+        "variant_id": "h_0002",
+        "seed": 4208,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "business_hours",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190020,
+          190021,
+          190022
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 13,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0003",
+        "seed": 4210,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190034,
+          190035
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 8,
+        "alerts_after": 10,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22967
+      },
+      {
+        "variant_id": "h_0004",
+        "seed": 4212,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "business_hours",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190045,
+          190046
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 14,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22971
+      },
+      {
+        "variant_id": "h_0005",
+        "seed": 4216,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 5,
+        "rule_lines": [
+          190060,
+          190068,
+          190069,
+          190070,
+          190071
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0006",
+        "seed": 4220,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190074,
+          190075
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 8,
+        "alerts_after": 10,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22967
+      },
+      {
+        "variant_id": "h_0007",
+        "seed": 4223,
+        "persona": "impatient_insider",
+        "family": "F1",
+        "operators": [
+          "slow_guess"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 7,
+        "rule_lines": [
+          190085,
+          190086,
+          190087,
+          190088,
+          190089,
+          190090,
+          190091
+        ],
+        "signals_before": [
+          "S1"
+        ],
+        "alerts_before": 9,
+        "alerts_after": 16,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": false,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0008",
+        "seed": 4226,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190094,
+          190095
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22968
+      },
+      {
+        "variant_id": "h_0009",
+        "seed": 4238,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "delay_gap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 4,
+        "rule_lines": [
+          190106,
+          190107,
+          190108,
+          190109
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 18,
+        "alerts_after": 22,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22976
+      },
+      {
+        "variant_id": "h_0010",
+        "seed": 4244,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "target_swap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 6,
+        "rule_lines": [
+          190126,
+          190127,
+          190138,
+          190139,
+          190140,
+          190141
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 17,
+        "alerts_after": 23,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22974
+      },
+      {
+        "variant_id": "h_0011",
+        "seed": 4248,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "business_hours",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190144,
+          190145
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 9,
+        "alerts_after": 11,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22969
+      },
+      {
+        "variant_id": "h_0012",
+        "seed": 4254,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "delay_gap",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190157,
+          190158,
+          190159
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S8"
+        ],
+        "alerts_before": 9,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0013",
+        "seed": 4258,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "target_swap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190171,
+          190172,
+          190173
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 14,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22973
+      },
+      {
+        "variant_id": "h_0014",
+        "seed": 4262,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "delay_gap",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190188,
+          190189
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22969
+      },
+      {
+        "variant_id": "h_0015",
+        "seed": 4264,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 5,
+        "rule_lines": [
+          190201,
+          190202,
+          190203,
+          190204,
+          190205
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 18,
+        "alerts_after": 23,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22976
+      },
+      {
+        "variant_id": "h_0016",
+        "seed": 4266,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 6,
+        "rule_lines": [
+          190221,
+          190222,
+          190223,
+          190224,
+          190225,
+          190226
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 19,
+        "alerts_after": 25,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22976
+      },
+      {
+        "variant_id": "h_0017",
+        "seed": 4270,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "target_swap",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 1,
+        "rule_lines": [
+          190241
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 11,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0018",
+        "seed": 4274,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "target_swap",
+          "business_hours",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 1,
+        "rule_lines": [
+          190255
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 13,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0019",
+        "seed": 4275,
+        "persona": "impatient_insider",
+        "family": "F1",
+        "operators": [
+          "slow_guess",
+          "target_swap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 7,
+        "rule_lines": [
+          190269,
+          190270,
+          190271,
+          190272,
+          190273,
+          190274,
+          190275
+        ],
+        "signals_before": [
+          "S1"
+        ],
+        "alerts_before": 9,
+        "alerts_after": 16,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": false,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0020",
+        "seed": 4276,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190278,
+          190279
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 15,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22973
+      },
+      {
+        "variant_id": "h_0021",
+        "seed": 4282,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "target_swap",
+          "business_hours",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190295,
+          190296
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 14,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22971
+      },
+      {
+        "variant_id": "h_0022",
+        "seed": 4290,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "delay_gap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 5,
+        "rule_lines": [
+          190310,
+          190311,
+          190312,
+          190313,
+          190314
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 17,
+        "alerts_after": 22,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22976
+      },
+      {
+        "variant_id": "h_0023",
+        "seed": 4292,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 5,
+        "rule_lines": [
+          190330,
+          190340,
+          190341,
+          190342,
+          190343
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 13,
+        "alerts_after": 18,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22972
+      },
+      {
+        "variant_id": "h_0024",
+        "seed": 4294,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 6,
+        "rule_lines": [
+          190346,
+          190347,
+          190348,
+          190349,
+          190350,
+          190351
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 20,
+        "alerts_after": 26,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22977
+      },
+      {
+        "variant_id": "h_0025",
+        "seed": 4296,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 1,
+        "rule_lines": [
+          190367
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 13,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22968
+      },
+      {
+        "variant_id": "h_0026",
+        "seed": 4302,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190379,
+          190380,
+          190381
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 13,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22968
+      },
+      {
+        "variant_id": "h_0027",
+        "seed": 4304,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "target_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190391,
+          190392,
+          190393
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 14,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22972
+      },
+      {
+        "variant_id": "h_0028",
+        "seed": 4306,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 5,
+        "rule_lines": [
+          190407,
+          190408,
+          190409,
+          190410,
+          190411
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 19,
+        "alerts_after": 24,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22976
+      },
+      {
+        "variant_id": "h_0029",
+        "seed": 4307,
+        "persona": "impatient_insider",
+        "family": "F1",
+        "operators": [
+          "slow_guess"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 9,
+        "rule_lines": [
+          190427,
+          190428,
+          190429,
+          190430,
+          190431,
+          190432,
+          190433,
+          190434,
+          190435
+        ],
+        "signals_before": [
+          "S1"
+        ],
+        "alerts_before": 11,
+        "alerts_after": 20,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": false,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22967
+      },
+      {
+        "variant_id": "h_0030",
+        "seed": 4310,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 4,
+        "rule_lines": [
+          190438,
+          190439,
+          190440,
+          190441
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 18,
+        "alerts_after": 22,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22975
+      },
+      {
+        "variant_id": "h_0031",
+        "seed": 4312,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "param_rename",
+          "target_swap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 7,
+        "rule_lines": [
+          190457,
+          190458,
+          190459,
+          190470,
+          190471,
+          190472,
+          190473
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 18,
+        "alerts_after": 25,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22975
+      },
+      {
+        "variant_id": "h_0032",
+        "seed": 4314,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "target_swap",
+          "business_hours",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 1,
+        "rule_lines": [
+          190476
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 7,
+        "alerts_after": 8,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22966
+      },
+      {
+        "variant_id": "h_0033",
+        "seed": 4318,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "business_hours",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190486,
+          190487,
+          190488
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 14,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22972
+      },
+      {
+        "variant_id": "h_0034",
+        "seed": 4320,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "business_hours",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190502,
+          190503,
+          190504
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6"
+        ],
+        "alerts_before": 9,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22968
+      },
+      {
+        "variant_id": "h_0035",
+        "seed": 4328,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "param_rename",
+          "delay_gap",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 4,
+        "rule_lines": [
+          190514,
+          190515,
+          190516,
+          190517
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S8"
+        ],
+        "alerts_before": 11,
+        "alerts_after": 15,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22972
+      },
+      {
+        "variant_id": "h_0036",
+        "seed": 4330,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "target_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 5,
+        "rule_lines": [
+          190530,
+          190538,
+          190539,
+          190540,
+          190541
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0037",
+        "seed": 4334,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "business_hours",
+          "delay_gap"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190544,
+          190545
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 14,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22972
+      },
+      {
+        "variant_id": "h_0038",
+        "seed": 4336,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 2,
+        "rule_lines": [
+          190560,
+          190561
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22968
+      },
+      {
+        "variant_id": "h_0039",
+        "seed": 4342,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "victim_swap",
+          "target_swap",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 6,
+        "rule_lines": [
+          190572,
+          190573,
+          190574,
+          190575,
+          190576,
+          190577
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 20,
+        "alerts_after": 26,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22977
+      },
+      {
+        "variant_id": "h_0040",
+        "seed": 4344,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "target_swap",
+          "business_hours"
+        ],
+        "rule_fired": true,
+        "rule_alerts": 3,
+        "rule_lines": [
+          190593,
+          190594,
+          190595
+        ],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 16,
+        "alerts_after": 19,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22974
+      }
+    ]
   },
   {
-    "id": "R004",
+    "id": "R003",
     "name": "csrf payload in a forum parameter",
     "severity": "high",
     "proposed_by": "blue_agent",
-    "created_ts": "2026-09-20T02:31:00-04:00",
+    "created_ts": "2026-09-19T22:24:53-04:00",
     "evaded_family": "F2",
     "evaded_family_name": "content_privilege_escalation",
+    "evaded_families": [
+      "F2",
+      "F4"
+    ],
+    "evaded_operator": "param_rename",
     "evaded_operators": [
       "param_rename"
     ],
-    "rationale": "The real payloads literally contain payload=csrf_test and action=csrf_role_update, so a substring match on csrf catches the March incident perfectly. It catches nothing else, because the attacker chose those words and an attacker who renames the parameter picks different ones.",
-    "when": "template == \"/intranet/forum/new\" AND query CONTAINS \"csrf\"",
-    "explain": "{user} sent a forum parameter containing csrf from {ip}.",
+    "rationale": "The payload parameters on /intranet/forum/new in the real incident are action, payload, script, and 2 of those lines carry the string 'csrf' in the value. Matching on it reproduces the March incident exactly. Whether it detects anything else depends on whether the attacker's choice of word is part of the attack, which is what the held-out check is for.",
+    "when": "template == \"/intranet/forum/new\" AND query contains \"csrf\"",
+    "explain": "{user} posted to {template} from {ip} with a parameter containing csrf.",
     "parse": {
       "ok": true,
       "depth": 2,
       "nodes": 5,
+      "error": null
+    },
+    "proposer": "deterministic",
+    "strategy": "incident_literal",
+    "derivation": {
+      "template": "/intranet/forum/new",
+      "incident_lines": [
+        168330,
+        168331,
+        168332,
+        168334
+      ],
+      "unexpected_parameters": [
+        "action",
+        "payload",
+        "script"
+      ],
+      "literal": "csrf",
+      "lines_carrying_the_literal": 2
+    },
+    "in_sample": {
+      "parses": true,
       "error": null,
-      "grammar_note": "CONTAINS and the query field are not in the section 10 grammar, whose field list is user|ip|ip_owner|template|obj_id|status|signal. C either extends the grammar or this rule is rejected at parse time rather than at the gate."
+      "variants": 27,
+      "caught": 0,
+      "rate": 0.0,
+      "benign_sample_events": 6000,
+      "benign_hits": 0
+    },
+    "evidence": {
+      "operator": "param_rename",
+      "evaded_signal": "S5",
+      "evaded_signal_name": "unexpected_params",
+      "suppression": {
+        "operator": "param_rename",
+        "signal": "S5",
+        "signal_name": "unexpected_params",
+        "n": 50,
+        "fired": 17,
+        "rate": 0.34,
+        "control_n": 50,
+        "control_fired": 50,
+        "control_rate": 1.0,
+        "suppression": 0.66
+      },
+      "training_variants": 27,
+      "training_seeds": [
+        42
+      ],
+      "training_personas": [
+        "careful_insider"
+      ],
+      "training_variant_ids": [
+        "v_0008",
+        "v_0020",
+        "v_0032",
+        "v_0038",
+        "v_0044",
+        "v_0050",
+        "v_0062",
+        "v_0068",
+        "v_0074",
+        "v_0080",
+        "v_0086",
+        "v_0092",
+        "v_0098",
+        "v_0110",
+        "v_0122",
+        "v_0128",
+        "v_0134",
+        "v_0140",
+        "v_0146",
+        "v_0152",
+        "v_0158",
+        "v_0164",
+        "v_0170",
+        "v_0176",
+        "v_0182",
+        "v_0188",
+        "v_0194"
+      ],
+      "benign_sample_events": 6000,
+      "incident_lines": 26
+    },
+    "heldout": {
+      "operator": "param_rename",
+      "variants": 40,
+      "seeds": [
+        4203,
+        4206,
+        4208,
+        4210,
+        4218,
+        4220,
+        4221,
+        4222,
+        4223,
+        4224,
+        4225,
+        4226,
+        4228,
+        4230,
+        4231,
+        4233,
+        4237,
+        4238,
+        4240,
+        4245,
+        4246,
+        4248,
+        4251,
+        4253,
+        4254,
+        4260,
+        4262,
+        4266,
+        4273,
+        4275,
+        4281,
+        4282,
+        4288,
+        4292,
+        4296,
+        4297,
+        4299,
+        4301,
+        4307,
+        4309
+      ],
+      "personas": [
+        "impatient_insider",
+        "outsider_with_stolen_credentials"
+      ],
+      "by_persona": {
+        "impatient_insider": 18,
+        "outsider_with_stolen_credentials": 22
+      },
+      "by_family": {
+        "F2": 18,
+        "F4": 22
+      },
+      "variant_ids": [
+        "h_0001",
+        "h_0002",
+        "h_0003",
+        "h_0004",
+        "h_0005",
+        "h_0006",
+        "h_0007",
+        "h_0008",
+        "h_0009",
+        "h_0010",
+        "h_0011",
+        "h_0012",
+        "h_0013",
+        "h_0014",
+        "h_0015",
+        "h_0016",
+        "h_0017",
+        "h_0018",
+        "h_0019",
+        "h_0020",
+        "h_0021",
+        "h_0022",
+        "h_0023",
+        "h_0024",
+        "h_0025",
+        "h_0026",
+        "h_0027",
+        "h_0028",
+        "h_0029",
+        "h_0030",
+        "h_0031",
+        "h_0032",
+        "h_0033",
+        "h_0034",
+        "h_0035",
+        "h_0036",
+        "h_0037",
+        "h_0038",
+        "h_0039",
+        "h_0040"
+      ],
+      "first_line": 190001,
+      "last_line": 190503
     },
     "gate": {
       "heldout_detection": {
         "threshold": 0.6,
         "measured": 0.0,
-        "pass": false
+        "pass": false,
+        "variants": 40,
+        "caught": 0,
+        "seed_range": [
+          4203,
+          4309
+        ],
+        "personas": [
+          "impatient_insider",
+          "outsider_with_stolen_credentials"
+        ],
+        "evaded_signal": "S5"
       },
       "benign_fp_delta": {
         "budget": 2,
         "measured": 0,
-        "pass": true
+        "pass": true,
+        "stream": "March 2026 minus labeled incident lines",
+        "events": 22956,
+        "days": 31,
+        "alerts_before": 0,
+        "alerts_after": 0,
+        "incidents_after": 0,
+        "alerts_per_day_before": 0.0,
+        "alerts_per_day_after": 0.0,
+        "lines": []
       },
       "baseline_window_hits": {
         "required": 0,
         "measured": 0,
-        "pass": true
+        "pass": true,
+        "stream": "baseline window, August 2025 to February 2026",
+        "events": 157818,
+        "lines": []
       },
       "accepted": false,
-      "rejected_reason": "Held-out detection 0.00 against a threshold of 0.60. The rule matches the one string the attacker happened to use. Every param_rename variant renames that parameter, so the rule detects the incident it was written from and nothing else. That is memorisation, not detection."
+      "rejected_reason": "Held-out detection 0.00 against a threshold of 0.60. The rule fired on 0 of 40 variants generated from seeds and personas it never saw. It catches the incident it was written from and not the attack behind it."
     },
     "before_after": {
+      "measured_on": "held-out variants only",
+      "held_out_variants": 40,
       "family_detection": {
-        "before": 0.41,
-        "after": 0.41
+        "before": 1.0,
+        "after": 1.0
+      },
+      "overall_detection": {
+        "before": 1.0,
+        "after": 1.0
       },
       "benign_alerts_per_day": {
         "before": 0.0,
         "after": 0.0
       },
-      "overall_detection": {
-        "before": 0.58,
-        "after": 0.58
+      "evaded_signal": {
+        "signal": "S5",
+        "name": "unexpected_params",
+        "fired_before": 17,
+        "rate_before": 0.425
+      },
+      "rule_coverage": {
+        "before": 0.0,
+        "after": 0.0
+      },
+      "detection_without_s1": {
+        "before": 1.0,
+        "after": 1.0
+      },
+      "alerts_on_injected_lines": {
+        "before": 394,
+        "after": 394
+      },
+      "median_log_seconds_to_detect": {
+        "before": 0.0,
+        "after": 0.0
       }
     },
+    "real_incident": {
+      "gating": false,
+      "alerts": 2,
+      "lines": [
+        168330,
+        168331
+      ],
+      "labeled_lines_matched": [
+        168330,
+        168331
+      ],
+      "first_line": 168330,
+      "first_ts": "2026-03-15T09:20:20-04:00",
+      "explanation": "david_m posted to /intranet/forum/new from 10.0.8.45 with a parameter containing csrf."
+    },
     "status": "rejected",
+    "appended_to": null,
     "pull_request": null,
-    "placeholder": true
+    "rows": [
+      {
+        "variant_id": "h_0001",
+        "seed": 4203,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "target_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 3418.0,
+        "log_seconds_to_detect_after": 3418.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0002",
+        "seed": 4206,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "param_rename",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S6"
+        ],
+        "alerts_before": 16,
+        "alerts_after": 16,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22974
+      },
+      {
+        "variant_id": "h_0003",
+        "seed": 4208,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "business_hours",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 10,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0004",
+        "seed": 4210,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 8,
+        "alerts_after": 8,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22967
+      },
+      {
+        "variant_id": "h_0005",
+        "seed": 4218,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "target_swap",
+          "business_hours",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 17,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22973
+      },
+      {
+        "variant_id": "h_0006",
+        "seed": 4220,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 8,
+        "alerts_after": 8,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22967
+      },
+      {
+        "variant_id": "h_0007",
+        "seed": 4221,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "delay_gap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S8"
+        ],
+        "alerts_before": 4,
+        "alerts_after": 4,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 4186.0,
+        "log_seconds_to_detect_after": 4186.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0008",
+        "seed": 4222,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "business_hours",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "alerts_before": 11,
+        "alerts_after": 11,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0009",
+        "seed": 4223,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 7,
+        "alerts_after": 7,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 2018.0,
+        "log_seconds_to_detect_after": 2018.0,
+        "events": 22964
+      },
+      {
+        "variant_id": "h_0010",
+        "seed": 4224,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "delay_gap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 16,
+        "alerts_after": 16,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22975
+      },
+      {
+        "variant_id": "h_0011",
+        "seed": 4225,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "target_swap",
+          "business_hours"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 7,
+        "alerts_after": 7,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 921.0,
+        "log_seconds_to_detect_after": 921.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0012",
+        "seed": 4226,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 10,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22968
+      },
+      {
+        "variant_id": "h_0013",
+        "seed": 4228,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S5",
+          "S6"
+        ],
+        "alerts_before": 17,
+        "alerts_after": 17,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22975
+      },
+      {
+        "variant_id": "h_0014",
+        "seed": 4230,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 15,
+        "alerts_after": 15,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22973
+      },
+      {
+        "variant_id": "h_0015",
+        "seed": 4231,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S8"
+        ],
+        "alerts_before": 5,
+        "alerts_after": 5,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 3479.0,
+        "log_seconds_to_detect_after": 3479.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0016",
+        "seed": 4233,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "target_swap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 951.0,
+        "log_seconds_to_detect_after": 951.0,
+        "events": 22966
+      },
+      {
+        "variant_id": "h_0017",
+        "seed": 4237,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "target_swap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 1526.0,
+        "log_seconds_to_detect_after": 1526.0,
+        "events": 22966
+      },
+      {
+        "variant_id": "h_0018",
+        "seed": 4238,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "delay_gap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 18,
+        "alerts_after": 18,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22976
+      },
+      {
+        "variant_id": "h_0019",
+        "seed": 4240,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "delay_gap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S5"
+        ],
+        "alerts_before": 13,
+        "alerts_after": 13,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22971
+      },
+      {
+        "variant_id": "h_0020",
+        "seed": 4245,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 5,
+        "alerts_after": 5,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 3440.0,
+        "log_seconds_to_detect_after": 3440.0,
+        "events": 22964
+      },
+      {
+        "variant_id": "h_0021",
+        "seed": 4246,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 14,
+        "alerts_after": 14,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0022",
+        "seed": 4248,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "business_hours",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 9,
+        "alerts_after": 9,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22969
+      },
+      {
+        "variant_id": "h_0023",
+        "seed": 4251,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "business_hours",
+          "delay_gap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4"
+        ],
+        "alerts_before": 3,
+        "alerts_after": 3,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 15555.0,
+        "log_seconds_to_detect_after": 15555.0,
+        "events": 22963
+      },
+      {
+        "variant_id": "h_0024",
+        "seed": 4253,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 3704.0,
+        "log_seconds_to_detect_after": 3704.0,
+        "events": 22966
+      },
+      {
+        "variant_id": "h_0025",
+        "seed": 4254,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "delay_gap",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S8"
+        ],
+        "alerts_before": 9,
+        "alerts_after": 9,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22970
+      },
+      {
+        "variant_id": "h_0026",
+        "seed": 4260,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "business_hours"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S6"
+        ],
+        "alerts_before": 16,
+        "alerts_after": 16,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22975
+      },
+      {
+        "variant_id": "h_0027",
+        "seed": 4262,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "delay_gap",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S8"
+        ],
+        "alerts_before": 10,
+        "alerts_after": 10,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22969
+      },
+      {
+        "variant_id": "h_0028",
+        "seed": 4266,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "victim_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 19,
+        "alerts_after": 19,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22976
+      },
+      {
+        "variant_id": "h_0029",
+        "seed": 4273,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "victim_swap",
+          "business_hours",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 2310.0,
+        "log_seconds_to_detect_after": 2310.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0030",
+        "seed": 4275,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "victim_swap",
+          "business_hours"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 7,
+        "alerts_after": 7,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 2309.0,
+        "log_seconds_to_detect_after": 2309.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0031",
+        "seed": 4281,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 1025.0,
+        "log_seconds_to_detect_after": 1025.0,
+        "events": 22966
+      },
+      {
+        "variant_id": "h_0032",
+        "seed": 4282,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "target_swap",
+          "business_hours",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22971
+      },
+      {
+        "variant_id": "h_0033",
+        "seed": 4288,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "own_ip_takeover",
+          "param_rename",
+          "business_hours",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S3",
+          "S4",
+          "S6"
+        ],
+        "alerts_before": 15,
+        "alerts_after": 15,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22973
+      },
+      {
+        "variant_id": "h_0034",
+        "seed": 4292,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 13,
+        "alerts_after": 13,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22972
+      },
+      {
+        "variant_id": "h_0035",
+        "seed": 4296,
+        "persona": "outsider_with_stolen_credentials",
+        "family": "F4",
+        "operators": [
+          "slow_guess",
+          "own_ip_takeover",
+          "param_rename",
+          "no_cleanup",
+          "no_cover_download"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S1",
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 12,
+        "alerts_after": 12,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 0.0,
+        "log_seconds_to_detect_after": 0.0,
+        "events": 22968
+      },
+      {
+        "variant_id": "h_0036",
+        "seed": 4297,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "target_swap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 7,
+        "alerts_after": 7,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 1604.0,
+        "log_seconds_to_detect_after": 1604.0,
+        "events": 22965
+      },
+      {
+        "variant_id": "h_0037",
+        "seed": 4299,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 3359.0,
+        "log_seconds_to_detect_after": 3359.0,
+        "events": 22966
+      },
+      {
+        "variant_id": "h_0038",
+        "seed": 4301,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S5",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 7,
+        "alerts_after": 7,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 2202.0,
+        "log_seconds_to_detect_after": 2202.0,
+        "events": 22964
+      },
+      {
+        "variant_id": "h_0039",
+        "seed": 4307,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "victim_swap"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 4192.0,
+        "log_seconds_to_detect_after": 4192.0,
+        "events": 22966
+      },
+      {
+        "variant_id": "h_0040",
+        "seed": 4309,
+        "persona": "impatient_insider",
+        "family": "F2",
+        "operators": [
+          "param_rename",
+          "victim_swap",
+          "target_swap",
+          "no_cleanup"
+        ],
+        "rule_fired": false,
+        "rule_alerts": 0,
+        "rule_lines": [],
+        "signals_before": [
+          "S2",
+          "S4",
+          "S6",
+          "S8"
+        ],
+        "alerts_before": 6,
+        "alerts_after": 6,
+        "detected_before": true,
+        "detected_after": true,
+        "detected_without_s1_before": true,
+        "detected_without_s1_after": true,
+        "log_seconds_to_detect_before": 3921.0,
+        "log_seconds_to_detect_after": 3921.0,
+        "events": 22965
+      }
+    ]
   }
 ]
