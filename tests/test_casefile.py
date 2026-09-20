@@ -344,6 +344,13 @@ def test_timeline_is_ordered_and_every_entry_resolves(case_file, events):
         row = by_line.loc[entry["line"]]
         assert entry["actor"] == row["user"]
         assert entry["ts"] == queries._iso(row["ts"])
+        assert entry["confidence"] in build.CONFIDENCE_VALUES
+
+    # The three beats that rest on a reading rather than a record.
+    inferred = {
+        entry["line"] for entry in timeline if entry["confidence"] != "high"
+    }
+    assert inferred == {168333, 168339, 168340}
 
 
 def test_u3_says_which_denials_fall_on_which_side_of_the_download(case_file):

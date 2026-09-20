@@ -301,18 +301,20 @@ def build_findings(results: dict[str, QueryResult], total_events: int) -> list[d
 # drift away from the line it points at. Any number a row quotes is a
 # placeholder filled from the query that measured it, so a recount cannot
 # leave a stale figure behind in the prose.
-TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
+TIMELINE: tuple[tuple[int, str, str | None, str, dict], ...] = (
     (
         168311,
         "Four failed logins as sarah_j from david_m's workstation, 3 to 6 seconds "
         "apart (lines 168311-168314)",
         "First of the two bursts in the file, see F2",
+        "high",
         {"user": "sarah_j", "ip": "10.0.8.45", "status": 401},
     ),
     (
         168315,
         "david_m is denied the Q1 confidential draft again",
         "The last of {denials_before} denials before the download, see F5",
+        "high",
         {"user": "david_m", "status": 403},
     ),
     (
@@ -320,6 +322,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         "Six more failed logins as sarah_j from the same workstation, 2 to 4 seconds "
         "apart (lines 168321-168326)",
         "Second and last burst in the file, see F2",
+        "high",
         {"user": "sarah_j", "ip": "10.0.8.45", "status": 401},
     ),
     (
@@ -327,6 +330,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         "david_m posts to the forum with an extra `payload` parameter and the server "
         "returns the only 500 in the log",
         "First payload attempt, see F3 and F6",
+        "high",
         {"user": "david_m", "status": 500},
     ),
     (
@@ -334,24 +338,28 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         "He posts again 22 minutes later with an `action` parameter and gets the only "
         "400 in the log",
         "Second payload attempt, see F3 and F6",
+        "high",
         {"user": "david_m", "status": 400},
     ),
     (
         168332,
         "A third post carrying `script=success` is accepted",
         "The payload that worked, see F3",
+        "high",
         {"user": "david_m", "status": 302},
     ),
     (
         168333,
         "Three seconds later he opens forum post 1042",
         "Authorship is inferred from this sequence, see F7",
+        "medium",
         {"user": "david_m", "obj_id": 1042},
     ),
     (
         168335,
         "sarah_j opens forum post 1042 from her own machine",
         None,
+        "high",
         {"user": "sarah_j", "ip": "10.0.5.12", "obj_id": 1042},
     ),
     (
@@ -359,6 +367,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         "One second later her session calls POST /api/admin/role_update, the only "
         "privileged call in the file",
         "The log records the call, never the grantee, see U3",
+        "high",
         {"user": "sarah_j", "base": "/api/admin/role_update", "status": 200},
     ),
     (
@@ -366,6 +375,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         "Her session then fetches /assets/avatar_1042.png, the only avatar request in "
         "the log",
         None,
+        "high",
         {"user": "sarah_j", "obj_id": 1042},
     ),
     (
@@ -374,6 +384,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         "draft he had been denied {denials_before} times",
         "{denials_before} of his {denials_total} denials on the file come before this "
         "line, see F5",
+        "high",
         {
             "user": "david_m",
             "base": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
@@ -384,24 +395,28 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         168339,
         "He edits forum post 1042",
         "Consistent with removing the payload, though the log never shows a body",
+        "medium",
         {"user": "david_m", "obj_id": 1042, "status": 302},
     ),
     (
         168340,
         "He reads /finance/templates/expense.docx, a file he is authorized for",
         "Ordinary on its own; it is what the same behaviour looks like when allowed",
+        "medium",
         {"user": "david_m", "status": 200},
     ),
     (
         168343,
         "That night sarah_j's account logs in successfully from david_m's workstation",
         "The mechanism that turned failures into a success is not in the log, see U1",
+        "high",
         {"user": "sarah_j", "ip": "10.0.8.45", "status": 200},
     ),
     (
         168345,
         "Her session downloads the Q1 confidential draft from his machine",
         None,
+        "high",
         {
             "user": "sarah_j",
             "ip": "10.0.8.45",
@@ -412,6 +427,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         168346,
         "The session logs out three minutes later",
         None,
+        "high",
         {"user": "sarah_j", "ip": "10.0.8.45", "base": "/logout"},
     ),
     (
@@ -419,6 +435,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         "Twelve days later david_m is denied the Q1 confidential draft again",
         "The first of the {denials_after} denials after the download, the only trace "
         "of the access closing again, see U3",
+        "high",
         {
             "user": "david_m",
             "base": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
@@ -441,7 +458,9 @@ def build_timeline(
     """The incident in order, each entry anchored to one verified line."""
     indexed = events.set_index("line")
     timeline = []
-    for line, action, note, expected in TIMELINE:
+    for line, action, note, confidence, expected in TIMELINE:
+        if confidence not in CONFIDENCE_VALUES:
+            raise AssertionError(f"timeline line {line} has confidence {confidence!r}")
         if line not in indexed.index:
             raise AssertionError(f"timeline cites line {line}, which does not exist")
         if line not in evidence:
@@ -463,6 +482,9 @@ def build_timeline(
                 "actor": str(row["user"]),
                 "action": _fill(action, counts),
                 "note": _fill(note, counts),
+                # A beat whose wording rests on an inference says so here, so
+                # the UI can mark it rather than rendering every row alike.
+                "confidence": confidence,
             }
         )
     return sorted(timeline, key=lambda entry: entry["line"])
