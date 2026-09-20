@@ -45,6 +45,12 @@ RARE_POST_SUCCESS_K = 100
 # evidence that the threshold produces no baseline-window hits.
 AUTH_FAIL_WINDOW_S = 30
 
+# A status code seen fewer than this many times in seven months is not part of
+# how the application behaves. The rarest status in the fitted window is 401 at
+# 782 occurrences, so anything under 10 is a code the baseline has effectively
+# never produced.
+RARE_STATUS_N = 10
+
 
 def _query_keys(query) -> tuple[str, ...]:
     """The parameter names actually present on a request.
@@ -116,9 +122,12 @@ def build_baselines(
     template_freq: Counter = Counter()
     param_keys: dict[str, set[str]] = defaultdict(set)
     post_success: Counter = Counter()
+    status_freq: Counter = Counter()
+    denial_counts: dict[str, Counter] = defaultdict(Counter)
 
     for row in fitted.itertuples(index=False):
         template_freq[row.template] += 1
+        status_freq[int(row.status)] += 1
         param_keys[row.template].update(_query_keys(row.query))
         if row.method == "POST" and row.status == 200:
             post_success[row.template] += 1
@@ -139,6 +148,7 @@ def build_baselines(
             succeeded[user].add(row.template)
         elif row.status == 403:
             forbidden[user].add(row.template)
+            denial_counts[user][row.template] += 1
         elif row.status == 401:
             auth_fail_ts[user].append(row.ts)
             auth_fail_by_host[(user, row.ip)].append(row.ts)
@@ -146,6 +156,7 @@ def build_baselines(
     burst_key = "max_in_{}s".format(AUTH_FAIL_WINDOW_S)
     users: dict[str, dict] = {}
     for user in sorted(ips):
+        denied = sorted(forbidden[user] - succeeded[user])
         auth_fail = _gap_stats(auth_fail_ts[user])
         # The number S3 has to clear. Recording it here means the threshold is
         # justified by the file itself rather than by a claim on a slide.
@@ -163,7 +174,10 @@ def build_baselines(
             # no 200 ever: a user who was refused once and later succeeded is
             # the finding, not the baseline.
             "allowed_paths": sorted(succeeded[user]),
-            "denied_paths": sorted(forbidden[user] - succeeded[user]),
+            "denied_paths": denied,
+            # How often the baseline refused each of them. The explanation
+            # text quotes this number, so it is a field rather than prose.
+            "denied_counts": {t: denial_counts[user][t] for t in denied},
             "templates_seen": sorted(seen[user]),
             # Explanation text only. This never triggers an alert: legitimate
             # off-hours access is everywhere in this dataset, including an
@@ -229,6 +243,8 @@ def build_baselines(
                 ),
             },
             "auth_fail_window_s": AUTH_FAIL_WINDOW_S,
+            "status_freq": {str(k): v for k, v in sorted(status_freq.items())},
+            "rare_status_n": RARE_STATUS_N,
         },
     }
 

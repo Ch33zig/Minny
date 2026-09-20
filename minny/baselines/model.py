@@ -22,6 +22,7 @@ class UserBaseline:
     ips: frozenset
     allowed_paths: frozenset
     denied_paths: frozenset
+    denied_counts: dict
     templates_seen: frozenset
     hour_hist: dict
     months_observed: int
@@ -33,6 +34,7 @@ _EMPTY = UserBaseline(
     ips=frozenset(),
     allowed_paths=frozenset(),
     denied_paths=frozenset(),
+    denied_counts={},
     templates_seen=frozenset(),
     hour_hist={},
     months_observed=0,
@@ -52,6 +54,8 @@ class Baselines:
     privileged_templates: frozenset = frozenset()
     privileged_prefixes: tuple = ()
     rare_post_success_k: int = 0
+    status_freq: dict = field(default_factory=dict)
+    rare_status_n: int = 0
 
     @classmethod
     def from_document(cls, document: dict) -> "Baselines":
@@ -64,6 +68,7 @@ class Baselines:
                     ips=frozenset(entry.get("ips", ())),
                     allowed_paths=frozenset(entry.get("allowed_paths", ())),
                     denied_paths=frozenset(entry.get("denied_paths", ())),
+                    denied_counts=entry.get("denied_counts", {}),
                     templates_seen=frozenset(entry.get("templates_seen", ())),
                     hour_hist=entry.get("hour_hist", {}),
                     months_observed=entry.get("months_observed", 0),
@@ -84,6 +89,13 @@ class Baselines:
             ),
             privileged_prefixes=tuple(rule.get("prefixes", ("/api/admin/",))),
             rare_post_success_k=int(rule.get("rare_post_success_k", 0)),
+            status_freq={
+                int(code): count
+                for code, count in document.get("global", {})
+                .get("status_freq", {})
+                .items()
+            },
+            rare_status_n=int(document.get("global", {}).get("rare_status_n", 0)),
         )
 
     @classmethod
@@ -108,6 +120,11 @@ class Baselines:
 
     def known_params(self, template: str) -> frozenset:
         return self.param_keys.get(template, frozenset())
+
+    def status_count(self, status: int) -> int:
+        """How often the fitted window produced this status. Zero is a real
+        answer: 400 and 500 never occur before March."""
+        return self.status_freq.get(int(status), 0)
 
     def is_privileged(
         self, template: str, method: str | None = None, status: int | None = None
