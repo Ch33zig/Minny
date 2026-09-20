@@ -6,13 +6,13 @@ You build the watchdog. It is the middle 40 seconds of the demo and the thing C 
 
 ## Checklist
 
-- [ ] **20:15** `minny/api/app.py` router wiring confirmed; `routes_detect.py` stub returning fixtures
-- [ ] **21:00** Consume A's `events.parquet`
-- [ ] **22:00** `baselines.json` built and merged — **C tests against it**
-- [ ] **23:00** S1 through S6 firing; real incident lines produce alerts — **C3**
-- [ ] **00:00** Correlator produces one incident naming david_m and sarah_j
+- [x] **20:15** `minny/api/app.py` router wiring confirmed; `routes_detect.py` serving real artifacts
+- [x] **21:00** Consume A's `events.parquet`
+- [x] **22:00** `baselines.json` built and merged — **C tests against it**
+- [x] **23:00** S1 through S8 firing; real incident lines produce alerts — **C3**
+- [x] **00:00** Correlator produces one incident naming david_m and sarah_j
 - [ ] **01:00** Replay engine + SSE stream live, D consuming it — **C4**
-- [ ] **02:00** Non-incident March alert count measured and justified line by line
+- [x] **02:00** Non-incident March alert count measured: **zero**
 - [ ] **03:00** Rule hot-reload from `rules.yaml` for C's blue agent — **C5**
 
 ## Hour zero, before the parquet exists
@@ -82,3 +82,86 @@ C's blue agent appends to `detection-rules/rules.yaml`. Load it at startup and r
 ## Done when
 
 Replaying March produces **one** incident naming david_m as attacker and sarah_j as victim, with every alert's evidence lines matching A's case file, and you have **measured the number of non-incident alerts on March** — target zero or close to it, with each remaining one justified individually. "Close to zero" is not a number. Write the count down at 02:00 and hand it to C for `metrics.json`, because that figure is the credibility of the whole watchdog and A will say it on stage.
+
+
+---
+
+# Wave status — M2 and M3 are done
+
+Rebuild everything with two commands, in this order:
+
+```
+python -m minny.baselines.build     # -> data/baselines.json
+python -m minny.detect.run          # -> data/alerts.json, data/incidents.json
+```
+
+Both take `MINNY_DATA_DIR`. The second replays the baseline window as a
+control *and* the held-out window, and prints both results together.
+
+## The numbers
+
+| Measurement | Value |
+|---|---|
+| Baseline fit | 157,818 events, max fitted ts `2026-02-28T21:59:11-05:00`, asserted below the cutoff |
+| Users with exactly one baseline IP | 10 of 10 |
+| Alerts across the 157,818-event baseline window | **0** |
+| S3 hits in the baseline window at 3-in-30s | **0** |
+| March alerts | 25 — S1×14, S2×1, S3×2, S4×2, S5×3, S6×1, S8×2 |
+| March incidents | **1**, `attacker=david_m (high)`, `victim=sarah_j (high)` |
+| Non-incident March alerts | **0** |
+| Alerts touching a line outside the known incident | **0** |
+| Full 180,800-event replay | ~1.3 s; `baselines.json` loads in ~11 ms |
+
+Every one of the 25 March alerts lands on a line listed in
+[GROUND-TRUTH.md](GROUND-TRUTH.md), and `tests/test_signals.py` asserts that
+as a set containment rather than a count, so a future signal that fires
+somewhere else fails the suite rather than quietly inflating the total.
+
+## Thresholds, and why each one
+
+| Constant | Value | Justification |
+|---|---|---|
+| `RARE_POST_SUCCESS_K` | 100 | The rarest legitimate template in seven months appears 1,778 times. There is nothing to tune between 100 and 1,778. |
+| `RARE_STATUS_N` (S8) | 10 | The rarest baseline status is 401 at 782. 400 and 500 have a baseline count of 0. |
+| `AUTH_FAIL_THRESHOLD` / window (S3) | 3 in 30 s | No account ever produced **more than one** 401 in any 30-second window in the baseline. Two failures of headroom, zero baseline hits. |
+| `PRIVILEGED_AFTER_VIEW_S` (S6) | 5 s | The real gap is 1 s. A person who read a post and then decided to call an admin endpoint does not do it in five seconds. |
+| `AUTHORSHIP_WINDOW_S` (S7) | 10 s | The real gap is 3 s. Across all 180,800 lines this produces exactly **one** authorship link: post 1042 to david_m. |
+| `CORRELATION_WINDOW` | 72 h | The chain spans 47.5 h from first failed login to second download. |
+
+## Decisions the other tracks need
+
+**`global.privileged_templates` is `[]`, and that is correct.** The baseline
+window contains no `/api/admin/` traffic at all, so listing the endpoint would
+mean reading it out of March — a leak in the detector's own favour, which is
+worse than an empty list. The policy lives in `global.privileged_rule`
+(`prefixes`, `rare_post_success_k`) and `Baselines.is_privileged(template,
+method, status)` evaluates it at detection time. That rule also catches a
+renamed endpoint: a POST returning 200 on a template the baseline has never
+seen is privileged whatever it is called, which is what survives C's
+`param_rename`-style mutations.
+
+**Fields added to `baselines.json` since the contract froze** — all additive:
+`users[u].denied_counts`, `.months_observed`, `.first_seen`, `.last_seen`,
+`.auth_fail.max_in_30s`, and `global.status_freq`, `global.rare_status_n`,
+`global.privileged_rule`, `global.auth_fail_window_s`. The explanation
+templates quote these directly, which is how a sentence stays traceable to a
+field.
+
+**`GET /api/incidents/{id}`** returns the incident with `alerts` still the
+contract's array of IDs, plus `alerts_expanded` carrying the full objects.
+
+**An account with no baseline at all** gets one S1 alert at `medium` on its
+first appearance and nothing after. Every other signal guards on an empty
+profile, so without this a name that first appears in the held-out window
+would produce no output whatever it did.
+
+**`hour_hist` is recorded and never read by a signal.** There is no hour
+threshold anywhere in `minny/detect/`.
+
+## Still to build (later wave)
+
+Replay engine, `GET /api/stream` SSE, `POST /api/replay/control`, and rule
+hot-reload from `detection-rules/rules.yaml`. `minny/detect/events.py` already
+exposes `merged()` for interleaving C's injection queue by timestamp, and
+`Detector`/`Correlator` are both streaming-shaped — `feed()` and `add()` take
+one item at a time — so the engine is a driver, not a rewrite.
