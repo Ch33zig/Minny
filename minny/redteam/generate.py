@@ -73,6 +73,51 @@ def _variant_label(plan, lines, report) -> dict:
     }
 
 
+def generate_one(
+    *,
+    seed: int,
+    index: int,
+    family: str,
+    persona: str,
+    proposal: dict | None = None,
+    first_line: int = FIRST_INJECTED_LINE,
+    derive_operators: bool = True,
+    catalog=None,
+    size_table: SizeTable | None = None,
+) -> dict:
+    """Plan, render and critique exactly one variant.
+
+    The batch generator and the judge panel both come through here, so a
+    variant built live from a judge's dropdowns is the same object, through
+    the same critic, as one from `--seed 42`. A second path would be a second
+    set of bugs, and the one nobody exercises is the one on stage.
+    """
+    catalog = catalog if catalog is not None else load_catalog()
+    size_table = size_table if size_table is not None else SizeTable(load_size_table())
+
+    plan = planning.plan_variant(
+        index=index,
+        seed=seed,
+        family=family,
+        persona=persona,
+        catalog=catalog,
+        proposal=proposal,
+        derive_operators=derive_operators,
+    )
+    rng = random.Random(planning.stream_seed(seed, index, family, "render"))
+    lines = render(
+        build_steps(plan),
+        catalog=catalog,
+        size_table=size_table,
+        start=plan.start_ts,
+        first_line=first_line,
+        rng=rng,
+        business_hours="business_hours" in plan.operators,
+    )
+    report, _events = review(lines, plan, catalog=catalog, size_table=size_table)
+    return _variant_label(plan, lines, report)
+
+
 def generate(
     *,
     seed: int,
@@ -111,37 +156,23 @@ def generate(
             if use_llm
             else None
         )
-        plan = planning.plan_variant(
-            index=attempt,
+        label = generate_one(
             seed=seed,
+            index=attempt,
             family=family,
             persona=persona,
-            catalog=catalog,
             proposal=proposal,
+            first_line=next_line,
             derive_operators=derive_operators,
-        )
-
-        rng = random.Random(planning.stream_seed(seed, attempt, family, "render"))
-        lines = render(
-            build_steps(plan),
             catalog=catalog,
             size_table=size_table,
-            start=plan.start_ts,
-            first_line=next_line,
-            rng=rng,
-            business_hours="business_hours" in plan.operators,
         )
-        report, _events = review(
-            lines, plan, catalog=catalog, size_table=size_table
-        )
-
-        label = _variant_label(plan, lines, report)
-        if report.accepted:
+        if label["critic"]["accepted"]:
             accepted.append(label)
             # Only accepted variants consume IDs. A rejected one is never
             # injected, so reserving a block for it would leave holes the
             # eval would have to explain.
-            next_line += len(lines)
+            next_line += len(label["injected_lines"])
         else:
             label["injected_lines"] = []
             rejected.append(label)

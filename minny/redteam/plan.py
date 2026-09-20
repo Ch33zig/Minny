@@ -288,7 +288,11 @@ def _pick_enum(rng: random.Random, options, proposed):
 
 def _pick_target(rng: random.Random, catalog: Catalog, proposed) -> str:
     options = catalog.confidential_targets()
-    if proposed in options:
+    # A named target is honoured whenever the access matrix can support a
+    # chain on it, which is wider than the set the draw below picks from. The
+    # judge panel offers every sensitive file and silently substituting one
+    # would hand back a label the request did not ask for.
+    if proposed in catalog.usable_targets():
         return proposed
     # Leave a real control group on the canonical target. If almost every
     # variant were swapped, `target_swap`'s row in the metrics table would

@@ -77,6 +77,21 @@ class Catalog:
             if meta["confidential"] and meta["authorized"] and meta["denied"]
         )
 
+    def usable_targets(self) -> tuple[str, ...]:
+        """Anything with a reader to impersonate and someone shut out.
+
+        Wider than `confidential_targets`, and used only when a target was
+        named rather than drawn. The confidential-only draw exists so the
+        `target_swap` row has a control group to be compared against, not
+        because the other sensitive files are incoherent: the critic checks
+        authorization, and an /exec or /hr file passes it the same way.
+        """
+        return tuple(
+            path
+            for path, meta in sorted(self.targets.items())
+            if meta["authorized"] and meta["denied"]
+        )
+
     def is_known_ip(self, ip: str) -> bool:
         return ip in self.ip_owner
 
