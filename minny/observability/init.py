@@ -203,9 +203,11 @@ def flush(directory: Path | None = None) -> dict:
             pass
         return {}
     if directory is None:
-        from minny import paths
-
-        directory = paths.sentry_dir()
+        # One directory per service. eval, the elastic build and the API are
+        # separate processes writing separate runs, and a shared directory
+        # would mean whichever finished last was the only one a judge could
+        # read.
+        directory = _artifact_dir() / current["service"]
     return RECORDER.flush(directory, meta=status())
 
 
@@ -237,7 +239,9 @@ def status() -> dict:
         "spans": RECORDER.span_stats(),
         "scrubbing": scrub.describe(),
         "offline_artifacts": (
-            None if current["mode"] == "sentry" else str(_artifact_dir())
+            None
+            if current["mode"] == "sentry"
+            else str(_artifact_dir() / current["service"])
         ),
     }
 

@@ -216,7 +216,6 @@ def observability_status():
     a reader should be able to check rather than take.
     """
     status = obs.status()
-    offline = _load(paths.sentry_dir() / "spans.json")
     return {
         **status,
         "instrumented": [
@@ -233,5 +232,29 @@ def observability_status():
             {"span": "elastic.bulk_ingest", "what": "building and sending the bulk payload"},
             {"span": "elastic.evaluate", "what": "translation and the fidelity check"},
         ],
-        "last_offline_run": (offline or {}).get("spans") if offline else None,
+        "offline_runs": _offline_runs(),
     }
+
+
+def _offline_runs() -> dict:
+    """The span timings each process wrote, one directory per service.
+
+    Read from disk rather than from this process: the API has not run the
+    evaluation, and the timings worth looking at belong to the command that
+    did.
+    """
+    runs = {}
+    root = paths.sentry_dir()
+    try:
+        directories = sorted(entry for entry in root.iterdir() if entry.is_dir())
+    except OSError:
+        return runs
+    for directory in directories:
+        payload = _load(directory / "spans.json")
+        if not payload or payload.get("error"):
+            continue
+        runs[directory.name] = {
+            "spans": payload.get("spans"),
+            "counts": payload.get("counts"),
+        }
+    return runs
