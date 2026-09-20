@@ -1019,3 +1019,28 @@ select, input[type="text"] {
 .int-mock b { border-style: dashed; color: var(--pencil); }
 .int-error b { border-style: dotted; color: var(--ink-2); text-decoration: line-through; }
 .int-seeded { margin-top: 3px; font-family: var(--hand); font-size: 13px; color: var(--pencil); }
+
+/* ============================================================== THE CURSOR */
+/* A magnifier over the board, because that is what the whole product does.
+   It is deliberately not applied to text: a case file is read and quoted, so
+   selecting a log line has to keep the I-beam that says it can be selected,
+   and a form field has to keep the caret. */
+body {
+  cursor: url('assets/cursor-magnifier.svg') 10 10, crosshair;
+}
+
+input, select, textarea,
+pre.raw, .raw-bytes, .clip-body, .typed p {
+  cursor: auto;
+}
+
+a, button, summary, [role='button'], .tab, .nav-item,
+.clip-toggle, .ev-toggle, .card[data-open] {
+  cursor: url('assets/cursor-magnifier.svg') 10 10, pointer;
+}
+
+/* A pointing device is not always a mouse. Touch and pen get the native
+   cursor, and so does anyone whose browser refuses the svg. */
+@media (hover: none) {
+  body, a, button, summary, [role='button'] { cursor: auto; }
+}

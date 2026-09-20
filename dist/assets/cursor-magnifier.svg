@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!--
+    Cursor for the case board. 24px so it stays a pointer rather than a prop,
+    and drawn twice: a pale halo underneath so the shape reads on the dark
+    cork, then the ink stroke on top so it reads on a paper card. Without the
+    halo it disappears over the board, which is most of the screen.
+
+    The hotspot is the centre of the lens, set to 10 10 where this is used.
+  -->
+  <g fill="none" stroke-linecap="round">
+    <g stroke="#F2E8D5" stroke-width="3.6" opacity="0.85">
+      <circle cx="10" cy="10" r="6.4"/>
+      <line x1="14.9" y1="14.9" x2="21" y2="21"/>
+    </g>
+    <g stroke="#2E241C" stroke-width="1.7">
+      <circle cx="10" cy="10" r="6.4"/>
+      <line x1="14.9" y1="14.9" x2="21" y2="21"/>
+    </g>
+    <circle cx="10" cy="10" r="5.4" fill="#F2E8D5" opacity="0.14"/>
+    <path d="M6.6 8.2a4.2 4.2 0 0 1 2.6-2.6" stroke="#F2E8D5" stroke-width="1.2" opacity="0.7"/>
+  </g>
+</svg>
