@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+from datetime import datetime
 from collections import Counter
 from pathlib import Path
 
@@ -83,6 +84,7 @@ def generate_one(
     proposal: dict | None = None,
     first_line: int = FIRST_INJECTED_LINE,
     derive_operators: bool = True,
+    start: datetime | None = None,
     catalog=None,
     size_table: SizeTable | None = None,
 ) -> dict:
@@ -92,6 +94,10 @@ def generate_one(
     variant built live from a judge's dropdowns is the same object, through
     the same critic, as one from `--seed 42`. A second path would be a second
     set of bugs, and the one nobody exercises is the one on stage.
+
+    `start` overrides the planner's seeded placement in March. The judge panel
+    needs it: a variant dated behind a running replay's cursor is accepted by
+    the queue and then never emitted, because its moment has already passed.
     """
     catalog = catalog if catalog is not None else load_catalog()
     size_table = size_table if size_table is not None else SizeTable(load_size_table())
@@ -117,7 +123,7 @@ def generate_one(
                 build_steps(plan),
                 catalog=catalog,
                 size_table=size_table,
-                start=plan.start_ts,
+                start=start or plan.start_ts,
                 first_line=first_line,
                 rng=rng,
                 business_hours="business_hours" in plan.operators,

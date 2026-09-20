@@ -15,6 +15,9 @@ output and an empty list until M6 exists.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta
+
+from minny.parser import parse_line
 import threading
 from pathlib import Path
 
@@ -212,7 +215,11 @@ def _inject(label: dict) -> dict:
     except Exception:  # noqa: BLE001 - a missing router is not an error here
         routes_detect = None
 
-    hook = getattr(routes_detect, "enqueue_variant", None)
+    # The replay engine calls this inject_events. An earlier draft of this
+    # route looked for enqueue_variant, a name that never existed, so the
+    # judge panel rendered a variant and then quietly reported that nothing
+    # was streaming it.
+    hook = getattr(routes_detect, "inject_events", None)
     if hook is None:
         return {
             "injected": False,
@@ -220,11 +227,93 @@ def _inject(label: dict) -> dict:
             "variant is rendered, critiqued and labeled but nothing is "
             "streaming it. Replay it with `python eval.py`.",
         }
+
+    # The renderer emits records carrying the raw log line plus its own
+    # bookkeeping, not parsed fields. Handing those straight to the queue
+    # injects events with no user, address or status, which arrive on the
+    # stream and raise nothing, because every signal reads fields that are
+    # not there. Parse each line with the same parser the dataset went
+    # through, so a judge's variant is indistinguishable from real traffic.
+    events = []
+    for record in label.get("lines") or []:
+        raw = record.get("raw")
+        if not raw:
+            continue
+        try:
+            event = parse_line(int(record.get("line", 0)), raw)
+        except ValueError:
+            continue
+        events.append(
+            {
+                "line": event.line,
+                "raw": event.raw,
+                "ts": event.ts,
+                "ip": event.ip,
+                "user": event.user,
+                "method": event.method,
+                "path": event.path,
+                "base": event.base,
+                "query": event.query,
+                "status": event.status,
+                "size": event.size,
+                "template": event.template,
+                "obj_id": event.obj_id,
+            }
+        )
+
+    if not events:
+        return {"injected": False, "reason": "the variant rendered no lines"}
+
     try:
-        hook(label)
+        result = hook(events, variant_id=label.get("variant_id"), synthetic=True)
     except Exception as exc:  # noqa: BLE001 - report it, do not fail the request
         return {"injected": False, "reason": f"the replay queue refused it: {exc}"}
-    return {"injected": True, "reason": None}
+    return {
+        "injected": True,
+        "reason": None,
+        "queued": result.get("queued") if isinstance(result, dict) else None,
+    }
+
+
+
+LIVE_LEAD_WALL_S = 4.0
+LIVE_LEAD_MIN_S = 300
+
+
+def _live_start():
+    """Place a judge's variant just ahead of the running replay cursor.
+
+    The planner seeds a variant somewhere in March. That is right for the
+    evaluation, where every variant is replayed from the start of the window,
+    and wrong here: a replay that has already reached the 20th accepts events
+    dated the 8th into the queue and then never emits them, because their
+    moment has passed. The judge presses the button and nothing happens.
+
+    Returns None when nothing is running, so the seeded placement stands.
+    """
+    try:
+        from minny.api import routes_detect
+
+        state = routes_detect.SERVICE.engine().state()
+    except Exception:  # noqa: BLE001 - no replay is a normal condition here
+        return None
+
+    if not state.get("running"):
+        return None
+    cursor = state.get("cursor_ts")
+    if not cursor:
+        return None
+    try:
+        moment = datetime.fromisoformat(cursor)
+    except (TypeError, ValueError):
+        return None
+    # The lead has to be measured in wall time, not log time. At six log
+    # hours per wall second a ninety second lead is gone in twenty five
+    # milliseconds, so the cursor passes the variant before the render
+    # finishes and the queue holds events whose moment has been and gone.
+    speed = float(state.get("speed_hours_per_second") or 1.0)
+    lead = max(LIVE_LEAD_MIN_S, speed * 3600.0 * LIVE_LEAD_WALL_S)
+    return moment + timedelta(seconds=lead)
 
 
 @router.post("/redteam/generate")
@@ -260,6 +349,7 @@ def generate_variant(request: GenerateRequest):
             family=request.family,
             persona=request.persona,
             proposal=proposal,
+            start=_live_start(),
             first_line=first_line,
         )
         _next_index += 1
