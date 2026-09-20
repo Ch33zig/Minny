@@ -10,6 +10,7 @@ Four people, four branches, one merge target. Read this file, then read **only y
 | [B-detection.md](B-detection.md) | B | M2 baselines, M3 detector + correlator + API/SSE |
 | [C-redteam-and-eval.md](C-redteam-and-eval.md) | C | M4 generator, M5 eval harness, M6 blue agent |
 | [D-frontend-and-integrations.md](D-frontend-and-integrations.md) | D | M7 UI, M8 Composio/Slack/GitHub |
+| [DESIGN.md](DESIGN.md) | D | Palette, type scale and motion rules for everything under `dist/` |
 
 ## The product, in plain English
 
