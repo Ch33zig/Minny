@@ -903,6 +903,21 @@ def offhours_confidential_access(
             "off_hours_successes": int(len(off_hours)),
             "from_own_baseline_ip": int(len(own_machine)),
             "from_a_foreign_ip": int(len(foreign)),
+            # The lead as people actually phrase it is "after midnight", so
+            # answer that narrower question too rather than around it.
+            "after_midnight": int((own_machine["ts"].dt.hour < end_hour).sum()),
+            "after_midnight_examples": [
+                {
+                    "line": int(row["line"]),
+                    "ts": _iso(row["ts"]),
+                    "user": str(row["user"]),
+                    "ip": str(row["ip"]),
+                    "path": str(row["base"]),
+                }
+                for _, row in own_machine[
+                    own_machine["ts"].dt.hour < end_hour
+                ].iterrows()
+            ],
             "foreign_lines": _lines(foreign),
             "users": sorted(own_machine["user"].dropna().unique().tolist()),
             "examples": [

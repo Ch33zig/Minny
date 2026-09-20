@@ -485,9 +485,11 @@ def build_dismissed(results: dict[str, QueryResult]) -> list[dict]:
     denials = results["routine_denials"]
     example = offhours.stats["examples"][-1]
 
+    after_midnight = offhours.stats["after_midnight_examples"]
+
     return [
         {
-            "lead": "Employees pulling confidential files after midnight",
+            "lead": "Employees pulling confidential files outside working hours",
             "why": (
                 f"Off-hours access is routine here. Of "
                 f"{_fmt(offhours.stats['confidential_successes'])} successful "
@@ -497,6 +499,14 @@ def build_dismissed(results: dict[str, QueryResult]) -> list[dict]:
                 "readers on their own machines, including "
                 f"{example['user']} pulling the same Q1 zip at {example['ts'][11:16]} "
                 f"on {example['ts'][:10]} from {example['ip']} (line {example['line']}). "
+                f"{offhours.stats['after_midnight']} of them are strictly after "
+                "midnight ("
+                + ", ".join(
+                    f"{entry['user']} at {entry['ts'][11:16]} on {entry['ts'][:10]}, "
+                    f"line {entry['line']}"
+                    for entry in after_midnight
+                )
+                + "), every one of them an authorized reader on their own machine. "
                 "The one off-hours read that does belong to the incident is already "
                 f"named by the IP binding (line {offhours.stats['foreign_lines'][0]}), "
                 "so an hour-based rule buys nine false positives and no new true one."

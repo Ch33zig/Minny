@@ -371,3 +371,11 @@ def test_a_missing_mailbox_changes_nothing(monkeypatch, tmp_path):
         build.paths, "email_evidence_path", lambda: tmp_path / "absent.json"
     )
     assert build.load_email_evidence() == []
+
+
+def test_after_midnight_reads_are_all_authorised(results):
+    result = results["offhours_confidential_access"]
+    assert result.stats["after_midnight"] == 4
+    owner = queries.baseline_ip_by_user()
+    for entry in result.stats["after_midnight_examples"]:
+        assert owner[entry["user"]] == entry["ip"]
