@@ -257,11 +257,27 @@ def test_a_rule_translates_and_the_fidelity_check_passes():
     results = fidelity.compare(
         prepared, events, owners, signals=signals, workspace_id="w"
     )
+    translated = 0
     for row in results:
-        assert row["query"], f"{row['id']} produced no ES|QL"
+        # A rule is either translated and proved to agree, or refused with a
+        # stated reason. What is not allowed is a query that looks like ES|QL
+        # and quietly means something else.
+        #
+        # R002, the rule the blue agent wrote, is the refused case: a sliding
+        # per-event count mixed with row predicates has no v1 ES|QL
+        # equivalent, and guessing at one would put a number on screen that
+        # the local walker and the cluster disagree about.
+        if not row["query"]:
+            assert row["fidelity"] in {"unsupported", "approximate"}, row["id"]
+            assert row["reason"], f"{row['id']} was refused without saying why"
+            continue
+
+        translated += 1
         assert row["query"].startswith(f"FROM {INDEX}")
         assert row["fidelity"] == "exact", row["reason"]
         assert row["verdict"] == "agree", row["detail"]
+
+    assert translated, "no rule in rules.yaml translated at all"
 
 
 def test_every_probe_agrees_over_the_edge_corpus():
