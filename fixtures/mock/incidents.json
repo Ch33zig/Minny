@@ -1,0 +1,46 @@
+[
+  {
+    "incident_id": "inc_7b21e0",
+    "opened_ts": "2026-03-13T23:10:19-04:00",
+    "last_ts": "2026-03-15T22:33:40-04:00",
+    "severity": "high",
+    "status": "open",
+    "title": "david_m escalated his own access through a forum post and took the Q1 confidential draft",
+    "attacker": { "user": "david_m", "ip": "10.0.8.45", "confidence": "high", "basis": ["S1", "S6", "S7", "S8"] },
+    "victim": { "user": "sarah_j", "ip": "10.0.5.12", "confidence": "high", "basis": ["S6", "S1", "S3"] },
+    "asset": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
+    "vector": { "template": "/intranet/forum/view/{id}", "obj_id": 1042 },
+    "narrative": [
+      { "ts": "2026-03-13T23:10:19-04:00", "text": "Ten failed logins for sarah_j arrived from david_m's workstation across two nights, with gaps as short as two seconds.", "lines": [168311, 168312, 168313, 168314, 168321, 168322, 168323, 168324, 168325, 168326] },
+      { "ts": "2026-03-15T09:20:20-04:00", "text": "david_m posted to the forum three times with non-standard query parameters. The first two returned the only 500 and the only 400 in the file.", "lines": [168330, 168331, 168332] },
+      { "ts": "2026-03-15T11:07:56-04:00", "text": "sarah_j viewed post 1042, and one second later her session performed an admin role update.", "lines": [168335, 168336, 168337] },
+      { "ts": "2026-03-15T11:26:59-04:00", "text": "david_m downloaded a file he had been denied 80 times before.", "lines": [168338] },
+      { "ts": "2026-03-15T22:29:43-04:00", "text": "That night a login for sarah_j succeeded from david_m's workstation and the file was taken a second time.", "lines": [168343, 168344, 168345, 168346] }
+    ],
+    "alerts": ["a_3c81f0", "a_5d02b7", "a_91ae44", "a_91ae45", "a_6f72c3", "a_0f3c21", "a_c4d918", "a_8b1207", "a_3c81f1"],
+    "evidence_lines": [168311, 168312, 168313, 168314, 168321, 168322, 168323, 168324, 168325, 168326, 168330, 168331, 168332, 168335, 168336, 168337, 168338, 168343, 168344, 168345, 168346],
+    "evidence_emails": ["gmail:18f2c9a1b4d7", "gmail:18f2c9a1b4e3"],
+    "labels": { "synthetic": false, "variant_id": null }
+  },
+  {
+    "incident_id": "inc_9a04c2",
+    "opened_ts": "2026-03-18T10:42:11-04:00",
+    "last_ts": "2026-03-18T14:06:30-04:00",
+    "severity": "high",
+    "status": "open",
+    "title": "joshua_c escalated through a renamed forum parameter and took the HR directory",
+    "attacker": { "user": "joshua_c", "ip": "10.0.8.50", "confidence": "medium", "basis": ["S6", "S7"] },
+    "victim": { "user": "michael_t", "ip": "10.0.5.88", "confidence": "high", "basis": ["S6"] },
+    "asset": "/hr/directory_full_CONFIDENTIAL.csv",
+    "vector": { "template": "/intranet/forum/view/{id}", "obj_id": 1188 },
+    "narrative": [
+      { "ts": "2026-03-18T10:42:11-04:00", "text": "joshua_c posted to the forum with a parameter named tracking_ref rather than any key seen in the baseline.", "lines": [180801] },
+      { "ts": "2026-03-18T13:55:02-04:00", "text": "michael_t viewed post 1188, and two seconds later his session performed an admin role update.", "lines": [180803, 180804] },
+      { "ts": "2026-03-18T14:06:30-04:00", "text": "joshua_c downloaded the HR directory, a file only michael_t is authorized to read.", "lines": [180806] }
+    ],
+    "alerts": ["a_v42_01", "a_v42_02", "a_v42_03"],
+    "evidence_lines": [180801, 180802, 180803, 180804, 180805, 180806],
+    "evidence_emails": [],
+    "labels": { "synthetic": true, "variant_id": "v_0042" }
+  }
+]

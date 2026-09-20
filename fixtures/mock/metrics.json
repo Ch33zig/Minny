@@ -1,0 +1,46 @@
+{
+  "placeholder": true,
+  "placeholder_note": "Layout fixture copied from 00-CONTRACTS.md section 9. eval.py has not been run. Every number below is a placeholder and the UI labels it as one until C ships a generated metrics.json without this flag.",
+  "generated_at": null,
+  "command": "python eval.py --seed 42",
+  "seed": 42,
+  "rule_revision": "rules.yaml@a1b2c3d",
+  "variants": { "total": 212, "by_family": { "F1": 54, "F2": 61, "F3": 49, "F4": 48 } },
+  "detection": {
+    "overall": 0.0,
+    "by_operator": {
+      "slow_guess": { "n": 38, "detected": 0, "rate": 0.0 },
+      "own_ip_takeover": { "n": 0, "detected": 0, "rate": 0.0 },
+      "param_rename": { "n": 0, "detected": 0, "rate": 0.0 },
+      "victim_swap": { "n": 0, "detected": 0, "rate": 0.0 },
+      "target_swap": { "n": 0, "detected": 0, "rate": 0.0 },
+      "business_hours": { "n": 0, "detected": 0, "rate": 0.0 },
+      "delay_gap": { "n": 0, "detected": 0, "rate": 0.0 },
+      "no_cleanup": { "n": 0, "detected": 0, "rate": 0.0 },
+      "no_cover_download": { "n": 0, "detected": 0, "rate": 0.0 }
+    },
+    "by_family": {
+      "F1": { "n": 54, "detected": 0, "rate": 0.0 },
+      "F2": { "n": 61, "detected": 0, "rate": 0.0 },
+      "F3": { "n": 49, "detected": 0, "rate": 0.0 },
+      "F4": { "n": 48, "detected": 0, "rate": 0.0 }
+    }
+  },
+  "attribution": { "n_detected": 0, "attacker_correct": 0, "victim_correct": 0, "both_correct_rate": 0.0 },
+  "false_positives": {
+    "benign_stream": "March 2026 minus labeled incident lines",
+    "alerts_total": 0,
+    "incidents_total": 0,
+    "alerts_per_day": 0.0,
+    "by_day": {
+      "2026-03-01": 0, "2026-03-02": 0, "2026-03-03": 0, "2026-03-04": 0, "2026-03-05": 0,
+      "2026-03-06": 0, "2026-03-07": 0, "2026-03-08": 0, "2026-03-09": 0, "2026-03-10": 0,
+      "2026-03-11": 0, "2026-03-12": 0, "2026-03-16": 0, "2026-03-17": 0, "2026-03-18": 0,
+      "2026-03-19": 0, "2026-03-20": 0, "2026-03-21": 0, "2026-03-22": 0, "2026-03-23": 0,
+      "2026-03-24": 0, "2026-03-25": 0, "2026-03-26": 0, "2026-03-27": 0, "2026-03-28": 0,
+      "2026-03-29": 0, "2026-03-30": 0, "2026-03-31": 0
+    }
+  },
+  "time_to_detect": { "median_log_seconds": 0, "p90_log_seconds": 0, "wallclock_ms_per_event": 0.0 },
+  "real_incident": { "detected": true, "attribution_correct": true, "alert_count": 9 }
+}
