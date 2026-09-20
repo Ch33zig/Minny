@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Insider-threat forensics, streaming detection, and adversarial evaluation over web access logs"
 requires-python = ">=3.10"
 
-# Append one line at the end of this list. Never reorder — reordering is the
+# Append one line at the end of this list. Never reorder: reordering is the
 # only thing in this file that can cause a merge conflict between tracks.
 dependencies = [
     "pandas>=2.0",

@@ -8,14 +8,14 @@ show.
 Six checks, all of them on the rendered text after it has been parsed back
 through `minny.parser`:
 
-1. `format` — every line parses.
-2. `monotonic_ts` — timestamps strictly increase.
-3. `size_table` — every (path, status) -> size pair occurs in the real data.
-4. `escalation_order` — a 200 on a sensitive file is either an authorized
+1. `format`: every line parses.
+2. `monotonic_ts`: timestamps strictly increase.
+3. `size_table`: every (path, status) -> size pair occurs in the real data.
+4. `escalation_order`: a 200 on a sensitive file is either an authorized
    read or comes after an escalation step.
-5. `authorization` — the victim really is authorized for the target, and the
+5. `authorization`: the victim really is authorized for the target, and the
    attacker really was denied it.
-6. `operators_present` — the declared operators are visible in the output.
+6. `operators_present`: the declared operators are visible in the output.
 
 Check 6 is the one that is usually skipped, and it is the one that decides
 whether the per-operator metrics table is a measurement or a claim.
@@ -132,8 +132,8 @@ def _check_sizes(events: list[Event], size_table: SizeTable) -> str | None:
 def _check_escalation_order(events: list[Event], catalog: Catalog) -> str | None:
     """A 200 on a sensitive file is earned or it is a hole in the story.
 
-    Either the reader was already authorized — which is what the takeover and
-    cover-download families rely on — or an escalation step happened earlier
+    Either the reader was already authorized (which is what the takeover and
+    cover-download families rely on) or an escalation step happened earlier
     in the same variant.
     """
     escalations = privileged_actions(events)

@@ -1,6 +1,6 @@
 """Red team: generate labeled attack variants to stress the detector (M4).
 
-Read `generate.py` first — it is the only entry point:
+Read `generate.py` first. It is the only entry point:
 
     python -m minny.redteam.generate --seed 42 --count 200
 

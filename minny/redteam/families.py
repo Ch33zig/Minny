@@ -3,14 +3,14 @@
 The IDs are fixed by 00-CONTRACTS.md section 8 and every one of them is a
 piece of the real 13-15 March incident rather than an invention:
 
-* **F1 credential_takeover** — failed logins as the victim, then a success,
+* **F1 credential_takeover**: failed logins as the victim, then a success,
   then the access her account is entitled to make.
-* **F2 content_privilege_escalation** — a post, the victim viewing it, a
+* **F2 content_privilege_escalation**: a post, the victim viewing it, a
   privileged action under her session, and the attacker's first success on a
   file he had been refused.
-* **F3 cover_download** — the victim's account driven from the attacker's
+* **F3 cover_download**: the victim's account driven from the attacker's
   host to pull the asset a second time.
-* **F4 full_chain** — F1 then F2 then F3, which is the shape of the breach.
+* **F4 full_chain**: F1 then F2 then F3, which is the shape of the breach.
 
 A step has no timestamp, no size and no line number. It has a gap from the
 step before it, and render.py turns gaps into a timeline. Keeping the two
@@ -81,7 +81,7 @@ def post_path(topic: str, param_style: str, renamed_key: str, attempt: int) -> s
 
     There is no post body anywhere in this system. The dataset records
     requests, never contents, so a "malicious post" exists here only as a
-    POST with some query parameters — which is also the whole reason this
+    POST with some query parameters, which is also the whole reason this
     output is safe to publish.
     """
     params = [("topic", topic)]

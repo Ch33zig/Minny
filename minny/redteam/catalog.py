@@ -1,8 +1,8 @@
 """The dataset facts every red-team module is allowed to use (milestone M4).
 
-Everything a variant is built from — users, IPs, forum post IDs, topics,
+Everything a variant is built from (users, IPs, forum post IDs, topics,
 sensitive targets, response sizes, and the real log lines used as rendering
-templates — is read from the artifacts A produced, never hardcoded from the
+templates) is read from the artifacts A produced, never hardcoded from the
 brief. The brief was wrong about the incident date and four paths; the data
 was not. See docs/handoff/GROUND-TRUTH.md.
 
@@ -155,8 +155,8 @@ def _line_templates(frame: pd.DataFrame) -> dict[tuple[str, int], Event]:
     """One real line per (template, status), preferring benign traffic.
 
     The renderer overwrites ip, user, ts, path, status and size and inherits
-    everything else. Two of the shapes we need — the admin role update and
-    the avatar fetch — occur exactly once in 180,800 lines and both of those
+    everything else. Two of the shapes we need (the admin role update and
+    the avatar fetch) occur exactly once in 180,800 lines and both of those
     occurrences are the incident, so for those the fallback is the only
     option. Everywhere else a benign line wins.
     """

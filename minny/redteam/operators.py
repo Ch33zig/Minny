@@ -68,7 +68,7 @@ ATTACK_PARAM_VALUES: tuple[tuple[str, str], ...] = (
 )
 
 # Keys that carry no attack semantics. They are not in the benign vocabulary
-# for /intranet/forum/new either — only `topic` is — so a rename still trips a
+# for /intranet/forum/new either (only `topic` is), so a rename still trips a
 # parameter-novelty signal. Dropping the extra key entirely is the stronger
 # evasion, and the planner picks between the two.
 INNOCUOUS_PARAMS: dict[str, str] = {
@@ -143,7 +143,7 @@ def _verify_slow_guess(events: list[Event], plan, catalog: Catalog) -> bool:
 def _verify_own_ip_takeover(events: list[Event], plan, catalog: Catalog) -> bool:
     """The victim's account has to show up on a host nobody owns.
 
-    Not merely "not the attacker's host" — an IP that belongs to some other
+    Not merely "not the attacker's host": an IP that belongs to some other
     employee would still resolve to an owner, and the correlator would still
     have a name to reach for.
     """

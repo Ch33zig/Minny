@@ -10,7 +10,7 @@ than stylistic:
   drift from the format spec.
 * Every size comes from A's size_table.json. Fixed pairs take the constant;
   variable pairs sample uniformly inside the real [min, max]. Uniform is not
-  a guess — the real forum-view, dashboard, metrics and asset sizes are flat
+  a guess: the real forum-view, dashboard, metrics and asset sizes are flat
   across their ranges, so any other shape would stand out in a histogram.
 
 The one thing the brief got wrong is the timezone. It predicted -0500 for

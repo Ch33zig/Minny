@@ -1,4 +1,4 @@
-"""Saved forensic queries — one per claim in the case file (milestone M1).
+"""Saved forensic queries, one per claim in the case file (milestone M1).
 
 Every finding in `data/case_file.json` names one of these functions and ships
 the line numbers it returned. Nothing in the case file is prose about data
@@ -723,7 +723,7 @@ def vector_object_edits(
             "after_line": after_line,
             "edits_after_success": int(len(edits)),
             "first_edit_ts": _iso(first.iloc[0]["ts"]) if not first.empty else None,
-            # Editing this object is ordinary in isolation — everybody does it
+            # Editing this object is ordinary in isolation: everybody does it
             # all year. It is evidence only in sequence, which is why it is
             # timeline context and not a finding of its own.
             "edits_by_anyone_overall": int(len(everyone)),

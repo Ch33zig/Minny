@@ -10,8 +10,8 @@ reproducible: `--seed 42` gives the same 200 variants on any machine with no
 API key and no network.
 
 The seeded planner is therefore the default path, not a fallback bolted on
-afterwards. Claude is an optional source of parameter *diversity* — it picks
-combinations a weighted die would rarely roll — and every value it returns is
+afterwards. Claude is an optional source of parameter *diversity* (it picks
+combinations a weighted die would rarely roll), and every value it returns is
 validated against the same enums before it is used. Anything unusable falls
 back to the seeded choice for that field, so a bad response degrades the
 variety of the batch and never its validity.
@@ -56,8 +56,8 @@ INJECT_END = datetime(2026, 3, 27, 0, 0, tzinfo=LOG_UTC_OFFSET)
 
 # Hosts that belong to nobody, for own_ip_takeover.
 #
-# Every one sits on a /24 that real employees are already on — the corpus
-# only ever uses 10.0.5 through 10.0.9 — with a host octet that occurs
+# Every one sits on a /24 that real employees are already on (the corpus
+# only ever uses 10.0.5 through 10.0.9) with a host octet that occurs
 # nowhere in 180,800 lines. The first draft used 10.0.10.x and 10.0.12.x and
 # the blind realism check picked those lines out immediately: a subnet that
 # appears nowhere else is a rendering tell, not an attack signal, and the
@@ -273,7 +273,7 @@ def _available(family: str) -> tuple[str, ...]:
 
     A tuple rather than a set, and the order is not cosmetic. The weighted
     draw below consumes one rng value per operator, so iterating a set of
-    strings would consume them in hash order — and Python salts string
+    strings would consume them in hash order, and Python salts string
     hashing per process, which quietly made `--seed 42` produce a different
     batch in every interpreter.
     """
@@ -458,8 +458,8 @@ a synthetic corporate web access log. You choose parameters for one attack \
 variant. You never write a log line, a payload, or any code: deterministic \
 code renders every line from the parameters you return.
 
-Pick a combination that is coherent — the victim must be an authorized reader \
-of the target, the attacker must be someone the target denies — and that is \
+Pick a combination that is coherent (the victim must be an authorized reader \
+of the target, the attacker must be someone the target denies) and that is \
 not the obvious one. Variety across a batch is the point: we are measuring \
 which detection assumptions hold, so unusual but plausible combinations are \
 worth more than the textbook shape."""

@@ -2,8 +2,8 @@
 
     python -m minny.redteam.generate --seed 42 --count 200
 
-Writes `data/variants.json` — an array of variant labels in the shape of
-00-CONTRACTS.md section 8, each carrying the lines it rendered — plus
+Writes `data/variants.json` (an array of variant labels in the shape of
+00-CONTRACTS.md section 8, each carrying the lines it rendered) plus
 `data/variants_rejected.json` for anything the critic turned down.
 
 Families and personas are cycled rather than sampled, so a run of 200 covers
@@ -232,7 +232,7 @@ def main() -> None:
         "--declare-requested",
         action="store_true",
         help="declare the operators that were asked for rather than the ones "
-        "the plan actually carries — a deliberately faulty generator, for "
+        "the plan actually carries: a deliberately faulty generator, for "
         "watching the critic's sixth check fire on real output",
     )
     parser.add_argument(
