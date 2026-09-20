@@ -1,5 +1,8 @@
-// Everything on this screen comes out of metrics.json. Nothing is typed in.
-// If the evaluation is re-run, this panel changes by itself.
+// Everything on this page comes out of metrics.json. Nothing is typed in.
+// If the evaluation is re-run, the report changes by itself.
+//
+// It is laid out as one pinned report page: numbers large, the per-operator
+// table given the room it deserves, provenance typed along the foot.
 
 import { api } from '../api.js';
 import { esc, fmtNum, fmtPct, fmtTs, NONE, noneTag } from '../dom.js';
@@ -15,71 +18,71 @@ export async function render(container) {
   const maxDay = Math.max(1, ...days.map(([, n]) => Number(n) || 0));
 
   container.innerHTML = `
-    <div class="metrics-grid">
-      ${m.placeholder ? placeholderRibbon(m) : ''}
+    <article class="report metrics-page" style="--rot:-0.25deg">
+      <span class="pin left"></span><span class="pin right"></span>
+      ${m.placeholder ? placeholderNote(m) : ''}
+      <div class="report-head">
+        <h2 class="report-title">Evaluation</h2>
+        <span class="tw">${esc((m.method || {}).replays || fmtNum((m.variants || {}).total))} replays, one variant each</span>
+      </div>
 
-      <section class="panel stats">
-        ${stat('OVERALL DETECTION', fmtPct(det.overall), `${fmtNum((m.variants || {}).total)} variants`)}
-        ${stat('ATTRIBUTION', fmtPct(attr.both_correct_rate), `attacker and victim both right, n=${fmtNum(attr.n_detected)}`)}
-        ${stat('FALSE POSITIVES', `${Number(fp.alerts_per_day || 0).toFixed(2)}`, `alerts per day on ${esc(fp.benign_stream || 'the benign stream')}`)}
-        ${stat('TIME TO DETECT', secs(ttd.median_log_seconds), `median log time · p90 ${secs(ttd.p90_log_seconds)}`)}
-        ${stat('REAL INCIDENT', real.detected ? 'DETECTED' : 'MISSED', `${real.attribution_correct ? 'attribution correct' : 'attribution wrong'} · ${fmtNum(real.alert_count)} alerts`, real.detected ? 'good' : 'bad')}
-      </section>
+      <div class="stat-row">
+        ${stat('Overall detection', fmtPct(det.overall), `${fmtNum((m.variants || {}).total)} variants`)}
+        ${stat('Attribution', fmtPct(attr.both_correct_rate), `attacker and victim both right, n=${fmtNum(attr.n_detected)}`)}
+        ${stat('False positives', Number(fp.alerts_per_day || 0).toFixed(2), `alerts per day on ${esc(fp.benign_stream || 'the benign stream')}`)}
+        ${stat('Time to detect', secs(ttd.median_log_seconds), `median log time, p90 ${secs(ttd.p90_log_seconds)}`)}
+        ${stat('Real incident', real.detected ? 'DETECTED' : 'MISSED', `${real.attribution_correct ? 'attribution correct' : 'attribution wrong'}, ${fmtNum(real.alert_count)} alerts`, real.detected ? 'good' : 'bad')}
+      </div>
 
-      <div class="metrics-cols">
-      <section class="panel col ops-col">
-        <div class="col-head">
-          <p class="section-label">DETECTION BY OPERATOR</p>
-          <span class="col-count meta">${Object.keys(det.by_operator || {}).length}</span>
-        </div>
-        <div class="col-body">
-          <p class="col-intro">One row per evasion the red team can apply. A low row is a gap the blue agent is asked to close.</p>
+      <div class="m-cols">
+        <section class="m-main">
+          <div class="m-head">
+            <h3 class="tw">Detection by operator</h3>
+            <span class="hand">a low row is a gap the blue agent is asked to close</span>
+          </div>
           ${table(det.by_operator)}
-        </div>
-      </section>
+        </section>
 
-      <section class="panel col fam-col">
-        <div class="col-head"><p class="section-label">BY FAMILY</p></div>
-        <div class="col-body">
+        <aside class="m-side">
+          <h3 class="tw">By family</h3>
           ${table(det.by_family)}
-          <div class="col-head inner"><p class="section-label">FALSE POSITIVES PER DAY</p></div>
+          <h3 class="tw fp-head">False positives per day</h3>
           <div class="fpdays">
             ${days.map(([day, n]) => `
               <div class="fpday" title="${esc(day)}: ${esc(n)} alerts">
                 <i style="height:${Math.max(2, Math.round((Number(n) / maxDay) * 100))}%"></i>
-                <span class="meta">${esc(day.slice(8))}</span>
+                <span>${esc(day.slice(8))}</span>
               </div>`).join('') || '<div class="empty">No benign-stream days recorded.</div>'}
           </div>
-          <div class="fp-foot meta">
+          <div class="fp-foot">
             <span>${fmtNum(fp.alerts_total)} alerts</span>
             <span>${fmtNum(fp.incidents_total)} incidents</span>
             <span>${days.length} days</span>
           </div>
-        </div>
-      </section>
+        </aside>
       </div>
 
-      <section class="panel provenance meta">
-        <span><b>COMMAND</b> ${esc(m.command) || noneTag}</span>
-        <span><b>SEED</b> ${m.seed === null || m.seed === undefined ? noneTag : esc(m.seed)}</span>
-        <span><b>RULES</b> ${esc(m.rule_revision) || noneTag}</span>
-        <span><b>GENERATED</b> ${m.generated_at ? esc(fmtTs(m.generated_at, { withYear: true, withOffset: true })) : 'never run'}</span>
-      </section>
-    </div>`;
+      <footer class="provenance">
+        <span><b class="tw">Command</b> ${esc(m.command) || noneTag}</span>
+        <span><b class="tw">Seed</b> ${m.seed === null || m.seed === undefined ? noneTag : esc(m.seed)}</span>
+        <span><b class="tw">Rules</b> ${esc(m.rule_revision) || noneTag}</span>
+        <span><b class="tw">Generated</b> ${m.generated_at ? esc(fmtTs(m.generated_at, { withYear: true, withOffset: true })) : 'never run'}</span>
+      </footer>
+    </article>`;
 }
 
-function placeholderRibbon(m) {
-  return `<div class="ribbon">
-    <b>PLACEHOLDER</b>
+function placeholderNote(m) {
+  return `<div class="placeholder-slip">
+    <span class="stamp faint">PLACEHOLDER</span>
     <span>${esc(m.placeholder_note || 'This file has not been generated by the evaluation yet. Every number below is a layout placeholder.')}</span>
   </div>`;
 }
 
 function stat(label, value, sub, tone = '') {
-  return `<div class="stat-tile ${esc(tone)}">
-    <span class="stat-label meta">${esc(label)}</span>
-    <b class="stat-value">${esc(value)}</b>
-    <span class="stat-sub">${esc(sub)}</span>
+  return `<div class="big-num ${esc(tone)}">
+    <span class="tw">${esc(label)}</span>
+    <b>${esc(value)}</b>
+    <span class="big-num-sub">${esc(sub)}</span>
   </div>`;
 }
 
@@ -100,12 +103,12 @@ function table(rows) {
       <tbody>${entries.map(([name, r]) => {
         const rate = Number(r.rate || 0);
         return `<tr>
-          <td class="meta">${esc(name)}</td>
-          <td class="num meta">${fmtNum(r.n)}</td>
-          <td class="num meta">${fmtNum(r.detected)}</td>
+          <td>${esc(name)}</td>
+          <td class="num">${fmtNum(r.n)}</td>
+          <td class="num">${fmtNum(r.detected)}</td>
           <td class="rate">
             <div class="bar"><i style="width:${Math.round(rate * 100)}%" class="${rate >= 0.6 ? 'ok' : rate > 0 ? 'mid' : 'zero'}"></i></div>
-            <span class="meta">${fmtPct(rate)}</span>
+            <span class="rate-val">${fmtPct(rate)}</span>
           </td>
         </tr>`;
       }).join('')}</tbody>
