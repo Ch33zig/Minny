@@ -24,11 +24,17 @@
 # contains is query and template only. $u and $ip bind to the event's own
 # user and address.
 #
-# R001 ships as the one rule in the file. It is a rule somebody would
+# R001 shipped as the only rule in the file. It is a rule somebody would
 # actually write, and it fires zero times across all 180,800 events: the only
 # admin call in the dataset comes from the account's own address. So the
 # loader has something real to parse at startup and the shipped detector's
 # measured numbers are the signals' alone.
+#
+# Everything below it was appended by the blue agent and carries the gate
+# that let it in. Appending is the only write: nothing above an entry is ever
+# rewritten, so a rule in this file is the rule that was validated. Rejected
+# proposals are not here at all, they are in data/blue_proposals.json with
+# the check they failed.
 
 - id: R001
   name: admin endpoint called from an address the account does not own
@@ -37,3 +43,47 @@
   created_ts: "2026-09-20T01:40:00-04:00"
   when: template contains "/api/admin/" AND ip_owner != $u
   explain: "{user} called {template} from {ip}, which belongs to {ip_owner}."
+
+- id: R002
+  name: repeated login failures from a host the account does not own
+  severity: high
+  proposed_by: blue_agent
+  created_ts: '2026-09-19T22:24:27-04:00'
+  when: ip_owner != $u AND count(status=401, user=$u, ip=$ip, window=24h) >= 3
+  explain: '{user} failed to authenticate {count} times from {ip} within 24 hours, and that host does not belong to the account.'
+  gate:
+    heldout_detection:
+      threshold: 0.6
+      measured: 1.0
+      pass: true
+      variants: 40
+      caught: 40
+      seed_range:
+      - 4204
+      - 4344
+      personas:
+      - impatient_insider
+      - outsider_with_stolen_credentials
+      evaded_signal: S3
+    benign_fp_delta:
+      budget: 2
+      measured: 0
+      pass: true
+      stream: March 2026 minus labeled incident lines
+      events: 22956
+      days: 31
+      alerts_before: 0
+      alerts_after: 0
+      incidents_after: 0
+      alerts_per_day_before: 0.0
+      alerts_per_day_after: 0.0
+      lines: []
+    baseline_window_hits:
+      required: 0
+      measured: 0
+      pass: true
+      stream: baseline window, August 2025 to February 2026
+      events: 157818
+      lines: []
+    accepted: true
+    rejected_reason: null

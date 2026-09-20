@@ -213,3 +213,57 @@ The measured 53% is lower because of a second group: 31 F2 variants where `delay
 ### Judge panel
 
 `minny/api/routes_redteam.py` serves `GET /api/metrics`, `POST /api/redteam/generate` and `GET /api/blue/proposals`. Generation runs the real planner, renderer and critic through `generate_one`, so a judge's variant is the same object as one from `--seed 42`. A combination the access matrix cannot support is a 400 naming what is wrong rather than a silent substitution, and a target named explicitly is honoured for any sensitive file with an authorized reader and someone denied, not only the three confidential ones the random draw uses. Live injection waits on B's replay queue: the route looks for `routes_detect.enqueue_variant` on every request and returns `injected: false` with the reason until it exists.
+
+## M6 as built
+
+`python -m minny.blue.run --seed 42`: 50 seconds, no API key, appends the accepted rule to `detection-rules/rules.yaml`, writes `data/blue_proposals.json` and mirrors it to `fixtures/mock/blue_proposals.json`.
+
+| Module | Does |
+|---|---|
+| `minny/blue/evidence.py` | What the proposer is allowed to see: one operator's training variants, the feature rows they produced, a benign March sample, the one real incident |
+| `minny/blue/propose.py` | Parameters inside the DSL, assembled into a `when:` expression. Seeded by default; `--planner auto` uses Claude when `ANTHROPIC_API_KEY` is set, for parameters only |
+| `minny/blue/heldout.py` | The variants the gate scores on, from seeds and personas the proposer never saw |
+| `minny/blue/gate.py` | The three checks, plus the numbers a rejected rule is entitled to |
+| `minny/blue/run.py` | The command, the append and the published file |
+
+### The split, which is the only reason the first check means anything
+
+Training is `careful_insider` at seed 42, which is 27 variants for each of the two operators. The held-out set is generated at seeds 4201 upwards from the two personas training did not use, on event IDs from 190001 so a held-out line can never collide with a training line or a real one. `assert_disjoint` fails the run rather than trusting that arithmetic, and the published proposal records every seed and persona on both sides.
+
+Persona is not a reroll. It sets how likely each evasion is, how long the attacker waits between steps and whether they clean up, so a held-out variant is a different shape of attack rather than the same one under a different number.
+
+### R002, accepted
+
+```
+ip_owner != $u AND count(status=401, user=$u, ip=$ip, window=24h) >= 3
+```
+
+| Check | Measured | Required | |
+|---|---|---|---|
+| Held-out detection | **40 of 40, 1.00** | 0.60 | pass |
+| Benign false positives added | **0** over 31 days | 2 | pass |
+| Baseline window hits | **0** of 157,818 events | 0 | pass |
+
+Every parameter comes from the evidence. The 27 training variants spread 3 to 5 failures over as much as 21.4 hours, so the threshold is the largest that still catches all of them, and the window is the smallest rung of the ladder that covers the widest burst. The benign sample's worst run of failures from a host the account does not own is zero, which is what makes 3 affordable: across all 180,800 lines, the only account that ever fails to authenticate from someone else's machine is the one this system exists to find.
+
+The comparison is written before the count on purpose. `AND` short-circuits, so the rolling history is walked only for events that already failed the cheap test, which is the difference between 2 seconds and over 2 minutes on a baseline-window pass and therefore the difference between a gate that runs on every proposal and one that gets skipped.
+
+**Before and after, on the held-out 40.** Detection was already 100% before the rule and is 100% after it, because S1 sees the session arrive from the wrong host. The number that moves is what is left when S1 is taken away and the incidents are rebuilt from what remains: **0.925 to 1.00**, so the three variants that S1 was carrying alone now have a second, independent piece of evidence. Alerts citing injected lines go from 521 to 666. S3, the signal `slow_guess` switched off, still fires on none of them: the rule is new evidence rather than the old signal renamed.
+
+On the real incident, which is reported and deliberately not gated on, R002 fires 8 times starting at line 168313, the third of sarah_j's failed logins from david_m's workstation, 13 lines before the download. `python -m minny.detect.run` with both rules loaded: 0 alerts on the baseline window, 33 on March, all 33 in `inc_e30fc0`, 0 alerts outside an incident.
+
+### R003, rejected, and why it was built
+
+```
+template == "/intranet/forum/new" AND query contains "csrf"
+```
+
+It parses, at depth 2 and five nodes. That is the point: the grammar carries `query` and `contains` so this rule can reach the gate and be turned down on evidence instead of dying at the parser on a technicality.
+
+It reproduces the March incident exactly, firing on lines 168330 and 168331 and nothing else in the month. It then catches **0 of 40** held-out `param_rename` variants, because all 40 rename or drop the parameter and not one of them contains the string `csrf` anywhere. Benign false positives: 0. Baseline window hits: 0. It fails one check and it is the right one.
+
+`payload=csrf_test` was the attacker's choice of word, not the attack's shape. A rule keyed on it scores perfectly on the only incident anyone has and closes nothing, which is exactly the failure this milestone exists to catch. The proposer arrives at it honestly: the `incident_literal` strategy reads the parameters on that template that benign March never uses, tokenises their values and takes the token the most lines share, which is `csrf` on 2 of them.
+
+### What the gate does not do
+
+It never edits a rule to make it pass and it never gates on the real incident. Every rule here was proposed after that breach, so passing on it is the one thing no proposal can fail and the last thing a gate should reward. It is measured because it is the question a judge asks out loud, and it is kept out of the accept decision on purpose.
