@@ -25,6 +25,7 @@ ROUTER_MODULES = (
     "minny.api.routes_detect",  # B: baselines, incidents, replay, SSE
     "minny.api.routes_redteam",  # C: variant generation, metrics, blue agent
     "minny.api.routes_integrations",  # D: Slack, Gmail evidence
+    "minny.api.routes_observability",  # B: Elastic status and rules, Sentry
 )
 
 WEB_DIR = Path("dist")
