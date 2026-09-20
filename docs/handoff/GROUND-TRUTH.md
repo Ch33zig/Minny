@@ -2,7 +2,9 @@
 
 Derived from the real dataset at Wave 0, not from the brief. **Where this file and any other document disagree, this file wins.** Everything here was produced by a query you can re-run.
 
-Source: `data/logs.txt` · 180,800 lines · `sha256 9f773643335352d8aa8cc9f07c5f92614b65c806f84c84790f56e4c652970575` · 2025-08-01 08:00:57 to 2026-03-31 18:00:26, UTC−4/−5.
+Source: `data/logs.txt` · 180,800 lines · `sha256 9f773643335352d8aa8cc9f07c5f92614b65c806f84c84790f56e4c652970575` · 2025-08-01 08:00:57 to 2026-03-31 18:00:26.
+
+**Every one of the 180,800 lines carries `-0400`.** There is no daylight-saving split in this dataset, including for March dates that would be EST in a real US/Eastern log. Store the log's fixed offset; converting to a named zone re-interprets every pre-8-March line and prints a wall clock an hour off the raw evidence sitting beside it in the UI.
 
 Rebuild every derived artifact with `python -m minny.build_events`.
 
@@ -122,7 +124,7 @@ Everything else appears between 1,778 and 18,385 times.
 
 ## Consequences for the build
 
-1. **Baseline cutoff is `2026-03-01T00:00:00-05:00`**, compared as an aware datetime, never as a string — the dataset spans a DST change, so August lines carry −04:00 and March lines −05:00. The 13–15 March incident sits inside the held-out window, as intended.
+1. **Baseline cutoff is `2026-03-01T00:00:00-04:00`**, compared as an aware datetime, never as a string. It shares the log's fixed offset so it means midnight as the log writes it. The 13–15 March incident sits inside the held-out window, as intended.
 2. **Add S8 `anomalous_status`**: a status that occurs fewer than N times globally. Catches 168330 and 168331, the reconnaissance David did before the payload that worked.
 3. **`size_table.json` has 102 fixed-size and 85 variable-size paths.** Forum views are not constant (3105 vs 3371 bytes), so C's renderer must sample a real observed size for those rather than inventing one.
 4. **The `csrf` rejection demo works on real strings.** The payloads literally contain `payload=csrf_test`, `action=csrf_role_update`, `script=success`, so a rule matching `csrf` catches the original perfectly and dies on `param_rename` variants exactly as planned.

@@ -18,7 +18,6 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Callable
-from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -27,7 +26,9 @@ from minny import paths
 # March 2026 is held out everywhere else in the project, and the user/IP
 # baseline is fitted the same way for the same reason: the attack must never
 # be allowed to redefine what normal looks like.
-BASELINE_CUTOFF = datetime(2026, 3, 1, tzinfo=ZoneInfo("America/New_York"))
+# Single definition, shared with the detector so the case file and the
+# baselines can never disagree about where March begins.
+from minny.build_events import BASELINE_CUTOFF  # noqa: E402
 
 # The prefix case_file.json uses when naming a query, per 00-CONTRACTS.md §7.
 QUERY_NAMESPACE = "casefile.queries"

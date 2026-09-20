@@ -375,7 +375,11 @@ def test_a_missing_mailbox_changes_nothing(monkeypatch, tmp_path):
 
 def test_after_midnight_reads_are_all_authorised(results):
     result = results["offhours_confidential_access"]
-    assert result.stats["after_midnight"] == 4
+    # Five, not four: the log's fixed -0400 offset puts line 150515 at
+    # 00:08 on 19 Feb rather than 23:08 on the 18th. Every one of the five
+    # is an authorised reader on their own baseline IP, which is the claim
+    # the dismissed lead actually rests on.
+    assert result.stats["after_midnight"] == 5
     owner = queries.baseline_ip_by_user()
     for entry in result.stats["after_midnight_examples"]:
         assert owner[entry["user"]] == entry["ip"]

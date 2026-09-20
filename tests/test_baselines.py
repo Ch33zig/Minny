@@ -76,7 +76,10 @@ def test_cutoff_is_an_aware_instant_not_a_wall_clock():
     lines -05:00. A naive cutoff, or one pinned to the summer offset, moves the
     boundary by an hour and silently changes which events are held out."""
     august = datetime(2025, 8, 1, 8, 0, tzinfo=EASTERN)
-    assert BASELINE_CUTOFF.utcoffset() == timedelta(hours=-5)
+    # The log keeps a fixed -0400 on all 180,800 lines, including March
+    # dates that would be EST in a real US/Eastern log. The cutoff shares
+    # that offset so it means midnight as the log itself writes it.
+    assert BASELINE_CUTOFF.utcoffset() == timedelta(hours=-4)
     assert august.utcoffset() == timedelta(hours=-4)
     assert BASELINE_CUTOFF.tzinfo is not None
     with pytest.raises(TypeError):

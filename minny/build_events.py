@@ -12,20 +12,25 @@ import argparse
 import hashlib
 import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 from minny import paths
 from minny.parser import EXPECTED_ROWS, Event, parse_file
 
+# Every one of the 180,800 lines carries -0400, including March dates that
+# would be EST in a real US/Eastern log. The log keeps a fixed offset, so we
+# store a fixed offset. Converting to a named zone would re-interpret the
+# pre-8-March lines and print a wall clock an hour off the raw evidence line
+# sitting next to it in the UI.
+LOG_TZ = timezone(timedelta(hours=-4))
+
 # March 2026 is held out. Every baseline-style artifact fits below this line
 # so the 13-15 March incident can never train the thing meant to catch it.
-# Compared as an aware datetime, never as a string: the dataset spans a DST
-# change, so August lines carry -04:00 and March lines carry -05:00.
-BASELINE_CUTOFF = datetime(2026, 3, 1, tzinfo=ZoneInfo("America/New_York"))
+# Compared as an aware datetime, never as a string.
+BASELINE_CUTOFF = datetime(2026, 3, 1, tzinfo=LOG_TZ)
 SENSITIVE_MARKERS = ("CONFIDENTIAL", "/finance/", "/hr/", "/exec/", "/it/scripts/")
 
 
@@ -56,10 +61,9 @@ def to_dataframe(events: list[Event]) -> pd.DataFrame:
         }
     )
     # Timezone awareness is not cosmetic: the correlator windows on this column
-    # and a naive value silently shifts every window by four hours.
-    frame["ts"] = pd.to_datetime(frame["ts"], utc=True).dt.tz_convert(
-        "America/New_York"
-    )
+    # and a naive value silently shifts every window by four hours. The offset
+    # is the log's own fixed -0400 so that ts always agrees with the raw line.
+    frame["ts"] = pd.to_datetime(frame["ts"], utc=True).dt.tz_convert(LOG_TZ)
     return frame
 
 
