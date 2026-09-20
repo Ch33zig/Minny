@@ -71,6 +71,55 @@ def bare_machine(tmp_path, monkeypatch):
     store.reset_deliveries()
 
 
+
+@pytest.fixture
+def accepted_rule_id():
+    """The blue agent numbers its own rules, so find one by outcome.
+
+    Pinning an id here couples these tests to whatever the proposer happened
+    to emit last, which is how the accepted rule and the rejected csrf rule
+    silently swapped places once already.
+    """
+    return _rule_id_where(accepted=True)
+
+
+@pytest.fixture
+def rejected_rule_id():
+    return _rule_id_where(accepted=False)
+
+
+def _proposals() -> list[dict]:
+    """Read proposals the way the module under test does.
+
+    `bare_machine` points data_dir at an empty temp directory, so the loader
+    falls through to the repository fixture. Resolving these ids through the
+    same two sources keeps the tests honest about which file actually answered.
+    """
+    for source in (
+        paths.data_dir() / "blue_proposals.json",
+        github_pr._MOCK_FIXTURES / "blue_proposals.json",
+    ):
+        if source.exists():
+            raw = json.loads(source.read_text("utf-8"))
+            return raw["proposals"] if isinstance(raw, dict) else raw
+    return []
+
+
+def _any_rule_id() -> str:
+    """Any accepted rule, read at collection time for a parametrised case."""
+    for proposal in _proposals():
+        if bool(proposal.get("gate", {}).get("accepted")):
+            return proposal.get("rule_id") or proposal.get("id")
+    return "R001"
+
+
+def _rule_id_where(*, accepted: bool) -> str:
+    for proposal in _proposals():
+        if bool(proposal.get("gate", {}).get("accepted")) is accepted:
+            return proposal.get("rule_id") or proposal.get("id")
+    pytest.skip(f"no {'accepted' if accepted else 'rejected'} rule to test against")
+
+
 @pytest.fixture
 def api():
     return TestClient(app)
@@ -182,8 +231,10 @@ def test_the_bounded_query_is_a_bound_and_not_a_filter_applied_afterwards(api):
         assert "from:(" in query["query"]
 
 
-def test_a_pull_request_body_is_produced_without_a_repository(api):
-    response = api.post("/api/integrations/github/pr", json={"rule_id": "R003"})
+def test_a_pull_request_body_is_produced_without_a_repository(api, accepted_rule_id):
+    response = api.post(
+        "/api/integrations/github/pr", json={"rule_id": accepted_rule_id}
+    )
     artifact = response.json()
 
     assert response.status_code == 200
@@ -195,8 +246,10 @@ def test_a_pull_request_body_is_produced_without_a_repository(api):
     assert "### False positives" in artifact["body"]
 
 
-def test_a_rejected_rule_never_gets_a_review(api):
-    response = api.post("/api/integrations/github/pr", json={"rule_id": "R004"})
+def test_a_rejected_rule_never_gets_a_review(api, rejected_rule_id):
+    response = api.post(
+        "/api/integrations/github/pr", json={"rule_id": rejected_rule_id}
+    )
 
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "rule_not_accepted"
@@ -210,7 +263,7 @@ def test_a_rejected_rule_never_gets_a_review(api):
     [
         ("/api/integrations/test", None),
         ("/api/integrations/gmail/sync", {}),
-        ("/api/integrations/github/pr", {"rule_id": "R003"}),
+        ("/api/integrations/github/pr", {"rule_id": _any_rule_id()}),
     ],
 )
 def test_a_vendor_exception_never_propagates_out_of_the_api(
@@ -475,9 +528,11 @@ def test_no_mailbox_content_reaches_a_slack_payload(api):
     egress.check(text, store=current)
 
 
-def test_no_mailbox_content_reaches_a_github_payload(api):
+def test_no_mailbox_content_reaches_a_github_payload(api, accepted_rule_id):
     api.post("/api/integrations/gmail/sync", json={})
-    artifact = api.post("/api/integrations/github/pr", json={"rule_id": "R003"}).json()
+    artifact = api.post(
+        "/api/integrations/github/pr", json={"rule_id": accepted_rule_id}
+    ).json()
     current = store.read_email_store()
 
     for quoted in egress.mailbox_strings(current):

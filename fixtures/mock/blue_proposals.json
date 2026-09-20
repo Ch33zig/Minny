@@ -4,7 +4,7 @@
     "name": "repeated login failures from a host the account does not own",
     "severity": "high",
     "proposed_by": "blue_agent",
-    "created_ts": "2026-09-19T22:24:27-04:00",
+    "created_ts": "2026-09-19T22:35:02-04:00",
     "evaded_family": "F1",
     "evaded_family_name": "credential_takeover",
     "evaded_families": [
@@ -1774,14 +1774,15 @@
         "log_seconds_to_detect_after": 0.0,
         "events": 22974
       }
-    ]
+    ],
+    "already_present": true
   },
   {
     "id": "R003",
     "name": "csrf payload in a forum parameter",
     "severity": "high",
     "proposed_by": "blue_agent",
-    "created_ts": "2026-09-19T22:24:53-04:00",
+    "created_ts": "2026-09-19T22:35:45-04:00",
     "evaded_family": "F2",
     "evaded_family_name": "content_privilege_escalation",
     "evaded_families": [
