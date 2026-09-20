@@ -2,7 +2,7 @@
 // If the evaluation is re-run, this panel changes by itself.
 
 import { api } from '../api.js';
-import { esc, fmtNum, fmtPct, fmtTs } from '../dom.js';
+import { esc, fmtNum, fmtPct, fmtTs, NONE, noneTag } from '../dom.js';
 
 export async function render(container) {
   const m = await api.metrics();
@@ -30,7 +30,7 @@ export async function render(container) {
       <section class="panel col ops-col">
         <div class="col-head">
           <p class="section-label">DETECTION BY OPERATOR</p>
-          <span class="col-count mono">${Object.keys(det.by_operator || {}).length}</span>
+          <span class="col-count meta">${Object.keys(det.by_operator || {}).length}</span>
         </div>
         <div class="col-body">
           <p class="col-intro">One row per evasion the red team can apply. A low row is a gap the blue agent is asked to close.</p>
@@ -47,10 +47,10 @@ export async function render(container) {
             ${days.map(([day, n]) => `
               <div class="fpday" title="${esc(day)}: ${esc(n)} alerts">
                 <i style="height:${Math.max(2, Math.round((Number(n) / maxDay) * 100))}%"></i>
-                <span class="mono">${esc(day.slice(8))}</span>
+                <span class="meta">${esc(day.slice(8))}</span>
               </div>`).join('') || '<div class="empty">No benign-stream days recorded.</div>'}
           </div>
-          <div class="fp-foot mono">
+          <div class="fp-foot meta">
             <span>${fmtNum(fp.alerts_total)} alerts</span>
             <span>${fmtNum(fp.incidents_total)} incidents</span>
             <span>${days.length} days</span>
@@ -59,10 +59,10 @@ export async function render(container) {
       </section>
       </div>
 
-      <section class="panel provenance mono">
-        <span><b>COMMAND</b> ${esc(m.command || 'n/a')}</span>
-        <span><b>SEED</b> ${m.seed === null || m.seed === undefined ? 'n/a' : esc(m.seed)}</span>
-        <span><b>RULES</b> ${esc(m.rule_revision || 'n/a')}</span>
+      <section class="panel provenance meta">
+        <span><b>COMMAND</b> ${esc(m.command) || noneTag}</span>
+        <span><b>SEED</b> ${m.seed === null || m.seed === undefined ? noneTag : esc(m.seed)}</span>
+        <span><b>RULES</b> ${esc(m.rule_revision) || noneTag}</span>
         <span><b>GENERATED</b> ${m.generated_at ? esc(fmtTs(m.generated_at, { withYear: true, withOffset: true })) : 'never run'}</span>
       </section>
     </div>`;
@@ -77,14 +77,14 @@ function placeholderRibbon(m) {
 
 function stat(label, value, sub, tone = '') {
   return `<div class="stat-tile ${esc(tone)}">
-    <span class="stat-label mono">${esc(label)}</span>
+    <span class="stat-label meta">${esc(label)}</span>
     <b class="stat-value">${esc(value)}</b>
     <span class="stat-sub">${esc(sub)}</span>
   </div>`;
 }
 
 function secs(n) {
-  if (n === null || n === undefined) return 'n/a';
+  if (n === null || n === undefined) return NONE;
   const v = Number(n);
   if (v < 60) return `${v}s`;
   if (v < 3600) return `${(v / 60).toFixed(1)}m`;
@@ -100,12 +100,12 @@ function table(rows) {
       <tbody>${entries.map(([name, r]) => {
         const rate = Number(r.rate || 0);
         return `<tr>
-          <td class="mono">${esc(name)}</td>
-          <td class="num mono">${fmtNum(r.n)}</td>
-          <td class="num mono">${fmtNum(r.detected)}</td>
+          <td class="meta">${esc(name)}</td>
+          <td class="num meta">${fmtNum(r.n)}</td>
+          <td class="num meta">${fmtNum(r.detected)}</td>
           <td class="rate">
             <div class="bar"><i style="width:${Math.round(rate * 100)}%" class="${rate >= 0.6 ? 'ok' : rate > 0 ? 'mid' : 'zero'}"></i></div>
-            <span class="mono">${fmtPct(rate)}</span>
+            <span class="meta">${fmtPct(rate)}</span>
           </td>
         </tr>`;
       }).join('')}</tbody>

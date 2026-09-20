@@ -1,5 +1,12 @@
 // Small DOM and formatting helpers. No dependencies, no build step.
 
+/* "Nothing here." A middle dot says that without shouting it, which is what a
+   forensic tool should do about a value it does not have. `NONE` goes wherever
+   plain text is assigned; `noneTag` sets the same dot in --text-3 inside an
+   HTML template. */
+export const NONE = '·';
+export const noneTag = `<span class="none">${NONE}</span>`;
+
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -32,7 +39,7 @@ const ISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(Z|[+-]\d
  * is worse than no timeline.
  */
 export function fmtTs(iso, { withYear = false, withOffset = false } = {}) {
-  if (!iso) return 'n/a';
+  if (!iso) return NONE;
   const m = ISO.exec(iso);
   if (!m) return iso;
   const [, y, mo, d, hh, mm, ss, off] = m;
@@ -43,21 +50,21 @@ export function fmtTs(iso, { withYear = false, withOffset = false } = {}) {
 
 export function fmtDate(iso) {
   const m = ISO.exec(iso || '');
-  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : (iso || 'n/a');
+  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : (iso || NONE);
 }
 
 export function fmtNum(n) {
-  if (n === null || n === undefined) return 'n/a';
+  if (n === null || n === undefined) return NONE;
   return Number(n).toLocaleString('en-US');
 }
 
 export function fmtPct(rate) {
-  if (rate === null || rate === undefined) return 'n/a';
+  if (rate === null || rate === undefined) return NONE;
   return `${(Number(rate) * 100).toFixed(0)}%`;
 }
 
 export function fmtBytes(n) {
-  if (n === null || n === undefined) return 'n/a';
+  if (n === null || n === undefined) return NONE;
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1048576).toFixed(2)} MB`;

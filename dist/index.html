@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#081015" />
+    <meta name="theme-color" content="#0B0B0C" />
+    <meta name="color-scheme" content="dark" />
     <meta name="description" content="Insider-threat case file and live monitor over web server logs." />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2398f5b3' d='M32 4 57 15v16c0 15-10 25-25 29C17 56 7 46 7 31V15z'/%3E%3Cpath fill='%23081015' d='m21 31 7 7 15-16 4 4-19 20-11-11z'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23EDEDEF' d='M32 4 57 15v16c0 15-10 25-25 29C17 56 7 46 7 31V15z'/%3E%3Cpath fill='%230B0B0C' d='m21 31 7 7 15-16 4 4-19 20-11-11z'/%3E%3C/svg%3E" />
     <title>Minny · Case file</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -24,20 +25,23 @@
           <a class="nav-item" href="#blue" data-view="blue"><span class="nav-icon">⌘</span><span>Blue agent</span><kbd>5</kbd></a>
         </nav>
         <div class="rail-foot">
-          <div class="src-line"><span>SOURCE</span><b class="mono" id="srcLines">n/a</b></div>
-          <div class="src-line"><span>SHA-256</span><b class="mono" id="srcHash">n/a</b></div>
+          <div class="src-line"><span>SOURCE</span><b class="meta" id="srcLines"><span class="none">&#183;</span></b></div>
+          <div class="src-line"><span>SHA-256</span><b class="meta" id="srcHash"><span class="none">&#183;</span></b></div>
         </div>
       </aside>
 
       <section class="workspace">
         <header class="topbar">
           <div class="topbar-id">
-            <p class="eyebrow" id="caseId">MINNY</p>
-            <h1 id="caseTitle">Loading case file…</h1>
+            <h1 class="view-title" id="viewTitle">Case file</h1>
+            <p class="case-line">
+              <span class="case-id meta" id="caseId">MINNY</span>
+              <span class="case-name" id="caseTitle">Loading case file…</span>
+            </p>
           </div>
           <div class="top-actions">
-            <span class="chip" id="windowChip" title="Observation window" hidden>n/a</span>
-            <span class="chip mode" id="modeChip">n/a</span>
+            <span class="chip" id="windowChip" title="Observation window" hidden><span class="none">&#183;</span></span>
+            <span class="chip mode" id="modeChip"><span class="none">&#183;</span></span>
           </div>
         </header>
 

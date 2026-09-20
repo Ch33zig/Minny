@@ -1,6 +1,7 @@
 import { api, mode } from './api.js';
-import { $, $$, esc, fmtDate, fmtNum, toast } from './dom.js';
+import { $, $$, esc, fmtDate, fmtNum, NONE, toast } from './dom.js';
 import { toggleAll } from './evidence.js';
+import { crossfadeView } from './motion.js';
 import * as caseView from './views/casefile.js';
 import * as monitorView from './views/monitor.js';
 import * as judgeView from './views/judge.js';
@@ -43,7 +44,7 @@ async function setHeader() {
     }
     if (cf.source) {
       $('#srcLines').textContent = `${fmtNum(cf.source.lines)} lines`;
-      $('#srcHash').textContent = String(cf.source.sha256 || '').slice(0, 12) || 'n/a';
+      $('#srcHash').textContent = String(cf.source.sha256 || '').slice(0, 12) || NONE;
       $('#srcHash').title = cf.source.sha256 || '';
     }
     document.title = `Minny · ${cf.title}`;
@@ -62,6 +63,7 @@ async function show(name) {
   if (previous && previous.leave) previous.leave();
   current = name;
 
+  $('#viewTitle').textContent = VIEWS[name].title;
   $$('#nav .nav-item').forEach((a) => {
     const on = a.dataset.view === name;
     a.classList.toggle('active', on);
@@ -73,14 +75,14 @@ async function show(name) {
   const container = $(`#view-${name}`);
   const view = VIEWS[name].module;
   if (container.dataset.rendered !== '1') {
-    container.innerHTML = '<div class="loading mono">loading…</div>';
+    container.innerHTML = '<div class="loading meta">loading…</div>';
     try {
       await view.render(container);
       container.dataset.rendered = '1';
     } catch (err) {
       container.innerHTML = `<div class="panel fail">
         <h2>${esc(VIEWS[name].title)} could not load</h2>
-        <p class="mono">${esc(err.message)}</p>
+        <p class="meta">${esc(err.message)}</p>
         <p>${mode.mock
           ? 'Reading from <code>' + esc(mode.source) + '</code>. Check that the fixtures directory is being served.'
           : 'The API is not answering. The fixture demo needs no backend at all.'}</p>
@@ -89,6 +91,7 @@ async function show(name) {
       return;
     }
   }
+  crossfadeView(container);
   if (view.enter) view.enter();
 }
 

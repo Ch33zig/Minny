@@ -25,6 +25,21 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
+    def translate_path(self, path):
+        """Serve the page from / but let its assets keep living in dist/.
+
+        index.html asks for ./styles.css and ./js/main.js. Opened at the root
+        those resolve to /styles.css and /js/main.js, which do not exist here,
+        so the documented demo URL would load a blank page. Fall back to dist/
+        before giving up. Fixture paths resolve at the root already.
+        """
+        local = super().translate_path(path)
+        if not os.path.exists(local):
+            candidate = super().translate_path("/dist" + path)
+            if os.path.exists(candidate):
+                return candidate
+        return local
+
     def do_GET(self):
         if self.path in ("/", "/index.html"):
             self.path = "/dist/index.html"
