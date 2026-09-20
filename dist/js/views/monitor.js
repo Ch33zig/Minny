@@ -1,7 +1,7 @@
 // Live monitor. The point of this view is that incident cards GROW as correlated
 // alerts arrive: one story assembling itself, not twenty warnings in a list.
 
-import { api, openStream, seedLines, MOCK } from '../api.js';
+import { api, openStream, seedLines } from '../api.js';
 import { $, esc, fmtTs, sevChip, toast } from '../dom.js';
 import { evidenceToggle, mountEvidence } from '../evidence.js';
 
