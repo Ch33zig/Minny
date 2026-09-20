@@ -26,6 +26,7 @@ export async function render(container) {
         ${stat('REAL INCIDENT', real.detected ? 'DETECTED' : 'MISSED', `${real.attribution_correct ? 'attribution correct' : 'attribution wrong'} · ${fmtNum(real.alert_count)} alerts`, real.detected ? 'good' : 'bad')}
       </section>
 
+      <div class="metrics-cols">
       <section class="panel col ops-col">
         <div class="col-head">
           <p class="section-label">DETECTION BY OPERATOR</p>
@@ -56,6 +57,7 @@ export async function render(container) {
           </div>
         </div>
       </section>
+      </div>
 
       <section class="panel provenance mono">
         <span><b>COMMAND</b> ${esc(m.command || '—')}</span>
