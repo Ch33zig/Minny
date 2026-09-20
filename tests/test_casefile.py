@@ -162,14 +162,48 @@ def test_supporting_queries_frame_the_download(results):
 # --- the dismissed leads ---------------------------------------------------
 
 
-def test_offhours_access_is_routine_and_mostly_legitimate(results):
+def test_offhours_access_is_rare_and_every_instance_is_accounted_for(results):
     result = results["offhours_confidential_access"]
+    # Rare, not routine: 10 of 6,115 confidential reads fall in the window.
+    assert result.stats["window"] == "20:00-06:00"
+    assert result.stats["confidential_successes"] == 6115
+    assert result.stats["off_hours_successes"] == 10
+    assert result.stats["off_hours_share_pct"] < 1
     assert result.stats["from_own_baseline_ip"] == 9
     assert result.stats["from_a_foreign_ip"] == 1
     # The single off-hours read belonging to the incident is already F1's.
     assert result.stats["foreign_lines"] == [168345]
     assert 162048 in result.lines
     assert "sarah_j" in result.stats["users"]
+
+
+def test_exactly_one_after_midnight_read_touches_the_stolen_file(results):
+    result = results["offhours_confidential_access"]
+    # The claim a judge checks first. Five after-midnight reads exist, and
+    # exactly one of them is the Q1 zip.
+    assert result.stats["after_midnight_by_path"][CONFIDENTIAL_ZIP] == 1
+    on_asset = [
+        entry
+        for entry in result.stats["after_midnight_examples"]
+        if entry["path"] == CONFIDENTIAL_ZIP
+    ]
+    assert [entry["line"] for entry in on_asset] == [162048]
+    assert on_asset[0]["user"] == "sarah_j"
+    assert on_asset[0]["ip"] == "10.0.5.12"
+    assert on_asset[0]["ts"].startswith("2026-03-06T00:19")
+
+
+def test_the_offhours_lead_states_its_window_and_never_calls_it_routine(case_file):
+    lead = next(
+        entry
+        for entry in case_file["dismissed"]
+        if entry["query"].endswith("offhours_confidential_access")
+    )
+    assert "20:00-06:00" in lead["why"]
+    assert "is routine" not in lead["why"]
+    # One after-midnight read of the asset, named with its line.
+    assert f"exactly 1 of those touches {CONFIDENTIAL_ZIP}" in lead["why"]
+    assert "line 162048" in lead["why"]
 
 
 def test_the_other_failed_logins_have_no_structure(results):
@@ -260,9 +294,10 @@ def test_unknowns_and_dismissed_leads_ship_with_their_queries(case_file):
             -1
         ] in queries.QUERIES
 
-    assert len(case_file["dismissed"]) == 3
+    assert [lead["id"] for lead in case_file["dismissed"]] == ["D1", "D2", "D3"]
     for lead in case_file["dismissed"]:
         assert lead["evidence_lines"], lead["lead"]
+        assert lead["confidence"] in build.CONFIDENCE_VALUES
         assert lead["query"].split(".")[-1] in queries.QUERIES
 
 

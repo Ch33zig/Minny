@@ -169,6 +169,12 @@ def ip_user_mismatch(
         stats={
             "baseline_ip_by_user": owner,
             "user_count": len(owner),
+            # Per user, so a suspect card can cite its own number rather than
+            # inherit the aggregate.
+            "ips_per_user": {str(k): int(v) for k, v in ips_per_user.items()},
+            "baseline_ips_per_user": {
+                str(k): int(v) for k, v in baseline_ips_per_user.items()
+            },
             "users_with_one_ip_overall": sum(1 for n in ips_per_user.values() if n == 1),
             "users_with_one_ip_in_baseline": sum(
                 1 for n in baseline_ips_per_user.values() if n == 1
@@ -876,12 +882,15 @@ def offhours_confidential_access(
     start_hour: int = OFF_HOURS_START,
     end_hour: int = OFF_HOURS_END,
 ) -> QueryResult:
-    """Successful confidential reads between 20:00 and 06:00.
+    """Successful confidential reads inside one stated window, 20:00 to 06:00.
 
-    The lead dies on its own evidence. Authorized readers pull these files at
-    night from their own machines all year, and the one off-hours read that
-    does belong to the incident is already named by the IP binding, so an
-    hour-based rule buys nine false positives and no new true one.
+    The lead dies on its own evidence, though not the way it is usually put.
+    Off-hours confidential reads are rare here rather than routine: a handful
+    out of thousands. What kills the lead is whose they are. Every off-hours
+    read outside the incident belongs to a reader entitled to that file
+    working from their own machine, and the one that does belong to the
+    incident is already named by the IP binding, so an hour-based rule buys
+    only false positives.
     """
     frame = _events(events)
     confidential = frame[
@@ -902,6 +911,13 @@ def offhours_confidential_access(
             "window": f"{start_hour:02d}:00-{end_hour:02d}:00",
             "confidential_successes": int(len(confidential)),
             "off_hours_successes": int(len(off_hours)),
+            # The share is the whole answer to "is this routine?", so measure
+            # it here rather than letting anyone eyeball the two counts.
+            "off_hours_share_pct": (
+                round(100 * len(off_hours) / len(confidential), 2)
+                if len(confidential)
+                else 0.0
+            ),
             "from_own_baseline_ip": int(len(own_machine)),
             "from_a_foreign_ip": int(len(foreign)),
             # The lead as people actually phrase it is "after midnight", so
@@ -919,6 +935,17 @@ def offhours_confidential_access(
                     own_machine["ts"].dt.hour < end_hour
                 ].iterrows()
             ],
+            # Which file each after-midnight read touched. The lead is almost
+            # always asked about the stolen zip specifically, and the answer
+            # there is one read, not five.
+            "after_midnight_by_path": {
+                str(path): int(count)
+                for path, count in own_machine[own_machine["ts"].dt.hour < end_hour][
+                    "base"
+                ]
+                .value_counts()
+                .items()
+            },
             "foreign_lines": _lines(foreign),
             "users": sorted(own_machine["user"].dropna().unique().tolist()),
             "examples": [

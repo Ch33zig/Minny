@@ -483,38 +483,75 @@ def build_dismissed(results: dict[str, QueryResult]) -> list[dict]:
     offhours = results["offhours_confidential_access"]
     scattered = results["scattered_auth_failures"]
     denials = results["routine_denials"]
-    example = offhours.stats["examples"][-1]
+    flip = results["first_success_after_denials"]
 
+    asset = flip.stats["flips"][0]["path"]
+    authorized = flip.stats["flips_below_threshold"][0]
     after_midnight = offhours.stats["after_midnight_examples"]
+    # The lead is nearly always asked about the stolen file, so answer that
+    # question with its own count rather than the count for every
+    # confidential path.
+    on_asset = [entry for entry in after_midnight if entry["path"] == asset]
+    on_asset_count = offhours.stats["after_midnight_by_path"].get(asset, 0)
+    if len(on_asset) != on_asset_count:
+        raise AssertionError(
+            f"after-midnight reads of {asset}: {len(on_asset)} examples against a "
+            f"count of {on_asset_count}"
+        )
+    if on_asset_count != 1:
+        raise AssertionError(
+            f"the dismissed lead is worded for one after-midnight read of {asset}, "
+            f"the query found {on_asset_count}"
+        )
+    if offhours.stats["from_a_foreign_ip"] != 1:
+        raise AssertionError(
+            "the dismissed lead is worded for a single off-hours read from a foreign "
+            f"IP, the query found {offhours.stats['from_a_foreign_ip']}"
+        )
+    night = on_asset[0]
 
     return [
         {
+            "id": "D1",
             "lead": "Employees pulling confidential files outside working hours",
             "why": (
-                f"Off-hours access is routine here. Of "
+                "Off-hours access happens here, and outside the incident every "
+                "instance of it belongs to someone entitled to the file, working "
+                f"from their own machine. Of "
                 f"{_fmt(offhours.stats['confidential_successes'])} successful "
                 f"confidential reads, {offhours.stats['off_hours_successes']} fall "
-                f"between {offhours.stats['window']}, and "
-                f"{offhours.stats['from_own_baseline_ip']} of those are authorized "
-                "readers on their own machines, including "
-                f"{example['user']} pulling the same Q1 zip at {example['ts'][11:16]} "
-                f"on {example['ts'][:10]} from {example['ip']} (line {example['line']}). "
-                f"{offhours.stats['after_midnight']} of them are strictly after "
-                "midnight ("
-                + ", ".join(
+                f"in the {offhours.stats['window']} window, "
+                f"{offhours.stats['off_hours_share_pct']}% of them, so the hour is "
+                "rare rather than routine. Rarity is not what clears the lead "
+                f"though: ownership is. "
+                f"{offhours.stats['from_own_baseline_ip']} of the "
+                f"{offhours.stats['off_hours_successes']} are authorized readers on "
+                "their own baseline machines, and the one that is left is the "
+                f"incident itself (line {offhours.stats['foreign_lines'][0]}), which "
+                f"the IP binding already names. {offhours.stats['after_midnight']} of "
+                "the "
+                f"{offhours.stats['from_own_baseline_ip']} are strictly after midnight "
+                "("
+                + "; ".join(
                     f"{entry['user']} at {entry['ts'][11:16]} on {entry['ts'][:10]}, "
                     f"line {entry['line']}"
                     for entry in after_midnight
                 )
-                + "), every one of them an authorized reader on their own machine. "
-                "The one off-hours read that does belong to the incident is already "
-                f"named by the IP binding (line {offhours.stats['foreign_lines'][0]}), "
-                "so an hour-based rule buys nine false positives and no new true one."
+                + f"), and exactly {on_asset_count} of those touches {asset}: "
+                f"{night['user']} at {night['ts'][11:16]} on {night['ts'][:10]} from "
+                f"{night['ip']} (line {night['line']}), her own machine and a file she "
+                f"reads {_fmt(authorized['successes_on_path'])} times in this log. "
+                "The clock never separates the theft from ordinary work; the source "
+                f"IP does. A {offhours.stats['window']} rule buys "
+                f"{offhours.stats['from_own_baseline_ip']} false positives and no new "
+                "true one."
             ),
+            "confidence": "high",
             "query": offhours.qualified_name,
             "evidence_lines": offhours.lines,
         },
         {
+            "id": "D2",
             "lead": f"The {_fmt(scattered.stats['total_401'])} failed logins in the file",
             "why": (
                 f"{_fmt(scattered.stats['isolated_401'])} of them sit outside the two "
@@ -528,10 +565,12 @@ def build_dismissed(results: dict[str, QueryResult]) -> list[dict]:
                 f"{int(scattered.stats['min_gap_s_outside_bursts'])} seconds. Volume is "
                 "the baseline; the structure in F2 is the signal."
             ),
+            "confidence": "high",
             "query": scattered.qualified_name,
             "evidence_lines": scattered.lines,
         },
         {
+            "id": "D3",
             "lead": f"The {_fmt(denials.stats['total_403'])} permission denials",
             "why": (
                 "The access model denies constantly by design: "
@@ -544,6 +583,7 @@ def build_dismissed(results: dict[str, QueryResult]) -> list[dict]:
                 f"in the whole file, {denials.stats['flips_above_threshold']} follows "
                 "a sustained history of denial, and that one is F5."
             ),
+            "confidence": "high",
             "query": denials.qualified_name,
             "evidence_lines": denials.lines,
         },
