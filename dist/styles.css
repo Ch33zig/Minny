@@ -226,11 +226,16 @@ nav { display: grid; gap: 2px; }
   display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 8px;
   background: var(--line); border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
 }
-/* Figure and label sit on one baseline rather than stacked, which is what
-   buys both suspect cards their place above the fold. */
-.stat { background: var(--surface-2); padding: 5px 9px; display: flex; align-items: baseline; gap: 7px; }
+/* Figure and label share a baseline rather than stacking, which is what buys
+   both suspect cards their place further up the column. A figure too wide to
+   leave room, "500, 400", drops its label to the next line rather than
+   clipping it: a stat nobody can read is not a stat. */
+.stat {
+  background: var(--surface-2); padding: 5px 9px;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 7px;
+}
 .stat b { font: 700 18px/1.1 var(--display); letter-spacing: .04em; color: var(--text); flex: none; }
-.stat span { font-size: 11.5px; color: var(--text-3); line-height: 1.25; min-width: 0; }
+.stat span { font-size: 11.5px; color: var(--text-3); line-height: 1.25; flex: 1 1 60px; min-width: 0; }
 
 .col { padding: 0; display: flex; flex-direction: column; min-height: 0; }
 .col-head {
@@ -293,14 +298,14 @@ nav { display: grid; gap: 2px; }
   display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px;
   color: var(--text-2); padding: 4px 9px; cursor: pointer;
-  font: 500 12.5px var(--sans); letter-spacing: .04em;
+  font: 500 12.5px var(--sans); letter-spacing: .02em;
 }
 .ev-toggle:hover { border-color: var(--line-2); }
 .ev-caret { display: inline-block; font-size: 10px; color: var(--text-3); transition: transform .18s ease; }
 .ev-toggle[aria-expanded='true'] .ev-caret { transform: rotate(90deg); }
 .ev-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.ev-count { margin-left: auto; color: var(--text-3); white-space: nowrap; flex: none; font-variant-numeric: tabular-nums; }
-.ev-mail-count { color: var(--text-3); white-space: nowrap; flex: none; }
+.ev-count { margin-left: auto; color: var(--text-3); white-space: nowrap; flex: none; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.ev-mail-count { color: var(--text-3); white-space: nowrap; flex: none; font-size: 11.5px; }
 .ev-body { margin-top: 6px; }
 .ev-loading, .ev-error { font-size: 12.5px; color: var(--text-3); padding: 5px 0; }
 .ev-error { border-left: 2px dotted var(--line-2); padding-left: 8px; color: var(--text-2); }
