@@ -1054,8 +1054,10 @@ select, input[type="text"] {
 
 .leads-sheet { display: grid; gap: 13px; align-content: start; }
 .cleared-cluster.spread, .unknown-cluster.spread { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Three across, so the stamp comes in off the margin and the claim sets
+   around it rather than running underneath. */
 .cleared-cluster.spread .card.cleared { padding-right: 16px; }
-.cleared-cluster.spread .card.cleared .index-top { padding-right: 150px; }
+.cleared-cluster.spread .cleared-stamp { position: static; float: right; margin: 0 0 6px 12px; }
 
 /* Evidence still opens in place. On a sheet it opens as a photocopy slip that
    hangs over the board rather than growing the card, so pulling the clip can
@@ -1076,6 +1078,19 @@ select, input[type="text"] {
 .sheet .ev-body::-webkit-scrollbar-track { background: rgba(201,168,124,.22); }
 .sheet .ev-body::-webkit-scrollbar-thumb { background: var(--kraft); border-radius: 4px; }
 .sheet .ev-body .photocopy { margin-top: 0; }
+
+
+/* On a sheet the standing note is a strip across the top rather than a card
+   in the corner: the memo underneath needs the room more than it does. */
+.sheet .blue-grid { gap: 12px; }
+.sheet .blue-note {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px;
+  width: 100%; max-width: none; padding: 9px 18px 10px;
+}
+.sheet .blue-note .blue-lede, .sheet .blue-note .aside { margin: 0; }
+/* One memo to a sheet, but a memo is still a page and not a banner. */
+.sheet .memo-row { grid-template-columns: minmax(0, 880px); }
+.sheet .memo { padding: 18px 22px 10px; }
 
 /* Pulling a string brings up the claim that named both of its ends. It is lit
    for a couple of seconds and then goes out: an answer, not a selection. */
