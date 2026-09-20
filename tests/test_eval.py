@@ -301,7 +301,9 @@ def test_report_renders_every_section(metrics):
         assert heading in text
     for name in OPERATORS:
         assert name in text
-    assert "—" not in text and "–" not in text
+    # Written as code points so the check does not carry the character it
+    # is banning into a file the repo sweeps.
+    assert chr(0x2014) not in text and chr(0x2013) not in text
 
 
 # --------------------------------------------------------------------------
