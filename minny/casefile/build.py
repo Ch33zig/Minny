@@ -269,7 +269,9 @@ def build_findings(results: dict[str, QueryResult], total_events: int) -> list[d
 
 # Each timeline row cites one line. The actor and timestamp are read from the
 # event itself and the expectations are asserted, so a sentence can never
-# drift away from the line it points at.
+# drift away from the line it points at. Any number a row quotes is a
+# placeholder filled from the query that measured it, so a recount cannot
+# leave a stale figure behind in the prose.
 TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
     (
         168311,
@@ -281,7 +283,7 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
     (
         168315,
         "david_m is denied the Q1 confidential draft again",
-        "The last of 77 denials before the download, see F5",
+        "The last of {denials_before} denials before the download, see F5",
         {"user": "david_m", "status": 403},
     ),
     (
@@ -340,8 +342,9 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
     (
         168338,
         "Nineteen minutes after the role update, david_m downloads the Q1 confidential "
-        "draft he had been denied 77 times",
-        None,
+        "draft he had been denied {denials_before} times",
+        "{denials_before} of his {denials_total} denials on the file come before this "
+        "line, see F5",
         {
             "user": "david_m",
             "base": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
@@ -382,10 +385,30 @@ TIMELINE: tuple[tuple[int, str, str | None, dict], ...] = (
         None,
         {"user": "sarah_j", "ip": "10.0.8.45", "base": "/logout"},
     ),
+    (
+        178028,
+        "Twelve days later david_m is denied the Q1 confidential draft again",
+        "The first of the {denials_after} denials after the download, the only trace "
+        "of the access closing again, see U3",
+        {
+            "user": "david_m",
+            "base": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
+            "status": 403,
+        },
+    ),
 )
 
 
-def build_timeline(events: pd.DataFrame, evidence: set[int]) -> list[dict]:
+def _fill(text: str | None, counts: dict[str, int]) -> str | None:
+    """Put the measured numbers into a row's prose, or leave it alone."""
+    if text is None or "{" not in text:
+        return text
+    return text.format(**counts)
+
+
+def build_timeline(
+    events: pd.DataFrame, evidence: set[int], counts: dict[str, int]
+) -> list[dict]:
     """The incident in order, each entry anchored to one verified line."""
     indexed = events.set_index("line")
     timeline = []
@@ -409,8 +432,8 @@ def build_timeline(events: pd.DataFrame, evidence: set[int]) -> list[dict]:
                 "ts": queries._iso(row["ts"]),
                 "line": int(line),
                 "actor": str(row["user"]),
-                "action": action,
-                "note": note,
+                "action": _fill(action, counts),
+                "note": _fill(note, counts),
             }
         )
     return sorted(timeline, key=lambda entry: entry["line"])
@@ -425,7 +448,9 @@ def build_unknowns(results: dict[str, QueryResult]) -> list[dict]:
     gap = results["credential_mechanism_gap"]
     authorship = results["post_attribution"]
     denials = results["denials_before_exfil"]
+    escalation = results["content_triggered_privileged_action"]
     chain = authorship.stats["chains"][0]
+    privileged = escalation.stats["chains"][0]
 
     return [
         {
@@ -460,12 +485,17 @@ def build_unknowns(results: dict[str, QueryResult]) -> list[dict]:
             "id": "U3",
             "text": (
                 f"Who granted and then revoked {denials.stats['user']}'s access to "
-                f"{denials.stats['path']}. The file shows "
-                f"{denials.stats['denials_before_success']} denials, one success at "
-                f"line {denials.stats['success_line']}, and denials again from line "
-                f"{denials.stats['first_denial_after_success_line']} on "
-                f"{denials.stats['first_denial_after_success_ts'][:10]}. The only "
-                "privileged call in the log returns 85 bytes and names nobody, so "
+                f"{denials.stats['path']}. The order is the evidence, not the total: "
+                f"{denials.stats['denials_before_success']} denials come before the "
+                f"download, the download is line {denials.stats['success_line']}, and "
+                f"{denials.stats['denials_after_success']} further denials follow from "
+                f"line {denials.stats['first_denial_after_success_line']} on "
+                f"{denials.stats['first_denial_after_success_ts'][:10]}, "
+                f"{denials.stats['total_denials']} in all. Those "
+                f"{denials.stats['denials_after_success']} reopened denials are the "
+                "only trace in the file that the access closed again, and they are "
+                "what puts this unknown here. The one privileged call in the log "
+                f"returns {privileged['action_size']} bytes and names nobody, so "
                 "neither the grant nor the revocation has an author in this evidence."
             ),
             "query": denials.qualified_name,
@@ -600,6 +630,7 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
     escalation = results["content_triggered_privileged_action"]
     burst = results["auth_fail_burst"]
     tampered = results["tampered_forum_post"]
+    denials = results["denials_before_exfil"]
 
     victim = mismatch.stats["violating_users"][0]
     foreign_ip = mismatch.stats["foreign_ips"][0]
@@ -653,7 +684,15 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
             "vector": {"obj_id": chain["obj_id"], "template": queries.FORUM_VIEW},
         },
         "findings": findings,
-        "timeline": build_timeline(frame, evidence),
+        "timeline": build_timeline(
+            frame,
+            evidence,
+            {
+                "denials_before": denials.stats["denials_before_success"],
+                "denials_after": denials.stats["denials_after_success"],
+                "denials_total": denials.stats["total_denials"],
+            },
+        ),
         "unknowns": build_unknowns(results),
         "dismissed": build_dismissed(results),
         # Additive, and the point of the whole module: every number above came

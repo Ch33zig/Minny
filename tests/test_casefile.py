@@ -153,6 +153,10 @@ def test_supporting_queries_frame_the_download(results):
     # Access closed again afterwards, with no log line for either change.
     assert denials.stats["denials_after_success"] == 3
     assert denials.stats["first_denial_after_success_line"] == 178028
+    # 80 in total, but never 80 before the download. The query ships both
+    # sides of the success so no sentence can imply the wrong order.
+    assert denials.stats["total_denials"] == 80
+    assert denials.lines == [168315, 178028]
 
     assert results["vector_object_edits"].lines == [168339]
     assert results["cover_download"].lines == [168340]
@@ -284,6 +288,28 @@ def test_timeline_is_ordered_and_every_entry_resolves(case_file, events):
         row = by_line.loc[entry["line"]]
         assert entry["actor"] == row["user"]
         assert entry["ts"] == queries._iso(row["ts"])
+
+
+def test_u3_says_which_denials_fall_on_which_side_of_the_download(case_file):
+    u3 = next(u for u in case_file["unknowns"] if u["id"] == "U3")
+    assert "77 denials come before the download" in u3["text"]
+    assert "3 further denials follow from line 178028" in u3["text"]
+    assert "80 in all" in u3["text"]
+    # The reopened denials are the reason this unknown exists at all.
+    assert "the access closed again" in u3["text"]
+    assert 178028 in u3["evidence_lines"]
+
+
+def test_the_timeline_never_quotes_a_denial_count_it_did_not_measure(case_file):
+    beats = {entry["line"]: entry for entry in case_file["timeline"]}
+    assert "denied 77 times" in beats[168338]["action"]
+    assert "The last of 77 denials before the download" in beats[168315]["note"]
+    # The reopened denial closes the story the other three beats open.
+    assert beats[178028]["actor"] == "david_m"
+    assert "The first of the 3 denials after the download" in beats[178028]["note"]
+    for entry in case_file["timeline"]:
+        assert "{" not in entry["action"]
+        assert "{" not in (entry["note"] or "")
 
 
 def test_unknowns_and_dismissed_leads_ship_with_their_queries(case_file):

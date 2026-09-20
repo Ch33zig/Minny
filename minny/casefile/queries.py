@@ -603,6 +603,9 @@ def content_triggered_privileged_action(
                 "gap_s": float((action["ts"] - view["ts"]).total_seconds()),
                 "view_ts": _iso(view["ts"]),
                 "action_ts": _iso(action["ts"]),
+                # The response body is all the log keeps of the grant, and it
+                # is too small to hold a name. Measured, not remembered.
+                "action_size": int(action["size"]),
             }
         )
         lines.extend([int(view["line"]), int(action["line"])])
@@ -653,10 +656,16 @@ def denials_before_exfil(
     before = denials[denials["line"] < (success_line or 0)]
     after = denials[denials["line"] > (success_line or 0)]
 
+    # The last denial before the door opened and the first one after it closed
+    # again. Both are evidence: the order is the whole point of the count.
+    evidence = [int(before.iloc[-1]["line"])] if not before.empty else []
+    if not after.empty:
+        evidence.append(int(after.iloc[0]["line"]))
+
     return QueryResult(
         name="denials_before_exfil",
         question=denials_before_exfil.question,  # type: ignore[attr-defined]
-        lines=[int(before.iloc[-1]["line"])] if not before.empty else [],
+        lines=sorted(evidence),
         stats={
             "user": user,
             "path": path,
