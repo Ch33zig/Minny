@@ -83,3 +83,26 @@ def require(path: Path) -> Path:
             f"`python -m minny.build_events`."
         )
     return path
+
+
+def alerts_path() -> Path:
+    return data_dir() / "alerts.json"
+
+
+def incidents_path() -> Path:
+    return data_dir() / "incidents.json"
+
+
+def elastic_dir() -> Path:
+    """Where the offline Elastic artifacts land.
+
+    The bulk NDJSON, the mappings and the translated ES|QL are derived from
+    the dataset, so they live beside it under MINNY_DATA_DIR rather than in
+    the repository.
+    """
+    return data_dir() / "elastic"
+
+
+def sentry_dir() -> Path:
+    """Where the offline Sentry payloads land, for the same reason."""
+    return data_dir() / "sentry"
