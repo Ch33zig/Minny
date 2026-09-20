@@ -167,27 +167,39 @@ def rewrite(
     )
 
 
-def _next_business_slot(ts: datetime) -> datetime:
+def _open_of_business(day, tzinfo, jitter: int) -> datetime:
+    """09:00 plus a few minutes.
+
+    Without the jitter every business-hours variant opens at exactly
+    09:00:00, and a run of lines landing on the hour to the second is the
+    single most obvious tell a rendered corpus can carry.
+    """
+    return datetime.combine(day, BUSINESS_START, tzinfo=tzinfo) + timedelta(
+        seconds=jitter
+    )
+
+
+def _next_business_slot(ts: datetime, jitter: int) -> datetime:
     """Push a timestamp into the next 09:00-17:00 weekday slot."""
     while True:
         if ts.weekday() >= 5:
-            ts = datetime.combine(
-                ts.date() + timedelta(days=1), BUSINESS_START, tzinfo=ts.tzinfo
-            )
+            ts = _open_of_business(ts.date() + timedelta(days=1), ts.tzinfo, jitter)
             continue
         if ts.time() < BUSINESS_START:
-            ts = datetime.combine(ts.date(), BUSINESS_START, tzinfo=ts.tzinfo)
+            ts = _open_of_business(ts.date(), ts.tzinfo, jitter)
             continue
         if ts.time() >= BUSINESS_END:
-            ts = datetime.combine(
-                ts.date() + timedelta(days=1), BUSINESS_START, tzinfo=ts.tzinfo
-            )
+            ts = _open_of_business(ts.date() + timedelta(days=1), ts.tzinfo, jitter)
             continue
         return ts
 
 
 def schedule(
-    start: datetime, gaps: list[int], *, business_hours: bool = False
+    start: datetime,
+    gaps: list[int],
+    *,
+    business_hours: bool = False,
+    rng: random.Random | None = None,
 ) -> list[datetime]:
     """Lay gaps out from a start time, strictly increasing.
 
@@ -197,13 +209,16 @@ def schedule(
     `delay_gap` as lower bounds: the operator's purpose is defeating a short
     correlation window, and a longer gap defeats it harder.
     """
+    def jitter() -> int:
+        return rng.randint(60, 2400) if rng is not None else 0
+
     stamps: list[datetime] = []
-    current = _next_business_slot(start) if business_hours else start
+    current = _next_business_slot(start, jitter()) if business_hours else start
     for index, gap in enumerate(gaps):
         if index:
             current = current + timedelta(seconds=max(1, gap))
             if business_hours:
-                current = _next_business_slot(current)
+                current = _next_business_slot(current, jitter())
         stamps.append(current)
 
     for index in range(1, len(stamps)):
@@ -222,7 +237,12 @@ def render(
     rng: random.Random,
     business_hours: bool = False,
 ) -> list[RenderedLine]:
-    stamps = schedule(start, [step.gap_s for step in steps], business_hours=business_hours)
+    stamps = schedule(
+        start,
+        [step.gap_s for step in steps],
+        business_hours=business_hours,
+        rng=rng,
+    )
 
     lines: list[RenderedLine] = []
     for offset, (step, ts) in enumerate(zip(steps, stamps)):

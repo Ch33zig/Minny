@@ -21,6 +21,7 @@ from collections import Counter
 from pathlib import Path
 
 from minny import paths
+from minny.parser import parse_line
 from minny.redteam import plan as planning
 from minny.redteam.catalog import load_catalog, load_size_table
 from minny.redteam.critic import review
@@ -172,13 +173,21 @@ def blind_sample(
     rows = march.sample(n=real, random_state=seed)
 
     entries = [
-        {"raw": row.raw, "ts": row.ts.isoformat(), "synthetic": False, "id": int(row.line)}
+        {"raw": row.raw, "synthetic": False, "id": int(row.line)}
         for row in rows.itertuples()
     ] + [
-        {"raw": line["raw"], "ts": line["ts"], "synthetic": True, "id": line["line"]}
+        {"raw": line["raw"], "synthetic": True, "id": line["line"]}
         for line in picked
     ]
-    entries.sort(key=lambda entry: entry["ts"])
+    # Sort on the instant written in the line, not on the parquet `ts`
+    # column. events.parquet stores the timestamp in America/New_York, which
+    # for a date before 8 March renders an hour earlier than the text of the
+    # same line; mixing the two sort keys put the sample slightly out of
+    # order, and an ordering artifact in a blind sample points at whichever
+    # line it lands next to.
+    for entry in entries:
+        entry["ts"] = parse_line(entry["id"], entry["raw"]).ts.isoformat()
+    entries.sort(key=lambda entry: (entry["ts"][:19], entry["id"]))
 
     return [entry["raw"] for entry in entries], entries
 

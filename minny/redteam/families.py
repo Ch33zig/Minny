@@ -67,10 +67,6 @@ COVER_EXFIL = "cover_exfil"
 TAKEOVER_EXFIL = "takeover_exfil"
 LOGOUT = "logout"
 
-# Steps that grant the attacker the access he did not have. The critic uses
-# this set when it asks whether a 200 on a sensitive file was earned.
-ESCALATION_KINDS = frozenset({PRIVILEGED_ACTION})
-
 
 def forum_view_path(post_id: int) -> str:
     return f"/intranet/forum/view/{post_id}"

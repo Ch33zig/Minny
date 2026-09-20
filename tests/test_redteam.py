@@ -9,7 +9,10 @@ per-operator metrics table is measuring something other than what it claims.
 
 from __future__ import annotations
 
+import os
 import random
+import subprocess
+import sys
 from dataclasses import replace
 from datetime import datetime, timedelta
 
@@ -278,6 +281,35 @@ def test_generation_is_reproducible_from_the_seed():
 
     other, _ = generate(seed=12, count=6)
     assert other != first, "a different seed produced an identical batch"
+
+
+@needs_dataset
+def test_generation_is_reproducible_across_processes():
+    """Same seed, different PYTHONHASHSEED, same bytes.
+
+    An in-process comparison cannot see this: Python salts string hashing
+    once per interpreter, so anything that iterates a set of strings while
+    consuming the rng is stable within a run and different between runs.
+    That is how a seeded generator quietly stops being reproducible.
+    """
+    script = (
+        "import hashlib, json;"
+        "from minny.redteam.generate import generate;"
+        "a, _ = generate(seed=11, count=12);"
+        "print(hashlib.sha256(json.dumps(a).encode()).hexdigest())"
+    )
+    digests = set()
+    for hash_seed in ("0", "1", "12345"):
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+        )
+        digests.add(result.stdout.strip())
+    assert len(digests) == 1, "the batch depends on the interpreter's hash seed"
 
 
 @needs_dataset

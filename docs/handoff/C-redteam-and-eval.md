@@ -120,7 +120,7 @@ Accepted rules append to `detection-rules/rules.yaml` and B's detector hot-reloa
 
 ## M4 as built
 
-`python -m minny.redteam.generate --seed 42 --count 200` — 2 seconds, no API key, writes `data/variants.json` (200 accepted labels with their rendered lines, IDs 180801-182612) and `data/variants_rejected.json`.
+`python -m minny.redteam.generate --seed 42 --count 200` — 2 seconds, no API key, writes `data/variants.json` (200 accepted, 0 rejected, 1,810 lines, IDs 180801-182610, spanning 2-30 March) and `data/variants_rejected.json`.
 
 Module layout, in the order the pipeline runs:
 
@@ -140,4 +140,6 @@ Three decisions worth knowing about downstream.
 
 **The log is `-0400` everywhere.** All 180,800 real lines carry it, including August and December ones, so the DST split the brief predicted does not exist in the data and the renderer uses a constant offset. `events.parquet` stores `ts` in `America/New_York`, which for any date before 8 March renders an hour earlier than the text of the same line — worth knowing before quoting a `ts` column value next to a raw evidence line.
 
-**Blind realism check, run twice at 40 real March lines against 10 synthetic.** First pass: 7 of 10 picked, and two of them only because `own_ip_takeover` was using 10.0.10.x and 10.0.12.x, subnets that appear nowhere in the corpus. That is a rendering tell rather than an attack signal, so the unseen-host pool moved onto the real 10.0.5-10.0.9 subnets with host octets that never occur. Second pass, fresh seed: 8 of 10 picked, every one of them by attack semantics — a user on someone else's host, a 200 on a file that account is denied, or the literal `script=success` payload string. Nothing was pickable by size, timestamp spelling, path shape or byte layout, and the two lines carrying no attack signal (a forum view, a logout) were indistinguishable. Synthetic sizes match the real distributions: `/dashboard` 2048.4 ± 27.8 against 2049.5 ± 29.0, forum views 2972 ± 585 against 3000 ± 577.
+**Blind realism check, run twice at 40 real March lines against 10 synthetic.** First pass: 7 of 10 picked, and two of them only because `own_ip_takeover` was using 10.0.10.x and 10.0.12.x, subnets that appear nowhere in the corpus. That is a rendering tell rather than an attack signal, so the unseen-host pool moved onto the real 10.0.5-10.0.9 subnets with host octets that never occur. Second pass, fresh seed: 8 of 10 picked, every one of them by attack semantics — a user on someone else's host, a 200 on a file that account is denied, or the literal `script=success` payload string. Nothing was pickable by size, timestamp spelling, path shape or byte layout, and the two lines carrying no attack signal (a forum view, a logout) were indistinguishable. Synthetic sizes match the real distributions: `/dashboard` 2051.2 ± 26.8 against 2049.5 ± 29.0, forum views 2949 ± 602 against 3000 ± 577.
+
+**Reproducibility was broken and is now pinned.** The operator draw iterated a set of strings while consuming the rng, and Python salts string hashing per process, so `--seed 42` produced a different batch in every interpreter while looking perfectly stable inside one. `test_generation_is_reproducible_across_processes` runs the generator under three `PYTHONHASHSEED` values and compares digests.

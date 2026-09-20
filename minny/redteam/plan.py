@@ -54,23 +54,33 @@ PERSONAS: tuple[str, ...] = (
 INJECT_START = datetime(2026, 3, 2, 0, 0, tzinfo=LOG_UTC_OFFSET)
 INJECT_END = datetime(2026, 3, 27, 0, 0, tzinfo=LOG_UTC_OFFSET)
 
-# Hosts that belong to nobody, for own_ip_takeover. Same /16 and the same
-# spelling as the real ones — nicole_h's 10.0.9.05 is zero padded, so padding
-# a single digit octet here is imitating the data, not a typo.
+# Hosts that belong to nobody, for own_ip_takeover.
+#
+# Every one sits on a /24 that real employees are already on — the corpus
+# only ever uses 10.0.5 through 10.0.9 — with a host octet that occurs
+# nowhere in 180,800 lines. The first draft used 10.0.10.x and 10.0.12.x and
+# the blind realism check picked those lines out immediately: a subnet that
+# appears nowhere else is a rendering tell, not an attack signal, and the
+# difference between the two is the whole point of the exercise. Zero padding
+# a single digit octet imitates nicole_h's real 10.0.9.05.
 UNSEEN_IPS: tuple[str, ...] = (
-    "10.0.4.19",
-    "10.0.4.73",
-    "10.0.10.07",
-    "10.0.10.41",
-    "10.0.11.28",
-    "10.0.12.06",
-    "10.0.12.64",
+    "10.0.5.41",
+    "10.0.6.09",
+    "10.0.6.58",
+    "10.0.7.04",
+    "10.0.7.62",
+    "10.0.8.17",
+    "10.0.9.28",
+    "10.0.9.73",
 )
 
 ANTHROPIC_MODEL = "claude-opus-5"
 
 # How likely each persona is to reach for each operator, before applicability
-# and coherence trim the list. These are the personas' whole definition: an
+# and coherence trim the list. `no_cover_download` is weighted up across all
+# three because it only applies to F4, and a quarter of a quarter of the
+# batch is too thin a cell for its row in the per-operator table to mean
+# anything. These are the personas' whole definition: an
 # impatient insider guesses fast and leaves the post up, a careful one waits
 # and cleans up, an outsider is on a host nobody recognises.
 PERSONA_WEIGHTS: dict[str, dict[str, float]] = {
@@ -83,7 +93,7 @@ PERSONA_WEIGHTS: dict[str, dict[str, float]] = {
         "business_hours": 0.20,
         "delay_gap": 0.10,
         "no_cleanup": 0.60,
-        "no_cover_download": 0.40,
+        "no_cover_download": 0.55,
     },
     "careful_insider": {
         "slow_guess": 0.85,
@@ -94,7 +104,7 @@ PERSONA_WEIGHTS: dict[str, dict[str, float]] = {
         "business_hours": 0.75,
         "delay_gap": 0.80,
         "no_cleanup": 0.15,
-        "no_cover_download": 0.50,
+        "no_cover_download": 0.60,
     },
     "outsider_with_stolen_credentials": {
         "slow_guess": 0.60,
@@ -105,7 +115,7 @@ PERSONA_WEIGHTS: dict[str, dict[str, float]] = {
         "business_hours": 0.35,
         "delay_gap": 0.45,
         "no_cleanup": 0.70,
-        "no_cover_download": 0.30,
+        "no_cover_download": 0.50,
     },
 }
 
@@ -183,7 +193,7 @@ def plan_variant(
 
     topics = list(catalog.forum_topics)
     rng.shuffle(topics)
-    recon_count = _recon_count(rng, persona, family, requested)
+    recon_count = _recon_count(rng, persona, family)
     timing = _timing(rng, persona, requested, recon_count)
     start_ts = _start_ts(rng, "business_hours" in requested)
 
@@ -258,8 +268,16 @@ def stream_seed(seed: int, index: int, family: str, persona: str) -> int:
     return int.from_bytes(hashlib.blake2b(key, digest_size=8).digest(), "big")
 
 
-def _available(family: str) -> set[str]:
-    return {name for name, families in APPLICABLE.items() if family in families}
+def _available(family: str) -> tuple[str, ...]:
+    """The operators this family can carry, in the contract's fixed order.
+
+    A tuple rather than a set, and the order is not cosmetic. The weighted
+    draw below consumes one rng value per operator, so iterating a set of
+    strings would consume them in hash order — and Python salts string
+    hashing per process, which quietly made `--seed 42` produce a different
+    batch in every interpreter.
+    """
+    return tuple(name for name in OPERATORS if family in APPLICABLE[name])
 
 
 def _pick_enum(rng: random.Random, options, proposed):
@@ -327,9 +345,7 @@ def _pick_param_style(rng: random.Random, requested: set[str], proposed) -> str:
     return PARAM_STYLE_TOPIC_ONLY if rng.random() < 0.6 else PARAM_STYLE_RENAMED
 
 
-def _recon_count(
-    rng: random.Random, persona: str, family: str, requested: set[str]
-) -> int:
+def _recon_count(rng: random.Random, persona: str, family: str) -> int:
     if family not in {"F2", "F4"}:
         return 0
     if rng.random() >= RECON_PROBABILITY[persona]:
