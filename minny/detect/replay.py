@@ -58,6 +58,12 @@ STATE_EVERY_EVENTS = 20
 # still following, waiting for an injection or a control call.
 IDLE_POLL_S = 0.2
 
+# A wait shorter than this is not worth taking. A Windows timer wakes on
+# roughly a 15 ms tick, so asking for 80 nanoseconds costs 15 milliseconds
+# and a fast replay spends all its time in the scheduler rather than in the
+# detector. Below the floor the event is simply due now.
+MIN_SLEEP_S = 0.002
+
 # Checked between events. A stat call per event would be wasteful and a
 # reload per minute would be too slow to demo, so the rules file is polled on
 # a wall-clock interval.
@@ -396,20 +402,32 @@ class ReplayEngine:
         start_ts: datetime | None = None,
         end_ts: datetime | None = None,
         max_gap_s: float | None = None,
+        window: tuple | None = None,
     ) -> dict:
-        """Run, or resume. A new window restarts the replay inside it."""
+        """Run, or resume. A new window restarts the replay inside it.
+
+        `window` sets both ends at once, and a None end means open. It exists
+        because a caller who asks to replay from 1 March and says nothing
+        about the end means to the end of the data, not to whatever end the
+        previous request happened to leave behind.
+        """
         with self._lock:
             if speed_hours_per_second is not None:
                 self.speed = float(speed_hours_per_second)
             if max_gap_s is not None:
                 self.max_gap_s = max_gap_s
-            window_changed = (start_ts is not None and start_ts != self._from) or (
-                end_ts is not None and end_ts != self._to
-            )
-            if start_ts is not None:
-                self._from = start_ts
-            if end_ts is not None:
-                self._to = end_ts
+            if window is not None:
+                start_ts, end_ts = window
+                window_changed = start_ts != self._from or end_ts != self._to
+                self._from, self._to = start_ts, end_ts
+            else:
+                window_changed = (start_ts is not None and start_ts != self._from) or (
+                    end_ts is not None and end_ts != self._to
+                )
+                if start_ts is not None:
+                    self._from = start_ts
+                if end_ts is not None:
+                    self._to = end_ts
             # A new window, or a replay that already ran to the end, is a
             # fresh run. A first start is not: events pushed before the
             # judge pressed play are part of this run and must survive it.
@@ -590,7 +608,7 @@ class ReplayEngine:
                     self._chosen_key = key
                     self._due_at = self.clock() + self._delay_for(event.ts)
                 remaining = self._due_at - self.clock()
-                if remaining > 0:
+                if remaining > MIN_SLEEP_S:
                     self._wait(remaining)
                     continue
 
