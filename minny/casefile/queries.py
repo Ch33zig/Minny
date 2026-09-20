@@ -37,6 +37,7 @@ FORUM_VIEW = "/intranet/forum/view/{id}"
 FORUM_EDIT = "/intranet/forum/edit/{id}"
 CONFIDENTIAL_MARKER = "CONFIDENTIAL"
 SENSITIVE_PREFIXES = "/finance/|/hr/|/exec/|/it/"
+PRIVILEGED_PREFIX = "/api/admin/"
 
 # Nothing alerts on the clock. This window exists only so the dismissed
 # off-hours lead can be measured rather than asserted.
@@ -176,6 +177,12 @@ def ip_user_mismatch(
             "foreign_ip_owners": [ip_owner.get(ip) for ip in foreign_ips],
             "months_observed": int(
                 named[named["user"].isin(offenders)]["ts"]
+                .dt.tz_localize(None)
+                .dt.to_period("M")
+                .nunique()
+            ),
+            "baseline_months": int(
+                named[named["ts"] < cutoff]["ts"]
                 .dt.tz_localize(None)
                 .dt.to_period("M")
                 .nunique()
@@ -550,6 +557,60 @@ def post_attribution(
 
 
 # --- supporting queries the timeline cites ---------------------------------
+
+
+@saved("Did a privileged call follow straight after the user opened a post?")
+def content_triggered_privileged_action(
+    events: pd.DataFrame | None = None, window_s: float = 60.0
+) -> QueryResult:
+    """An /api/admin/ call preceded within a minute by a forum post view.
+
+    The sequence is the case. A user reading a page cannot, in any ordinary
+    application, cause her session to change somebody's role a second later.
+    """
+    frame = _events(events)
+    privileged = frame[frame["template"].str.startswith(PRIVILEGED_PREFIX)].sort_values(
+        "line"
+    )
+
+    chains = []
+    lines: list[int] = []
+    for _, action in privileged.iterrows():
+        views = frame[
+            (frame["user"] == action["user"])
+            & (frame["template"] == FORUM_VIEW)
+            & (frame["ts"] <= action["ts"])
+            & (frame["ts"] >= action["ts"] - pd.Timedelta(seconds=window_s))
+        ].sort_values("line")
+        if views.empty:
+            continue
+        view = views.iloc[-1]
+        chains.append(
+            {
+                "view_line": int(view["line"]),
+                "action_line": int(action["line"]),
+                "user": str(action["user"]),
+                "ip": str(action["ip"]),
+                "obj_id": int(view["obj_id"]),
+                "template": str(action["template"]),
+                "gap_s": float((action["ts"] - view["ts"]).total_seconds()),
+                "view_ts": _iso(view["ts"]),
+                "action_ts": _iso(action["ts"]),
+            }
+        )
+        lines.extend([int(view["line"]), int(action["line"])])
+
+    return QueryResult(
+        name="content_triggered_privileged_action",
+        question=content_triggered_privileged_action.question,  # type: ignore[attr-defined]
+        lines=sorted(lines),
+        stats={
+            "window_s": window_s,
+            "privileged_calls": int(len(privileged)),
+            "chain_count": len(chains),
+            "chains": chains,
+        },
+    )
 
 
 @saved("How often was the file denied to this user before he got it?")
