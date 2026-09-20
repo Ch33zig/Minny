@@ -109,7 +109,11 @@ def index_pairs(
     batch_count = 0
     responses: list[dict] = []
 
-    if out_dir is not None:
+    # Only the offline path owns these files, so only the offline path may
+    # clear them. Clearing them from an online run deletes a payload nothing
+    # is about to rewrite, which is how a run against an unreachable cluster
+    # ends up having destroyed the artifact that still worked.
+    if out_dir is not None and not client.configured:
         out_dir.mkdir(parents=True, exist_ok=True)
         for stale in sorted(out_dir.glob(f"{kind}-*.ndjson")):
             stale.unlink()

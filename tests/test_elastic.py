@@ -197,6 +197,33 @@ def test_an_unreachable_cluster_fails_soft():
     assert client.describe()["last_error"]["kind"] == "unreachable"
 
 
+def test_an_online_run_does_not_delete_the_offline_payload(tmp_path):
+    """Found by pointing a real run at a cluster that was not there.
+
+    The offline payload is the artifact anyone can actually read, and an
+    online attempt that fails has nothing to put in its place. Clearing the
+    directory on every run destroyed it.
+    """
+    stale = tmp_path / "events-0001.ndjson"
+    stale.write_text('{"index": {}}\n{}\n', encoding="utf-8")
+
+    def refuse(request, timeout=None):
+        raise socket.timeout("timed out")
+
+    client = ElasticClient(
+        url="https://es.invalid", api_key="key", workspace_id="w", opener=refuse
+    )
+    bulk.index_pairs(
+        client,
+        INDEX,
+        [("a", {"message": "one"})],
+        kind="events",
+        out_dir=tmp_path,
+        expected=1,
+    )
+    assert stale.exists()
+
+
 def test_no_credentials_means_offline_and_no_request():
     def explode(request, timeout=None):  # pragma: no cover - must not run
         raise AssertionError("offline mode contacted a cluster")
