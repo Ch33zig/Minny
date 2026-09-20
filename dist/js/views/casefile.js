@@ -57,14 +57,7 @@ export async function render(container) {
         ${(cf.findings || []).map(finding).join('') || empty('No findings in this case file.')}
       </div>` },
 
-    { name: 'Timeline', html: `
-      <section class="strip">
-        <h2 class="board-head">Timeline<span class="board-count">${(cf.timeline || []).length}</span></h2>
-        <div class="strip-scroll" id="stripScroll">
-          <svg class="string-layer" id="stripLayer" aria-hidden="true"></svg>
-          <div class="strip-row">${(cf.timeline || []).map(beat).join('') || empty('No timeline recorded.')}</div>
-        </div>
-      </section>` },
+    ...timelineSheets(cf),
 
     { name: 'Cleared and still open', html: `
       <div class="leads-sheet">
@@ -323,6 +316,42 @@ function citedBy(cf, ent) {
   const lines = [];
   for (const f of hits) for (const n of f.evidence_lines || []) if (!lines.includes(n)) lines.push(n);
   return { lines, label: hits.length ? `Cited by ${hits.map((f) => f.id).join(', ')}` : 'Card evidence' };
+}
+
+/** The timeline, cut into sheets that fit rather than one strip that drags.
+ *
+ * Seventeen beats need 2,138px of sideways scroll on a 1280px screen, which
+ * is the same problem as a long page turned on its side: on camera somebody
+ * has to drag, and whatever they were reading leaves the frame. Two rows of
+ * five fills the height the board was wasting and turns the drag into a step.
+ */
+function timelineSheets(cf) {
+  const beats = cf.timeline || [];
+  if (!beats.length) {
+    return [{ name: 'Timeline', html: `
+      <section class="strip">
+        <h2 class="board-head">Timeline</h2>
+        ${empty('No timeline recorded.')}
+      </section>` }];
+  }
+
+  const PER_SHEET = 10;
+  const pages = [];
+  for (let i = 0; i < beats.length; i += PER_SHEET) pages.push(beats.slice(i, i + PER_SHEET));
+
+  return pages.map((page, index) => ({
+    name: pages.length > 1 ? `Timeline ${index + 1} of ${pages.length}` : 'Timeline',
+    html: `
+      <section class="strip">
+        <h2 class="board-head">Timeline<span class="board-count">${beats.length}</span>${
+          pages.length > 1
+            ? `<span class="board-range">beats ${index * PER_SHEET + 1} to ${
+                index * PER_SHEET + page.length}</span>`
+            : ''
+        }</h2>
+        <div class="strip-grid">${page.map(beat).join('')}</div>
+      </section>`,
+  }));
 }
 
 /** The investigator's own aside, taken verbatim from the timeline. */
