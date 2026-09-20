@@ -55,6 +55,11 @@ FIXTURE_PATH = Path(__file__).resolve().parent.parent.parent / "fixtures" / "moc
 
 _RULE_ID = re.compile(r"^R(\d+)$")
 
+# Recorded in the proposal rather than the absolute path the command
+# happened to resolve. The file is committed, so its repository path is the
+# same fact on every machine and a local one is noise in a shared fixture.
+RULES_FILE = "detection-rules/rules.yaml"
+
 
 def now_ts() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
@@ -346,14 +351,14 @@ def run(
             twin = already_present(existing, document["when"])
             if twin:
                 entry["id"] = twin
-                entry["appended_to"] = str(rules_path)
+                entry["appended_to"] = RULES_FILE
                 entry["already_present"] = True
                 claimed.discard(rule_id)
                 echo(f"rules       {twin} already says this; nothing appended")
             elif append:
                 append_rule(rules_path, document)
                 existing.append(document)
-                entry["appended_to"] = str(rules_path)
+                entry["appended_to"] = RULES_FILE
                 echo(f"rules       appended {document['id']} to {rules_path}")
             else:
                 echo(f"rules       {document['id']} accepted, append skipped")
