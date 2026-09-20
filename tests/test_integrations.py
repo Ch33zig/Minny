@@ -122,6 +122,25 @@ def test_the_alert_carries_the_explanation_and_a_link_and_no_evidence(api):
     assert not egress.RAW_LOG_LINE.search(delivery["text"])
 
 
+def test_an_incident_is_announced_once_however_often_it_grows(api):
+    """A replay re-emits a card six times; the channel hears one story."""
+    first = api.post("/api/integrations/test", json={"incident_id": "inc_e30fc0"}).json()
+    second = api.post("/api/integrations/test", json={"incident_id": "inc_e30fc0"}).json()
+    forced = api.post(
+        "/api/integrations/test", json={"incident_id": "inc_e30fc0", "force": True}
+    ).json()
+
+    assert "duplicate_suppressed" not in first["delivery"]
+    assert second["delivery"]["duplicate_suppressed"] is True
+    assert "duplicate_suppressed" not in forced["delivery"]
+    posts = [
+        entry
+        for entry in store.deliveries()
+        if entry.get("target") == "inc_e30fc0" and entry.get("capability") == "slack.post"
+    ]
+    assert len(posts) == 2  # the first and the forced one, never the duplicate
+
+
 def test_a_medium_severity_incident_is_not_posted():
     """A channel that fires on everything is a channel nobody reads."""
     delivery = slack.post_incident(

@@ -92,15 +92,41 @@ def build_message(incident: dict) -> str:
     return "\n".join(lines)
 
 
+def already_delivered(incident_id: str) -> dict | None:
+    """A successful post for this incident, if one already happened.
+
+    04-COMPOSIO.md section 9: suppress duplicates wherever the identity can
+    be reconciled. A replay re-emits an incident as it grows, so without this
+    one story would arrive in the channel six times. A failed delivery is not
+    suppressed, because that one is worth retrying.
+    """
+    for entry in store.deliveries():
+        if (
+            entry.get("capability") == config.SLACK_POST.id
+            and entry.get("target") == incident_id
+            and entry.get("ok")
+            and entry.get("state") != "skipped"
+        ):
+            return entry
+    return None
+
+
 def post_incident(incident: dict, *, force: bool = False):
     """Post one alert. Returns a delivery record and never raises.
 
-    `force` posts regardless of severity, which is what the test endpoint
-    uses. Ordinary alerting is high severity only, because a channel that
-    fires on everything is a channel nobody reads.
+    `force` posts regardless of severity and regardless of whether this
+    incident has already been announced. Ordinary alerting is high severity
+    only and once per incident, because a channel that fires on everything,
+    repeatedly, is a channel nobody reads.
     """
     incident_id = str(incident.get("incident_id") or "unknown")
     severity = str(incident.get("severity") or "").lower()
+
+    if not force:
+        previous = already_delivered(incident_id)
+        if previous is not None:
+            # Not recorded again: one intent, one delivery.
+            return {**previous, "duplicate_suppressed": True}
 
     if not force and severity != "high":
         return store.record_delivery(

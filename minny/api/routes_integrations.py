@@ -121,7 +121,9 @@ def integrations_test(payload: dict = Body(default=None)):
             incident = store.load_incident(str(incident_id))
             if incident is None:
                 return _error(404, "unknown_incident", f"no incident {incident_id}")
-            delivery = slack.post_incident(incident)
+            delivery = slack.post_incident(
+                incident, force=bool((payload or {}).get("force"))
+            )
         else:
             delivery = slack.test_message()
     except Exception as exc:  # noqa: BLE001 - a test never breaks the app

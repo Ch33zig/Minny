@@ -114,6 +114,24 @@ export const api = {
     return out;
   },
 
+  /**
+   * Announce a high severity incident. Fire and forget, and never awaited by
+   * anything that draws a card: the incident is on screen already and whether
+   * Slack accepted a message about it changes nothing.
+   *
+   * Fixture mode has no backend to post through, so it returns null and the
+   * strip keeps saying what it already said.
+   */
+  async alertIncident(incidentId) {
+    if (MOCK || !incidentId) return null;
+    try {
+      const body = await postJson(`${API_BASE}/integrations/test`, { incident_id: incidentId });
+      return (body && body.delivery) || null;
+    } catch (err) {
+      return null;
+    }
+  },
+
   async redteamGenerate(body) {
     if (MOCK) return mockVariant(body);
     return postJson(`${API_BASE}/redteam/generate`, body);
