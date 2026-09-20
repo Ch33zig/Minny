@@ -101,11 +101,15 @@ def test_generate_returns_a_variant_label(client):
     assert label["family"] == "F4"
     assert label["critic"]["accepted"] is True
     assert label["injected_lines"]
-    # Injection belongs to the replay engine. Saying so is better than
-    # failing, because the label and the critic verdict are the parts a judge
-    # is actually looking at.
-    assert label["injected"] is False
-    assert label["reason"]
+    # Injection belongs to the replay engine, and whether one is running is
+    # not this endpoint's business. What is its business is saying which
+    # happened: a variant that reached the queue reports it, and one that did
+    # not says why rather than implying a replay nobody started is showing it.
+    assert isinstance(label["injected"], bool)
+    if label["injected"]:
+        assert label["reason"] is None
+    else:
+        assert label["reason"]
 
 
 def test_generated_variants_never_reuse_an_event_id(client):
