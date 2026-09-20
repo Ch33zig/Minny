@@ -24,11 +24,17 @@
 # contains is query and template only. $u and $ip bind to the event's own
 # user and address.
 #
-# R001 ships as the one rule in the file. It is a rule somebody would
+# R001 shipped as the only rule in the file. It is a rule somebody would
 # actually write, and it fires zero times across all 180,800 events: the only
 # admin call in the dataset comes from the account's own address. So the
 # loader has something real to parse at startup and the shipped detector's
 # measured numbers are the signals' alone.
+#
+# Everything below it was appended by the blue agent and carries the gate
+# that let it in. Appending is the only write: nothing above an entry is ever
+# rewritten, so a rule in this file is the rule that was validated. Rejected
+# proposals are not here at all, they are in data/blue_proposals.json with
+# the check they failed.
 
 - id: R001
   name: admin endpoint called from an address the account does not own
