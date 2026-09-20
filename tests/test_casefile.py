@@ -249,12 +249,45 @@ def test_case_file_matches_the_contract_shape(case_file):
         "dismissed",
     }
     assert case_file["verdict"]["confidence"] in build.CONFIDENCE_VALUES
-    assert case_file["actors"]["attacker"] == {"user": "david_m", "ip": "10.0.8.45"}
-    assert case_file["actors"]["victim"] == {"user": "sarah_j", "ip": "10.0.5.12"}
+    # The contract's two required keys, now beside the optional card fields.
+    attacker = case_file["actors"]["attacker"]
+    victim = case_file["actors"]["victim"]
+    assert (attacker["user"], attacker["ip"]) == ("david_m", "10.0.8.45")
+    assert (victim["user"], victim["ip"]) == ("sarah_j", "10.0.5.12")
     assert case_file["actors"]["asset"] == CONFIDENTIAL_ZIP
     assert case_file["actors"]["vector"]["obj_id"] == 1042
     # Timestamps carry an offset everywhere, never a naive datetime.
     assert case_file["window"]["start"].endswith("-04:00")
+
+
+def test_the_suspect_cards_quote_only_measured_figures(case_file, results):
+    attacker = case_file["actors"]["attacker"]
+    victim = case_file["actors"]["victim"]
+    denials = results["denials_before_exfil"].stats
+    mismatch = results["ip_user_mismatch"].stats
+
+    assert attacker["confidence"] in build.CONFIDENCE_VALUES
+    assert victim["confidence"] in build.CONFIDENCE_VALUES
+    assert [stat["value"] for stat in attacker["stats"]] == [
+        str(denials["denials_before_success"]),
+        str(denials["denials_after_success"]),
+        "1",
+        "400, 500",
+    ]
+    assert [stat["value"] for stat in victim["stats"]] == ["1,528", "1", "2", "10"]
+    assert mismatch["ips_per_user"]["sarah_j"] == 2
+    assert mismatch["baseline_ips_per_user"]["sarah_j"] == 1
+    # The card states the order too, because the total on its own misleads.
+    assert "77 times before the download" in attacker["summary"]
+    assert "never 80 before the download" in attacker["summary"]
+
+
+def test_the_suspect_cards_resolve_to_lines_the_queries_returned(case_file, results):
+    returned = {line for result in results.values() for line in result.lines}
+    for role in ("attacker", "victim"):
+        lines = case_file["actors"][role]["evidence_lines"]
+        assert lines
+        assert set(lines) <= returned, role
 
 
 def test_the_source_rail_names_the_file_it_read(case_file):

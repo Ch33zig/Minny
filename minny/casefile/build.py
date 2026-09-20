@@ -537,6 +537,122 @@ def build_unknowns(results: dict[str, QueryResult]) -> list[dict]:
     ]
 
 
+def _stat(label: str, value) -> dict:
+    """One figure on a suspect card. Values are formatted, never invented."""
+    return {"label": label, "value": _fmt(value) if isinstance(value, int) else value}
+
+
+def build_actors(results: dict[str, QueryResult]) -> dict:
+    """The two suspect cards, every figure on them read out of a query.
+
+    The UI renders `confidence`, `summary`, `stats` and `evidence_lines` when
+    they are present and the plain user and IP when they are not, so nothing
+    here may become load bearing.
+    """
+    mismatch = results["ip_user_mismatch"]
+    flip = results["first_success_after_denials"]
+    denials = results["denials_before_exfil"]
+    burst = results["auth_fail_burst"]
+    tampered = results["tampered_forum_post"]
+    escalation = results["content_triggered_privileged_action"]
+    authorship = results["post_attribution"]
+    unique = results["globally_unique_templates"]
+    rare_status = results["anomalous_status"]
+    cleanup = results["vector_object_edits"]
+
+    victim = mismatch.stats["violating_users"][0]
+    foreign_ip = mismatch.stats["foreign_ips"][0]
+    attacker = mismatch.stats["foreign_ip_owners"][0]
+    exfil = flip.stats["flips"][0]
+    authorized = flip.stats["flips_below_threshold"][0]
+    chain = authorship.stats["chains"][0]
+    asset = exfil["path"]
+
+    if authorized["user"] != victim or authorized["path"] != asset:
+        raise AssertionError(
+            "the victim card quotes the other flip on the same file; that row is "
+            f"now {authorized['user']} on {authorized['path']}"
+        )
+
+    attacker_lines = sorted(
+        set(
+            denials.lines
+            + tampered.lines
+            + cleanup.lines
+            + [chain["view_line"], exfil["line"]]
+        )
+    )
+    victim_lines = sorted(
+        set(
+            [entry["lines"][0] for entry in burst.stats["bursts"]]
+            + escalation.lines
+            + unique.lines
+            + mismatch.lines[-4:]
+        )
+    )
+
+    return {
+        "attacker": {
+            "user": attacker,
+            "ip": foreign_ip,
+            "role": "attacker",
+            "confidence": "high",
+            "summary": (
+                f"Works from {foreign_ip} and from nowhere else, across all "
+                f"{mismatch.stats['baseline_months']} baseline months. He was denied "
+                f"{asset} {denials.stats['denials_before_success']} times before the "
+                f"download at line {exfil['line']} and "
+                f"{denials.stats['denials_after_success']} more times from "
+                f"{denials.stats['first_denial_after_success_ts'][:10]}, once the "
+                f"access had closed again, {denials.stats['total_denials']} in all "
+                "and never 80 before the download, with "
+                f"{exfil['successes_on_path']} success in between."
+            ),
+            "stats": [
+                _stat(
+                    "denials before the download",
+                    denials.stats["denials_before_success"],
+                ),
+                _stat("denials after it", denials.stats["denials_after_success"]),
+                _stat("successes on the asset", exfil["successes_on_path"]),
+                _stat(
+                    "statuses unique to him",
+                    ", ".join(sorted(rare_status.stats["rare_statuses"])),
+                ),
+            ],
+            "evidence_lines": attacker_lines,
+        },
+        "victim": {
+            "user": victim,
+            "ip": mismatch.stats["baseline_ip_by_user"][victim],
+            "role": "victim",
+            "confidence": "high",
+            "summary": (
+                f"An authorized reader of {asset} with "
+                f"{_fmt(authorized['successes_on_path'])} successes on it. She is the "
+                f"only one of the {mismatch.stats['user_count']} accounts in the file "
+                f"that ever appears on a second address, and that address is "
+                f"{attacker}'s workstation."
+            ),
+            "stats": [
+                _stat("successes on the asset", authorized["successes_on_path"]),
+                _stat(
+                    "source IPs before March",
+                    mismatch.stats["baseline_ips_per_user"][victim],
+                ),
+                _stat("source IPs in the file", mismatch.stats["ips_per_user"][victim]),
+                _stat(
+                    f"login failures from {foreign_ip}",
+                    int(mismatch.stats["statuses"]["401"]),
+                ),
+            ],
+            "evidence_lines": victim_lines,
+        },
+        "asset": asset,
+        "vector": {"obj_id": chain["obj_id"], "template": queries.FORUM_VIEW},
+    }
+
+
 def build_dismissed(results: dict[str, QueryResult]) -> list[dict]:
     """Leads that look like the breach and are not. Each one needs its query."""
     offhours = results["offhours_confidential_access"]
@@ -721,15 +837,7 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
         # without it when the raw log is not on this machine.
         "source": build_source(),
         "verdict": {"summary": summary, "confidence": "high", "basis": basis},
-        "actors": {
-            "attacker": {"user": attacker, "ip": foreign_ip},
-            "victim": {
-                "user": victim,
-                "ip": mismatch.stats["baseline_ip_by_user"][victim],
-            },
-            "asset": exfil["path"],
-            "vector": {"obj_id": chain["obj_id"], "template": queries.FORUM_VIEW},
-        },
+        "actors": build_actors(results),
         "findings": findings,
         "timeline": build_timeline(
             frame,
