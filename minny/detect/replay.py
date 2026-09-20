@@ -462,6 +462,16 @@ class ReplayEngine:
         return self._running
 
     @property
+    def started(self) -> bool:
+        """Whether anyone has ever pressed play.
+
+        The stream starts a replay that has never run, so opening the UI
+        shows something. It does not restart one that a judge paused, which
+        would make a reconnect undo a deliberate action.
+        """
+        return self._started_once
+
+    @property
     def finished(self) -> bool:
         return self._finished
 
