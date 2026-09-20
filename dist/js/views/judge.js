@@ -4,6 +4,7 @@
 
 import { api, MOCK } from '../api.js';
 import { $, esc, toast } from '../dom.js';
+import { layStamp, pinCard } from '../motion.js';
 
 const FAMILIES = [
   ['F1', 'credential_takeover'],
@@ -25,45 +26,53 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="judge-grid">
-      <section class="panel judge-form">
-        <div class="col-head"><p class="section-label">BUILD A VARIANT</p></div>
-        <div class="col-body">
-          <p class="col-intro">Pick an attack and watch the detector meet it for the first time. Options come from the access model fitted before March, so every combination on offer is one that could really happen.</p>
+      <section class="form-slip">
+        <span class="pin red left"></span><span class="pin right"></span>
+        <span class="stamp big filed-stamp" id="jStamp" hidden>FILED</span>
+        <div class="form-head">
+          <h2 class="form-title">Evidence request</h2>
+          <span class="form-sub tw">Red team, one variant</span>
+        </div>
+        <p class="form-note">Every pairing on offer comes from the access model fitted before March, so the attack you build could really have happened.</p>
 
+        <div class="form-body">
           <label class="field">
-            <span>TARGET FILE</span>
+            <span class="tw">Target file</span>
             <select id="jTarget">${access.targets.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
           </label>
-          <label class="field">
-            <span>VICTIM: an account authorized to read it</span>
-            <select id="jVictim"></select>
-          </label>
-          <label class="field">
-            <span>ATTACKER: an account that is not</span>
-            <select id="jAttacker"></select>
-          </label>
-          <label class="field">
-            <span>FAMILY</span>
-            <select id="jFamily">${FAMILIES.map(([id, name]) => `<option value="${id}">${id} · ${name}</option>`).join('')}</select>
-          </label>
-
-          <div class="field">
-            <span>OPERATORS: at most ${MAX_OPERATORS}</span>
-            <div class="ops" id="jOps">
-              ${OPERATORS.map((o) => `<label class="op"><input type="checkbox" value="${esc(o)}"><span class="meta">${esc(o)}</span></label>`).join('')}
+          <div class="field-pair">
+            <label class="field">
+              <span class="tw">Victim, authorized to read it</span>
+              <select id="jVictim"></select>
+            </label>
+            <label class="field">
+              <span class="tw">Attacker, who is not</span>
+              <select id="jAttacker"></select>
+            </label>
+          </div>
+          <div class="field-pair">
+            <label class="field">
+              <span class="tw">Family</span>
+              <select id="jFamily">${FAMILIES.map(([id, name]) => `<option value="${id}">${id} ${name}</option>`).join('')}</select>
+            </label>
+            <div class="field">
+              <span class="tw">Operators, at most ${MAX_OPERATORS}</span>
+              <div class="ops" id="jOps">
+                ${OPERATORS.map((o) => `<label class="op"><input type="checkbox" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('')}
+              </div>
             </div>
           </div>
+        </div>
 
-          <div class="judge-actions">
-            <button class="ctl primary-ctl" id="jRun" type="button">Generate and inject</button>
-            <span class="meta judge-note" id="jNote"></span>
-          </div>
+        <div class="form-foot">
+          <button class="ctl primary-ctl" id="jRun" type="button">Generate and inject</button>
+          <span class="hand" id="jNote"></span>
         </div>
       </section>
 
-      <section class="panel col judge-out">
-        <div class="col-head"><p class="section-label">VARIANT LABEL</p><span class="col-count meta" id="jCount">0</span></div>
-        <div class="col-body" id="jResults"><div class="empty">Nothing generated yet.</div></div>
+      <section class="judge-out">
+        <h2 class="board-head">Variants<span class="board-count" id="jCount">0</span></h2>
+        <div class="variant-stack" id="jResults"><div class="empty">Nothing generated yet.</div></div>
       </section>
     </div>`;
 
@@ -112,7 +121,7 @@ function fillActors(container) {
   $('#jAttacker', container).innerHTML = attackers.map((u) => `<option value="${esc(u)}">${esc(u)}</option>`).join('')
     || '<option value="">everyone can read this</option>';
   $('#jNote', container).textContent =
-    `${victims.length} authorized · ${attackers.length} denied, fitted before 2026-03-01`;
+    `${victims.length} can read it, ${attackers.length} cannot`;
 }
 
 let generated = 0;
@@ -139,6 +148,10 @@ async function generate(container) {
     const empty = list.querySelector('.empty');
     if (empty) empty.remove();
     list.insertAdjacentHTML('afterbegin', variantCard(variant, body));
+    pinCard(list.firstElementChild);
+    const stamp = $('#jStamp', container);
+    stamp.hidden = false;
+    layStamp(stamp);
     toast(MOCK
       ? 'Variant label built from the baseline. Injection into the replay needs the live API.'
       : 'Variant injected into the running replay.');
@@ -152,27 +165,38 @@ async function generate(container) {
 
 function variantCard(v, request) {
   const critic = v.critic || {};
-  const checks = (critic.checks_passed || []).map((c) => `<span class="check pass meta">${esc(c)}</span>`).join('');
-  const ops = (v.operators || request.operators || []).map((o) => `<span class="op-chip meta">${esc(o)}</span>`).join('')
-    || '<span class="op-chip meta none">no operators</span>';
+  const checks = (critic.checks_passed || []).map((c) => `<span class="tick-mark">${esc(c)}</span>`).join('');
+  const ops = (v.operators || request.operators || []).map((o) => `<span class="op-chip">${esc(o)}</span>`).join('')
+    || '<span class="op-chip none">no operators</span>';
+  const detail = v.mock
+    ? '<p class="slip-body">Fixture mode builds the label and checks it for coherence against the baseline. Injecting it into the replay and watching the detector respond needs the live API.</p>'
+    : '';
   return `
-    <article class="card variant">
-      <div class="card-head">
-        <span class="card-id meta">${esc(v.variant_id || 'variant')}</span>
-        <div class="variant-tags">
-          ${v.mock ? '<span class="synth-badge hatch">LABEL ONLY · NO BACKEND</span>' : '<span class="synth-badge hatch">INJECTED</span>'}
-          <span class="${critic.accepted ? 'check pass' : 'check fail'} meta">${critic.accepted ? 'critic accepted' : 'critic rejected'}</span>
-        </div>
+    <article class="variant-slip" style="--rot:${rot(v.variant_id || 'v')}">
+      <span class="pin"></span>
+      <div class="index-top">
+        <span class="card-id">${esc(v.variant_id || 'variant')}</span>
+        <span class="stamp ${critic.accepted ? 'ink outline' : 'faint'}">${critic.accepted ? 'CRITIC ACCEPTED' : 'CRITIC REJECTED'}</span>
       </div>
-      <p class="claim">${esc(v.attacker || request.attacker)} → ${esc(v.victim || request.victim)}</p>
-      <div class="query meta">${esc(v.target || request.target)}</div>
-      <div class="variant-row meta"><span>FAMILY</span><b>${esc(v.family || request.family)} · ${esc(v.family_name || '')}</b></div>
-      <div class="variant-row meta"><span>OPERATORS</span><div class="ops-row">${ops}</div></div>
-      ${v.injected_lines && v.injected_lines.length
-        ? `<div class="variant-row meta"><span>INJECTED LINES</span><b>${esc(v.injected_lines.join(', '))}</b></div>`
-        : ''}
-      ${checks ? `<div class="variant-row meta"><span>CRITIC</span><div class="ops-row">${checks}</div></div>` : ''}
-      ${critic.rejected_reason ? `<p class="method">${esc(critic.rejected_reason)}</p>` : ''}
-      ${v.mock ? '<p class="mail-only">Fixture mode builds the label and checks coherence against the baseline. Injecting it into the replay and watching the detector respond needs the live API.</p>' : ''}
+      <p class="claim small">${esc(v.attacker || request.attacker)} to ${esc(v.victim || request.victim)}</p>
+      <div class="variant-target">${esc(v.target || request.target)}</div>
+      <div class="variant-rows">
+        <div><span class="tw">Family</span><b>${esc(v.family || request.family)} ${esc(v.family_name || '')}</b></div>
+        <div><span class="tw">Operators</span><div class="ops-row">${ops}</div></div>
+        ${v.injected_lines && v.injected_lines.length
+          ? `<div><span class="tw">Injected lines</span><b>${esc(v.injected_lines.join(', '))}</b></div>`
+          : ''}
+        ${checks ? `<div><span class="tw">Critic</span><div class="ops-row">${checks}</div></div>` : ''}
+      </div>
+      ${critic.rejected_reason ? `<p class="hand aside">${esc(critic.rejected_reason)}</p>` : ''}
+      <span class="stamp pencil-stamp variant-mode">${v.mock ? 'LABEL ONLY, NO BACKEND' : 'INJECTED'}</span>
+      ${detail ? `<div class="ev"><div class="ev-body ev-open">${detail}</div></div>` : ''}
     </article>`;
+}
+
+function rot(seed, max = 1.2) {
+  let h = 0;
+  const str = String(seed);
+  for (let i = 0; i < str.length; i += 1) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return `${((((h % 997) / 997) * 2 - 1) * max).toFixed(2)}deg`;
 }
