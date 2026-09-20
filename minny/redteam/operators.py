@@ -71,7 +71,20 @@ ATTACK_PARAM_VALUES: tuple[tuple[str, str], ...] = (
 # for /intranet/forum/new either — only `topic` is — so a rename still trips a
 # parameter-novelty signal. Dropping the extra key entirely is the stronger
 # evasion, and the planner picks between the two.
-INNOCUOUS_PARAM_KEYS: tuple[str, ...] = ("ref", "page", "sort", "src", "tab")
+INNOCUOUS_PARAMS: dict[str, str] = {
+    "ref": "intranet",
+    "page": "2",
+    "sort": "recent",
+    "src": "email",
+    "tab": "all",
+}
+INNOCUOUS_PARAM_KEYS: tuple[str, ...] = tuple(INNOCUOUS_PARAMS)
+
+# How a rendered forum post spells its parameters.
+PARAM_STYLE_ATTACK = "attack"
+PARAM_STYLE_RENAMED = "renamed"
+PARAM_STYLE_TOPIC_ONLY = "topic_only"
+PARAM_STYLES = (PARAM_STYLE_ATTACK, PARAM_STYLE_RENAMED, PARAM_STYLE_TOPIC_ONLY)
 
 # 30 seconds is the burst window S3 uses, so anything above it counts; the
 # planner aims for 30-120 minutes. Checked as a lower bound because the
