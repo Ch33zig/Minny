@@ -11,9 +11,9 @@ You build the watchdog. It is the middle 40 seconds of the demo and the thing C 
 - [x] **22:00** `baselines.json` built and merged (**C tests against it**)
 - [x] **23:00** S1 through S8 firing; real incident lines produce alerts (**C3**)
 - [x] **00:00** Correlator produces one incident naming david_m and sarah_j
-- [ ] **01:00** Replay engine + SSE stream live, D consuming it (**C4**)
+- [x] **01:00** Replay engine + SSE stream live, D consuming it (**C4**)
 - [x] **02:00** Non-incident March alert count measured: **zero**
-- [ ] **03:00** Rule hot-reload from `rules.yaml` for C's blue agent (**C5**)
+- [x] **03:00** Rule hot-reload from `rules.yaml` for C's blue agent (**C5**)
 
 ## Hour zero, before the parquet exists
 
@@ -86,7 +86,7 @@ Replaying March produces **one** incident naming david_m as attacker and sarah_j
 
 ---
 
-# Wave status: M2 and M3 are done
+# Wave status: M3 is done, end to end
 
 Rebuild everything with two commands, in this order:
 
@@ -158,10 +158,148 @@ would produce no output whatever it did.
 **`hour_hist` is recorded and never read by a signal.** There is no hour
 threshold anywhere in `minny/detect/`.
 
-## Still to build (later wave)
+## Wave 2: replay, stream and rules are done
 
-Replay engine, `GET /api/stream` SSE, `POST /api/replay/control`, and rule
-hot-reload from `detection-rules/rules.yaml`. `minny/detect/events.py` already
-exposes `merged()` for interleaving C's injection queue by timestamp, and
-`Detector`/`Correlator` are both streaming-shaped (`feed()` and `add()` take
-one item at a time), so the engine is a driver, not a rewrite.
+Nothing new to rebuild. The same two commands produce the same artifacts, and
+the live routes read the parquet directly.
+
+```
+uvicorn minny.api.app:app        # GET /api/stream, POST /api/replay/control
+curl -N localhost:8000/api/stream
+```
+
+### Streaming reproduces the batch result exactly
+
+Both paths drive the same `Pipeline` in `minny/detect/replay.py`, so this is
+true by construction rather than by luck, and `tests/test_replay.py` asserts
+it on the real dataset.
+
+| Measurement | Batch | Streamed |
+|---|---|---|
+| March events | 22,982 | 22,982 |
+| March alerts | 25 | the same 25 alert ids, field for field |
+| March incidents | 1, `inc_e30fc0` | 1, `inc_e30fc0` |
+| Roles | attacker david_m (high), victim sarah_j (high) | identical |
+| Non-incident March alerts | 0 | 0 |
+| Baseline window alerts | 0 | 0 |
+
+One ordering difference, and it is deliberate. When several signals fire on
+one event the batch loop emits them in signal order and the stream emits them
+sorted by alert id, which is the order `Correlator.run` uses on a sorted
+batch. That is what keeps both paths building the same clusters and minting
+the same incident ids.
+
+### Frames on `GET /api/stream`
+
+One JSON object per `data:` line, per contract section 12.
+
+| Type | When | Rate on a March replay at 6 h/s |
+|---|---|---|
+| `event` | every event emitted | 22,982 over about two minutes |
+| `alert` | every alert, after correlation, so `incident_id` is already set | 25 |
+| `incident` | every time an incident changes | 20, all `inc_e30fc0` |
+| `replay_state` | every 20 events, on every control action, and on connect | about 1,150 |
+| `heartbeat` | every 15 seconds while anyone is connected | 4 per minute |
+
+**Incidents are re-emitted, not emitted once.** Every frame carries the same
+`incident_id` and an `alert_count` that rises, 1 through 25, so the UI upserts
+on the key and animates on the number. A merge is told as well: the absorbed
+incident gets a final frame with `status: "merged"` and `merged_into`, so a
+card the UI already drew never goes stale.
+
+`seq` is assigned once, in the hub, under a lock. Every client sees the same
+number for the same frame, so a hole in the numbering means a dropped frame
+rather than two clients watching two replays. `?backfill=N` replays the last
+N frames from a 500-frame ring with their original sequence numbers, which is
+what a client that connects late or reconnects after a drop gets instead of a
+blank screen.
+
+### Replay control
+
+`POST /api/replay/control` with `{action, speed_hours_per_second?, from?, to?}`
+returns the new state. Speed is simulated log-hours per wall-clock second, so
+6.0 means one day of logs every four seconds whatever the window is. Mention
+either end of the window and both are set, so `from` with no `to` means to the
+end of the data rather than to whatever end the last request left behind.
+`max_gap_s` is additive and defaults to 2 seconds in the API: a gap longer
+than that is crossed in two seconds of wall clock while the cursor still
+jumps the whole way, so a quiet stretch of March is not a quiet stretch of
+demo. There is one replay per process and every client shares it.
+
+`GET /api/replay/state` returns the same payload for a cold client.
+
+### The injection queue, which is C's entry point
+
+```python
+from minny.api.routes_detect import inject_events
+
+inject_events(rendered_events, variant_id="v42")
+```
+
+Call it from any thread at any point in a replay, with `DetectEvent` objects
+or plain mappings (`minny.detect.events.from_mapping` fills in `base` and
+`template` so an injected event cannot dodge a template-keyed signal). The
+events merge into the stream by timestamp, so the detector sees them exactly
+as it sees real traffic. Every alert they raise carries `synthetic` and
+`variant_id`, which is what makes the incident come out with
+`labels.synthetic: true` without anyone reconciling two lists afterwards.
+
+The engine keeps following after the last real event, so a variant injected
+at the end of a replay still arrives and is still detected. `reset` returns to
+the start of the window and drops the queue: injected events belong to the run
+that was cancelled.
+
+### Rule hot-reload
+
+`detection-rules/rules.yaml` is read at startup and re-read when its mtime
+changes, checked once a second between events. Rules are evaluated against
+the same feature dictionary the signals read and emit through the same alert
+builder, so a rule finding is indistinguishable from a shipped one everywhere
+downstream. A rule that fails to parse is skipped and its error is surfaced at
+`GET /api/rules`, an additive route which reports what the detector actually
+loaded; the proposals and their gates remain C's `/api/blue/proposals`. A file
+that is not valid YAML leaves the loaded rules live, because the blue agent
+writes to it while a replay is running.
+
+**Nothing in that file is ever executed.** No `eval`, no `exec`, no attribute
+lookup driven by file contents. A rule is tokenised, parsed into fixed
+dataclass nodes, capped at depth 4 and 30 nodes, and walked by a comparator.
+`tests/test_rules.py` throws Python at the parser and expects parse errors.
+
+**Two additions to the section 10 grammar**, both additive:
+
+- `query` as an eighth field, evaluating against the event's parsed query
+  parameter keys and values. Membership rather than identity:
+  `query == "csrf_test"` is true when any key or value equals the string.
+- `contains` as a seventh operator, substring matching, accepted only on
+  `query` and `template`.
+
+Ordering operators are accepted only on `obj_id` and `status`, which is new
+tightening rather than new reach. Node counts match C's fixture exactly: the
+contract's R003 example is depth 2 and 7 nodes, and
+`template == "/intranet/forum/new" AND query contains "csrf"` is depth 2 and 5
+nodes.
+
+That second rule is why the addition exists. It catches lines 168330 and
+168331, the two payloads that literally contain `csrf`, and it catches nothing
+else, so it passes on the case it was written from and fails its held-out gate
+against `param_rename` variants. Without `query` and `contains` it would fail
+to *parse*, and the interesting thing about it would never get measured.
+
+`R001` ships as the only rule in the file. It is a rule somebody would write,
+an admin endpoint called from an address the account does not own, and it
+fires zero times across all 180,800 events because the one admin call in the
+dataset comes from the account's own address. So the loader has real work at
+startup and the measured numbers above are the signals' alone.
+
+### Thresholds and constants added this wave
+
+| Constant | Value | Justification |
+|---|---|---|
+| `DEFAULT_SPEED_HOURS_PER_SECOND` | 6.0 | March in about two minutes, which is longer than anyone looks at one screen and short enough to finish on stage. |
+| `STATE_EVERY_EVENTS` | 20 | A progress bar that moves without `replay_state` being most of the stream. |
+| `MIN_SLEEP_S` | 0.002 | A Windows timer wakes on a 15 ms tick, so asking for 80 nanoseconds costs 15 milliseconds. Below the floor an event is due now. |
+| `HEARTBEAT_S` | 15 | Contract section 12. |
+| `RING_SIZE` / `BACKFILL_DEFAULT` | 500 / 50 | Enough context for a reconnect, small enough that a new client is not flooded. |
+| `MAX_ALERTS_PER_RULE` | 500 | A rule the gate never saw can be as broad as `status == 200`. Hitting the cap disables the rule and says so rather than burying the incident. |
+| `MAX_WINDOW_S` (rules) | 7 days | The rolling history is held for the longest window any rule asks for. |
