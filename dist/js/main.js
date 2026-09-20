@@ -2,6 +2,7 @@ import { api, mode } from './api.js';
 import { $, $$, esc, fmtDate, fmtNum, NONE, toast } from './dom.js';
 import { toggleAll } from './evidence.js';
 import { crossfadeView } from './motion.js';
+import { sheetsOf } from './sheets.js';
 import { mount as mountIntegrations } from './integrations.js';
 import * as caseView from './views/casefile.js';
 import * as monitorView from './views/monitor.js';
@@ -117,9 +118,16 @@ window.addEventListener('keydown', (event) => {
   } else if (event.key === ' ' && current === 'monitor') {
     event.preventDefault();
     monitorView.togglePlay();
-  } else if (index >= 0 && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-    const next = (index + (event.key === 'ArrowRight' ? 1 : ORDER.length - 1)) % ORDER.length;
-    location.hash = `#${ORDER[next]}`;
+  } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    // Arrows flip the sheet in hand. A view that is a single sheet has
+    // nothing to flip, so there they keep stepping between views.
+    const forward = event.key === 'ArrowRight';
+    const book = current ? sheetsOf($(`#view-${current}`)) : null;
+    if (book && book.count > 1) {
+      book.step(forward ? 1 : -1);
+    } else if (index >= 0) {
+      location.hash = `#${ORDER[(index + (forward ? 1 : ORDER.length - 1)) % ORDER.length]}`;
+    }
   }
 });
 

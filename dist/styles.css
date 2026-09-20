@@ -44,7 +44,8 @@
 html { height: 100%; }
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
   color: var(--ink);
   font-family: var(--type);
   font-size: 13px;
@@ -173,7 +174,10 @@ code { font-family: var(--type); }
 
 /* ------------------------------------------------------------------ shell */
 
-.board { position: relative; z-index: 1; min-height: 100vh; padding: 13px 18px 18px; }
+.board {
+  position: relative; z-index: 1; height: 100vh; padding: 13px 18px 14px;
+  display: flex; flex-direction: column;
+}
 
 /* The file jacket across the top: case number, label, pinned status slips. */
 .jacket {
@@ -264,8 +268,8 @@ nav { display: flex; gap: 4px; padding: 0 12px; position: relative; z-index: 2; 
 }
 
 /* The views pin straight onto the cork: no panel behind them. */
-.surface { position: relative; padding-top: 15px; }
-.view { min-height: 40px; }
+.surface { position: relative; padding-top: 14px; flex: 1; min-height: 0; }
+.view { height: 100%; }
 .loading {
   font-family: var(--elite); letter-spacing: .1em; color: var(--paper-2);
   padding: 20px 4px; text-transform: uppercase; font-size: 12px;
@@ -429,11 +433,14 @@ select, input[type="text"] {
   pointer-events: none;
   filter: drop-shadow(0 1.5px 1px rgba(22,14,7,.5));
 }
-.string-hit { fill: none; stroke: transparent; stroke-width: 22; pointer-events: stroke; cursor: pointer; }
+/* Wide and invisible, so the string is easy to catch. The board's own
+   magnifier cursor already says it can be picked up, so no cursor change. */
+.string-hit { fill: none; stroke: transparent; stroke-width: 24; pointer-events: stroke; }
 .string-line { fill: none; stroke: var(--stamp); stroke-opacity: .88; stroke-width: 2; stroke-linecap: round; }
 .string.conf-medium .string-line { stroke-dasharray: 7 5; stroke-opacity: .6; }
 .string.conf-low .string-line { stroke: var(--stamp-dim); stroke-dasharray: 3 5; }
 .string.lit .string-line { stroke-width: 3.4; stroke-opacity: 1; }
+.string:hover .string-line { stroke-opacity: 1; }
 .string-line.thread { stroke-width: 1.6; }
 .string-line.thread { stroke: var(--stamp-dim); stroke-opacity: .8; stroke-width: 1.4; }
 
@@ -981,6 +988,106 @@ select, input[type="text"] {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
   padding-top: 8px; border-top: 1px dashed var(--ink-3);
   font-size: 11px; color: var(--ink-meta);
+}
+
+
+/* =================================================================== SHEETS */
+
+/* A case folder is flipped, not scrolled. Each exhibit is one screen, the
+   sections inside it are unchanged, and the flip controls sit across the top
+   where the folder's own tab would be. */
+.sheaf { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.sheaf-nav {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 5px 12px 6px; margin-bottom: 11px;
+  background-color: var(--kraft);
+  background-image: linear-gradient(180deg, rgba(255,246,224,.28), rgba(120,86,48,.12)), var(--grain);
+  box-shadow: var(--shadow-card);
+}
+.flip {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--elite); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink);
+  background-color: var(--paper-2); background-image: var(--grain);
+  border: 1.5px solid var(--ink-3); border-radius: 2px; padding: 4px 13px;
+  box-shadow: 0 1px 0 rgba(255,250,236,.5) inset, 0 2px 5px rgba(28,18,10,.26);
+}
+.flip:hover { background-color: var(--paper); }
+.flip:active { transform: translateY(1px); }
+.flip-arrow { font-size: 9px; color: var(--ink-2); }
+.exhibit { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.exhibit-no {
+  flex: none;
+  font-family: var(--elite); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink); border: 1.5px solid var(--ink); padding: 2px 9px; transform: rotate(-1.4deg);
+}
+.exhibit-no b { font-family: var(--type); font-weight: 700; letter-spacing: 0; }
+.exhibit-name {
+  font-family: var(--hand); font-size: 19px; line-height: 1; color: var(--pencil);
+  transform: rotate(-.9deg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.exhibit-dots { display: flex; gap: 5px; flex: none; }
+.exhibit-dot {
+  width: 9px; height: 9px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--ink-2); background: rgba(46,36,28,.1);
+}
+.exhibit-dot.on { background: var(--ink); }
+
+.sheet .board-head { margin-bottom: 8px; }
+.sheets { position: relative; flex: 1; min-height: 0; }
+.sheet { height: 100%; overflow: hidden; }
+
+/* Findings spread across the sheet instead of running down a column. Same
+   cards, same rules, same resting angles: only the column is gone. */
+.findings-col.spread {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px 18px; align-items: start;
+}
+.findings-col.spread .card { margin: 0; }
+.findings-col.spread .claim { overflow-wrap: anywhere; }
+.findings-col.spread .hand.aside {
+  float: none; width: auto; margin: 6px 0 0;
+  padding-left: 9px; border-left: 2px solid rgba(63,81,102,.35);
+}
+
+.leads-sheet { display: grid; gap: 13px; align-content: start; }
+.cleared-cluster.spread, .unknown-cluster.spread { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cleared-cluster.spread .card.cleared { padding-right: 16px; }
+.cleared-cluster.spread .card.cleared .index-top { padding-right: 150px; }
+
+/* Evidence still opens in place. On a sheet it opens as a photocopy slip that
+   hangs over the board rather than growing the card, so pulling the clip can
+   never push the page: the slip is bounded and scrolls inside itself. */
+.sheet .ev { position: relative; }
+.sheet .ev-body:not([hidden]) {
+  position: absolute; left: -12px; right: -12px; top: 100%; z-index: 20;
+  max-height: var(--ev-max, 240px); overflow-y: auto; overflow-x: hidden;
+  overscroll-behavior: contain;
+  background-color: var(--photo);
+  border: 1px solid var(--ink-3);
+  box-shadow: var(--shadow-lift);
+  padding: 9px 13px 11px;
+  scrollbar-color: var(--kraft) rgba(201,168,124,.22); scrollbar-width: thin;
+}
+.sheet .ev-body.up:not([hidden]) { top: auto; bottom: 100%; }
+.sheet .ev-body::-webkit-scrollbar { width: 8px; }
+.sheet .ev-body::-webkit-scrollbar-track { background: rgba(201,168,124,.22); }
+.sheet .ev-body::-webkit-scrollbar-thumb { background: var(--kraft); border-radius: 4px; }
+.sheet .ev-body .photocopy { margin-top: 0; }
+
+/* Pulling a string brings up the claim that named both of its ends. It is lit
+   for a couple of seconds and then goes out: an answer, not a selection. */
+@keyframes claim-lift {
+  0%   { box-shadow: var(--shadow-card); }
+  10%  { box-shadow: var(--shadow-lift), 0 0 0 3px var(--stamp); }
+  74%  { box-shadow: var(--shadow-lift), 0 0 0 3px var(--stamp); }
+  100% { box-shadow: var(--shadow-card); }
+}
+.card.pulse { animation: claim-lift 2.2s ease-out; position: relative; z-index: 8; }
+@media (prefers-reduced-motion: reduce) {
+  .card.pulse { animation: none; box-shadow: var(--shadow-lift), 0 0 0 3px var(--stamp); }
 }
 
 /* ---------------------------------------------------------- reduced motion */
