@@ -276,6 +276,7 @@ nav { display: flex; gap: 4px; padding: 0 12px; position: relative; z-index: 2; 
 .empty {
   font-family: var(--elite); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--paper-3); padding: 12px 14px;
+  width: max-content; max-width: 100%;
   border: 1px dashed rgba(230,216,190,.4);
   text-shadow: 0 1px 2px rgba(20,12,6,.65);
 }
@@ -344,7 +345,7 @@ select, input[type="text"] {
 
 .slip-head-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
 .slip-body { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
-.slip-stats { margin: 8px 0 0; display: grid; gap: 3px; }
+.slip-stats { margin: 8px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; }
 .slip-stats > div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dotted var(--ink-3); }
 .slip-stats dt { font-size: 11.5px; color: var(--ink-meta); }
 .slip-stats dd { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -364,13 +365,19 @@ select, input[type="text"] {
 }
 .raw {
   margin: 0; padding: 7px 9px 8px;
-  overflow-x: auto; font-family: var(--type); font-size: 12px; line-height: 1.6;
+  overflow-x: auto; overscroll-behavior-x: contain; font-family: var(--type); font-size: 12px; line-height: 1.6;
 }
-.raw-row { display: flex; gap: 10px; align-items: baseline; white-space: pre; }
+/* The row is as wide as the line it holds, so the photocopy above it is the
+   thing that scrolls sideways and the page never does. */
+.raw-row { display: flex; gap: 10px; align-items: baseline; white-space: pre; width: max-content; min-width: 100%; }
 .raw-ln {
   flex: none; width: 52px; text-align: right; color: var(--ink-meta);
   font-variant-numeric: tabular-nums; border-right: 1px solid var(--ink-3); padding-right: 7px;
 }
+.raw::-webkit-scrollbar { height: 8px; }
+.raw::-webkit-scrollbar-track { background: rgba(201,168,124,.22); }
+.raw::-webkit-scrollbar-thumb { background: var(--kraft); border-radius: 4px; }
+.raw { scrollbar-color: var(--kraft) rgba(201,168,124,.22); scrollbar-width: thin; }
 .raw-bytes { color: var(--ink); }
 .raw-row.missing .raw-bytes { color: var(--ink-meta); font-style: italic; }
 .raw-row.synthetic .raw-bytes { color: var(--pencil); }
@@ -464,7 +471,7 @@ select, input[type="text"] {
 }
 .ent-sub { font-size: 11.5px; color: var(--ink-meta); font-variant-numeric: tabular-nums; margin-bottom: 8px; }
 
-.ent-nums { display: grid; gap: 5px; }
+.ent-nums { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
 .big-stat { display: flex; align-items: baseline; gap: 9px; border-top: 1px solid var(--ink-3); padding-top: 4px; }
 .big-stat b {
   flex: none; min-width: 58px; text-align: right;
@@ -507,6 +514,7 @@ select, input[type="text"] {
 /* ---- findings, cleared leads, open questions ---- */
 
 .case-cols { display: grid; grid-template-columns: minmax(0, 545px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.case-cols > * { min-width: 0; }
 
 .card {
   position: relative;
@@ -551,7 +559,9 @@ select, input[type="text"] {
   border: 1px dashed rgba(139,118,96,.85);
 }
 
-.cleared-cluster, .unknown-cluster { display: grid; gap: 12px; }
+/* A single-column grid sizes its track to max-content unless it is told not
+   to, and a long paragraph behind a clip will then push the board sideways. */
+.cleared-cluster, .unknown-cluster { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .card.cleared { background-color: #DFD6C4; background-image: var(--grain); color: var(--ink-2); }
 .card.cleared .claim { color: var(--ink-2); }
 .card.cleared { padding-right: 142px; }
@@ -717,7 +727,7 @@ select, input[type="text"] {
 .acard-who { font-size: 11px; color: var(--ink-meta); margin-top: 3px; }
 
 /* The incident card: a folder that grows as the correlator fills it. */
-.inc-stack { position: relative; z-index: 2; display: grid; gap: 18px; padding-top: 4px; }
+.inc-stack { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding-top: 4px; }
 .inc {
   position: relative; padding: 17px 18px 11px;
   background-color: var(--paper-2); background-image: var(--grain);
@@ -755,7 +765,7 @@ select, input[type="text"] {
 }
 .sigchip i { font-style: normal; font-size: 10px; color: var(--ink-meta); }
 .sigchip.unknown { color: var(--ink-meta); border-style: dashed; }
-.inc-narrative { display: grid; gap: 9px; border-top: 1px solid var(--ink-3); padding-top: 9px; }
+.inc-narrative { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; border-top: 1px solid var(--ink-3); padding-top: 9px; }
 .nbeat { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: baseline; }
 .nbeat-ts { font-size: 11px; color: var(--ink-meta); font-variant-numeric: tabular-nums; }
 .nbeat p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink); }
@@ -767,7 +777,7 @@ select, input[type="text"] {
 
 /* =============================================================== JUDGE FORM */
 
-.judge-grid { display: grid; grid-template-columns: minmax(0, 620px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.judge-grid { display: grid; grid-template-columns: minmax(0, 700px) minmax(0, 1fr); gap: 24px; align-items: start; }
 
 .form-slip {
   position: relative; padding: 24px 26px 18px;
@@ -782,9 +792,9 @@ select, input[type="text"] {
 .form-title { font-size: 21px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
 .form-sub { font-size: 10px; color: var(--ink-meta); }
 .form-note { margin: 10px 0 16px; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
-.form-body { display: grid; gap: 15px; }
+.form-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 15px; }
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
-.field { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; align-content: start; }
 .field > .tw { font-size: 9.5px; letter-spacing: .12em; color: var(--ink-meta); }
 
 /* Typed into the blank: a rule under the answer, not a widget. */
@@ -813,7 +823,8 @@ select, input[type="text"] {
 .form-foot .hand { font-size: 15px; }
 .filed-stamp { position: absolute; top: 62px; right: 26px; color: var(--ink-2); z-index: 4; }
 
-.variant-stack { display: grid; gap: 14px; }
+.variant-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; justify-items: start; }
+.variant-stack > .variant-slip { justify-self: stretch; }
 .variant-slip {
   position: relative; padding: 15px 16px 10px;
   background-color: var(--paper-2); background-image: var(--grain);
@@ -900,7 +911,7 @@ select, input[type="text"] {
 
 /* ================================================================ BLUE MEMOS */
 
-.blue-grid { display: grid; gap: 18px; }
+.blue-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .blue-note {
   position: relative; width: max-content; max-width: 100%; padding: 15px 22px 12px;
   background-color: var(--paper-2); background-image: var(--grain);
