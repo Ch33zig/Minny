@@ -54,9 +54,14 @@ AUTH_FAIL_WINDOW_S = 30
 # consequence of rendering the page rather than of a decision to make it.
 PRIVILEGED_AFTER_VIEW_S = 5
 
-# S7. Posting returns a 302 that does not name the new object, so authorship is
-# inferred from the author's own immediate read of their post. Ten seconds is
-# the redirect-and-render budget.
+# S7. Posting returns a 302 that does not name the object it created, so this
+# links an account to a post by nothing stronger than "submitted, then opened
+# that post seconds later". Ten seconds is the redirect-and-render budget.
+#
+# It is deliberately NOT authorship. In this dataset the linked object is a
+# seven-month-old thread that all ten accounts read and edit, so "created by"
+# would be false. What the timing supports is presence at the vector, which is
+# why this signal only ever supports an S6 alert and never raises one itself.
 AUTHORSHIP_WINDOW_S = 10
 
 
@@ -424,8 +429,11 @@ def s6_content_triggered_privileged_action(event, baselines, state) -> list:
     )
     if authorship:
         explanation += (
-            f" Post {obj_id} was created by {authorship.user}, who opened it "
-            f"{authorship.gap_s} second(s) after posting."
+            f" {authorship.user} submitted a post and opened {obj_id} "
+            f"{authorship.gap_s} second(s) later, which places that account at "
+            f"the vector immediately beforehand. The log does not record which "
+            f"object a submission created, so this is association, not "
+            f"authorship."
         )
     return [
         _alert(

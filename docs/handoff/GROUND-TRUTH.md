@@ -64,7 +64,7 @@ All timestamps 2026, UTC−4.
 | 168330 | 15 Mar 09:20:20 | david_m | `forum/new?topic=lunch_menu&payload=csrf_test` | **500** |
 | 168331 | 15 Mar 09:42:35 | david_m | `forum/new?topic=q1_updates&action=csrf_role_update` | **400** |
 | 168332 | 15 Mar 10:18:52 | david_m | `forum/new?topic=parking_issues&script=success` | 302 |
-| 168333 | 15 Mar 10:18:55 | david_m | views `forum/view/1042`, 3s later | 200 |
+| 168333 | 15 Mar 10:18:55 | david_m | opens `forum/view/1042`, 3s later | 200 |
 | 168335 | 15 Mar 11:07:56 | sarah_j | views `forum/view/1042` | 200 |
 | 168336 | 15 Mar 11:07:57 | sarah_j | `POST /api/admin/role_update`, **1s later** | 200 |
 | 168337 | 15 Mar 11:07:59 | sarah_j | `/assets/avatar_1042.png` | 200 |
@@ -74,6 +74,23 @@ All timestamps 2026, UTC−4.
 | 168343–168346 | 15 Mar 22:29:43–22:33:40 | sarah_j **from 10.0.8.45** | login, dashboard, **zip again**, logout | 200/302 |
 
 Three payload attempts, two of which are the only 400 and 500 in the file, then one that works. David iterated. That is a better story than the brief's single post, and it is in the data.
+
+### Post 1042 is NOT David's post — corrected
+
+The brief, and the first draft of this file, said David created post 1042. **The data says otherwise and the claim has been removed everywhere.**
+
+Object 1042 first appears at **line 331, 1 August 2025**, seven months before the incident. It carries **353 events**, is read by **all ten accounts** (30-40 views each), and has been **edited 112 times**, including 13 times by david_m as ordinary use. It is a long-running, popular thread.
+
+`/intranet/forum/new` returns a 302 that **does not name the object it created**. The log therefore cannot tell us what David's successful POST at 168332 produced. What it does show is that he opened 1042 three seconds later, and edited it 21 minutes after the download.
+
+So the defensible chain is:
+
+1. David sent three abnormal `forum/new` requests; two produced the only 400 and 500 in the file. **Strong.**
+2. He opened 1042 three seconds after the one that succeeded. **Timing, not authorship.**
+3. Sarah opened 1042 and one second later her account made the only privileged call in the file. **Strong.**
+4. David then read a file he had been denied 77 times. **Strong.**
+
+1042 is the vector by **temporal association**. Anyone saying "David planted the post" on stage is asserting something the logs do not contain. Say "David was at the vector immediately before and after" — it is just as damning and it survives cross-examination.
 
 ## Access model
 
