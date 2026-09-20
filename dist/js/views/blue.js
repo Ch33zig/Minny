@@ -3,7 +3,7 @@
 // honest story, and it is the one a judge remembers.
 
 import { api } from '../api.js';
-import { esc, fmtPct, fmtTs } from '../dom.js';
+import { esc, fmtPct, fmtTs, noneTag } from '../dom.js';
 
 const GATE_LABEL = {
   heldout_detection: 'held-out detection',
@@ -88,14 +88,14 @@ function gateRow(key, v) {
     : v.budget !== undefined ? `budget ${v.budget}`
     : v.required !== undefined ? `required ${v.required}` : '';
   const measured = v.measured !== undefined
-    ? (v.threshold !== undefined ? fmtPct(v.measured) : String(v.measured))
-    : 'n/a';
+    ? esc(v.threshold !== undefined ? fmtPct(v.measured) : String(v.measured))
+    : noneTag;
   return `
     <div class="gate-row ${v.pass ? 'pass' : 'fail'}">
       <span class="gate-mark meta">${v.pass ? '✓' : '✕'}</span>
       <span class="gate-name">${esc(GATE_LABEL[key] || key)}</span>
       <span class="gate-target meta">${esc(target)}</span>
-      <span class="gate-measured meta">${esc(measured)}</span>
+      <span class="gate-measured meta">${measured}</span>
     </div>`;
 }
 

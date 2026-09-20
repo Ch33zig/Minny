@@ -62,6 +62,8 @@ code { font-family: var(--mono); }
 
 :focus-visible { outline: 1px solid var(--text-2); outline-offset: 1px; }
 
+/* The "no value" placeholder. A middle dot, kept quiet. */
+.none { color: var(--text-3); font-style: normal; }
 
 /* ------------------------------------------------------------------ shell */
 

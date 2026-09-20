@@ -1,5 +1,5 @@
 import { api, mode } from './api.js';
-import { $, $$, esc, fmtDate, fmtNum, toast } from './dom.js';
+import { $, $$, esc, fmtDate, fmtNum, NONE, toast } from './dom.js';
 import { toggleAll } from './evidence.js';
 import { crossfadeView } from './motion.js';
 import * as caseView from './views/casefile.js';
@@ -44,7 +44,7 @@ async function setHeader() {
     }
     if (cf.source) {
       $('#srcLines').textContent = `${fmtNum(cf.source.lines)} lines`;
-      $('#srcHash').textContent = String(cf.source.sha256 || '').slice(0, 12) || 'n/a';
+      $('#srcHash').textContent = String(cf.source.sha256 || '').slice(0, 12) || NONE;
       $('#srcHash').title = cf.source.sha256 || '';
     }
     document.title = `Minny · ${cf.title}`;

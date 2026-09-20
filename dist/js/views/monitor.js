@@ -2,7 +2,7 @@
 // alerts arrive: one story assembling itself, not twenty warnings in a list.
 
 import { api, openStream, seedLines } from '../api.js';
-import { $, esc, fmtTs, sevChip, toast } from '../dom.js';
+import { $, esc, fmtTs, NONE, noneTag, sevChip, toast } from '../dom.js';
 import { evidenceToggle, mountEvidence } from '../evidence.js';
 import { bornIncident, enterRow, growIncident } from '../motion.js';
 
@@ -36,7 +36,7 @@ export async function render(container) {
           <span class="replay-hint meta">log hours per wall second</span>
         </div>
         <div class="replay-right">
-          <span class="cursor meta" id="cursorTs">n/a</span>
+          <span class="cursor meta" id="cursorTs"><span class="none">·</span></span>
           <span class="chip stream-chip" id="connChip">idle</span>
         </div>
         <div class="progress"><i id="progressBar"></i></div>
@@ -104,7 +104,7 @@ function resetReplay() {
   $('#ticker', root).innerHTML = '<div class="empty">Press play to replay the window.</div>';
   $('#tickCount', root).textContent = '0';
   $('#progressBar', root).style.width = '0%';
-  $('#cursorTs', root).textContent = 'n/a';
+  $('#cursorTs', root).textContent = NONE;
 }
 
 function onState(state) {
@@ -165,7 +165,7 @@ function pushEvent(ev) {
   row.innerHTML = `
     <span class="tick-ln meta">${esc(ev.line)}</span>
     <span class="tick-ts meta">${esc((ev.ts || '').slice(11, 19))}</span>
-    <span class="tick-user">${esc(ev.user || 'n/a')}</span>
+    <span class="tick-user">${esc(ev.user) || noneTag}</span>
     <span class="tick-path meta" title="${esc(ev.path || '')}">${esc(ev.path || '')}</span>
     <span class="tick-status meta s${statusClass(ev.status)}">${esc(ev.status)}</span>`;
   list.prepend(row);
@@ -279,7 +279,7 @@ function incidentHtml(inc) {
       <span class="ia-arrow">→</span>
       <span class="ia victim">${esc(victim.user || '?')}<i>${esc(victim.ip || '')}</i></span>
       <span class="ia-arrow">→</span>
-      <span class="ia asset" title="${esc(inc.asset || '')}">${esc(inc.asset || 'n/a')}</span>
+      <span class="ia asset" title="${esc(inc.asset || '')}">${esc(inc.asset) || noneTag}</span>
     </div>
     <div class="inc-sigs">${alerts || '<span class="asig unknown">no alerts yet</span>'}</div>
     <div class="inc-narrative">${beats || '<div class="empty">Narrative assembling…</div>'}</div>

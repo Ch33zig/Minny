@@ -2,7 +2,7 @@
 // If the evaluation is re-run, this panel changes by itself.
 
 import { api } from '../api.js';
-import { esc, fmtNum, fmtPct, fmtTs } from '../dom.js';
+import { esc, fmtNum, fmtPct, fmtTs, NONE, noneTag } from '../dom.js';
 
 export async function render(container) {
   const m = await api.metrics();
@@ -60,9 +60,9 @@ export async function render(container) {
       </div>
 
       <section class="panel provenance meta">
-        <span><b>COMMAND</b> ${esc(m.command || 'n/a')}</span>
-        <span><b>SEED</b> ${m.seed === null || m.seed === undefined ? 'n/a' : esc(m.seed)}</span>
-        <span><b>RULES</b> ${esc(m.rule_revision || 'n/a')}</span>
+        <span><b>COMMAND</b> ${esc(m.command) || noneTag}</span>
+        <span><b>SEED</b> ${m.seed === null || m.seed === undefined ? noneTag : esc(m.seed)}</span>
+        <span><b>RULES</b> ${esc(m.rule_revision) || noneTag}</span>
         <span><b>GENERATED</b> ${m.generated_at ? esc(fmtTs(m.generated_at, { withYear: true, withOffset: true })) : 'never run'}</span>
       </section>
     </div>`;
@@ -84,7 +84,7 @@ function stat(label, value, sub, tone = '') {
 }
 
 function secs(n) {
-  if (n === null || n === undefined) return 'n/a';
+  if (n === null || n === undefined) return NONE;
   const v = Number(n);
   if (v < 60) return `${v}s`;
   if (v < 3600) return `${(v / 60).toFixed(1)}m`;

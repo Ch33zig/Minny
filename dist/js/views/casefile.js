@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { confChip, esc, fmtTs } from '../dom.js';
+import { confChip, esc, fmtTs, NONE, noneTag } from '../dom.js';
 import { evidenceToggle, mountEvidence, toggleAll } from '../evidence.js';
 
 export async function render(container) {
@@ -77,18 +77,18 @@ function verdict(cf) {
       <p class="verdict-text">${esc(vd.summary || 'No verdict recorded.')}</p>
       ${vd.basis ? `<p class="verdict-basis">${esc(vd.basis)}</p>` : ''}
       <div class="verdict-facts">
-        <div><span>ATTACKER</span><b>${esc((actors.attacker || {}).user || 'n/a')}</b></div>
-        <div><span>VICTIM ACCOUNT</span><b>${esc((actors.victim || {}).user || 'n/a')}</b></div>
-        <div class="wide"><span>ASSET</span><b class="meta">${esc(actors.asset || 'n/a')}</b></div>
+        <div><span>ATTACKER</span><b>${esc((actors.attacker || {}).user) || noneTag}</b></div>
+        <div><span>VICTIM ACCOUNT</span><b>${esc((actors.victim || {}).user) || noneTag}</b></div>
+        <div class="wide"><span>ASSET</span><b class="meta">${esc(actors.asset) || noneTag}</b></div>
         <div><span>VECTOR</span><b class="meta">${esc(vectorLabel(actors.vector))}</b></div>
       </div>
     </section>`;
 }
 
 function vectorLabel(vector) {
-  if (!vector) return 'n/a';
+  if (!vector) return NONE;
   const t = vector.template || '';
-  if (vector.obj_id === null || vector.obj_id === undefined) return t || 'n/a';
+  if (vector.obj_id === null || vector.obj_id === undefined) return t || NONE;
   return t.includes('{id}') ? t.replace('{id}', vector.obj_id) : `${t} · ${vector.obj_id}`;
 }
 
@@ -145,7 +145,7 @@ function beat(t) {
     <article class="beat conf-edge-${esc(level)}">
       <div class="beat-head">
         <span class="beat-ts meta">${esc(fmtTs(t.ts))}</span>
-        <span class="beat-actor">${esc(t.actor || 'n/a')}</span>
+        <span class="beat-actor">${esc(t.actor) || noneTag}</span>
         ${level === 'high' ? '' : confChip(t.confidence)}
       </div>
       <p class="beat-action">${esc(t.action || '')}</p>
