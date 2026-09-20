@@ -70,6 +70,36 @@ def write_json(path: Path, payload: Any) -> bool:
         return False
 
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_MOCK_FIXTURES = _REPO_ROOT / "fixtures" / "mock"
+
+
+def load_artifact(name: str) -> Any | None:
+    """Prefer the built artifact, fall back to the committed fixture.
+
+    The fallback is what lets the integration layer run on a machine with no
+    dataset, which is the same reason the UI has a `?mock=1`.
+    """
+    built = read_json(paths.data_dir() / name)
+    if built is not None:
+        return built
+    return read_json(_MOCK_FIXTURES / name)
+
+
+def load_incident(incident_id: str | None = None) -> dict | None:
+    """One incident by id, or the real breach ahead of any injected variant."""
+    incidents = load_artifact("incidents.json")
+    if not isinstance(incidents, list) or not incidents:
+        return None
+    if incident_id:
+        for incident in incidents:
+            if isinstance(incident, dict) and incident.get("incident_id") == incident_id:
+                return incident
+        return None
+    real = [i for i in incidents if isinstance(i, dict) and not (i.get("labels") or {}).get("synthetic")]
+    return (real or incidents)[0]
+
+
 def read_email_store() -> dict | None:
     store = read_json(paths.email_evidence_path())
     return store if isinstance(store, dict) else None

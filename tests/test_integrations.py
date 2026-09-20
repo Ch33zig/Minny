@@ -106,6 +106,32 @@ def test_slack_returns_the_recorded_response_with_no_credentials(api):
     assert delivery["detection_unaffected"] is True
 
 
+def test_the_alert_carries_the_explanation_and_a_link_and_no_evidence(api):
+    """The real path, not a demo path beside it.
+
+    Posting a known incident uses the same assembly and the same checks the
+    correlator's alert would, which is the only way the button on stage
+    proves anything.
+    """
+    response = api.post("/api/integrations/test", json={"incident_id": "inc_e30fc0"})
+    delivery = response.json()["delivery"]
+
+    assert delivery["target"] == "inc_e30fc0"
+    assert delivery["state"] == config.MOCK
+    assert "#monitor?incident=inc_e30fc0" in delivery["text"]
+    assert not egress.RAW_LOG_LINE.search(delivery["text"])
+
+
+def test_a_medium_severity_incident_is_not_posted():
+    """A channel that fires on everything is a channel nobody reads."""
+    delivery = slack.post_incident(
+        {"incident_id": "inc_quiet", "severity": "medium", "title": "t", "evidence_lines": []}
+    )
+
+    assert delivery["state"] == "skipped"
+    assert "high only" in delivery["message"]
+
+
 def test_gmail_sync_runs_the_bounded_queries_from_the_recorded_mailbox(api):
     report = api.post("/api/integrations/gmail/sync", json={}).json()
 

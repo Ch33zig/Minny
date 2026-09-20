@@ -29,15 +29,11 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from pathlib import Path
 
 from minny import paths
 from minny.integrations import client, config, mailbox, store
 
 logger = logging.getLogger("minny.integrations")
-
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_MOCK_FIXTURES = _REPO_ROOT / "fixtures" / "mock"
 
 DEFAULT_DISCLOSURE = (
     "Seeded demonstration mailbox. No corporate mailbox exists for this "
@@ -60,30 +56,10 @@ POLICY = {
 # ------------------------------------------------------------------ inputs
 
 
-def _load(name: str) -> object | None:
-    """Prefer the built artifact, fall back to the committed fixture.
-
-    The fixture fallback is what lets the mailbox path run with no dataset
-    on the machine, which is the same reason the whole UI has a `?mock=1`.
-    """
-    built = store.read_json(paths.data_dir() / name)
-    if built is not None:
-        return built
-    return store.read_json(_MOCK_FIXTURES / name)
-
-
-def load_incident(incident_id: str | None = None) -> dict | None:
-    incidents = _load("incidents.json")
-    if not isinstance(incidents, list) or not incidents:
-        return None
-    if incident_id:
-        for incident in incidents:
-            if incident.get("incident_id") == incident_id:
-                return incident
-    # The real breach before an injected variant: a synthetic incident must
-    # never be the thing the mailbox is matched against.
-    real = [i for i in incidents if not (i.get("labels") or {}).get("synthetic")]
-    return (real or incidents)[0]
+# The real breach ahead of any injected variant: a synthetic incident must
+# never be the thing the mailbox is matched against.
+_load = store.load_artifact
+load_incident = store.load_incident
 
 
 def anchors_for(incident: dict) -> list[tuple[int, datetime]]:

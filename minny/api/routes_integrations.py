@@ -106,10 +106,24 @@ def integrations_status():
 
 
 @router.post("/integrations/test")
-def integrations_test():
-    """Fire one clearly labelled Slack message and report what happened."""
+def integrations_test(payload: dict = Body(default=None)):
+    """Fire one Slack message and report what happened.
+
+    With no body it sends a clearly labelled connection test. With
+    `{"incident_id": "..."}` it sends the real alert for that incident, which
+    exercises the path that matters rather than a demo path beside it: the
+    same assembly, the same egress check, and the same refusal to post
+    anything that is not high severity.
+    """
+    incident_id = (payload or {}).get("incident_id") if isinstance(payload, dict) else None
     try:
-        delivery = slack.test_message()
+        if incident_id:
+            incident = store.load_incident(str(incident_id))
+            if incident is None:
+                return _error(404, "unknown_incident", f"no incident {incident_id}")
+            delivery = slack.post_incident(incident)
+        else:
+            delivery = slack.test_message()
     except Exception as exc:  # noqa: BLE001 - a test never breaks the app
         logger.warning("slack test failed: %s", exc)
         delivery = _degraded("slack_test_failed", str(exc), capability=config.SLACK_POST.id)
