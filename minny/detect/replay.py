@@ -270,3 +270,350 @@ class InjectionQueue:
     def __len__(self) -> int:
         with self._lock:
             return len(self._heap)
+
+
+def _iso(value) -> str | None:
+    return value.isoformat() if isinstance(value, datetime) else None
+
+
+class ReplayEngine:
+    """Walks a window of events at a chosen speed and emits stream frames.
+
+    Speed is simulated log-hours per wall-clock second, so the number means
+    the same thing whether the window is an hour or seven months. `fast=True`
+    removes the pacing entirely for the evaluation harness, which replays
+    thousands of variants and cares only about what was detected.
+
+    Control comes from another thread. `start`, `pause`, `reset`, `stop`,
+    `set_speed` and `inject` all just set state and wake the loop, so the HTTP
+    handler never blocks on a replay and a judge clicking pause sees it stop
+    inside a frame rather than at the end of a long sleep.
+    """
+
+    def __init__(
+        self,
+        source_factory,
+        baselines: Baselines,
+        rules=None,
+        speed_hours_per_second: float = DEFAULT_SPEED_HOURS_PER_SECOND,
+        fast: bool = False,
+        max_gap_s: float | None = None,
+        start_ts: datetime | None = None,
+        end_ts: datetime | None = None,
+        sink=None,
+        clock=time.monotonic,
+    ):
+        self._source_factory = source_factory
+        self.baselines = baselines
+        self.rules = rules
+        self.pipeline = Pipeline(baselines, rules=rules)
+        self.speed = float(speed_hours_per_second)
+        self.fast = bool(fast)
+        # A quiet stretch of log should not be a quiet stretch of demo. With
+        # this set, a gap longer than the clamp is crossed in the clamp's
+        # wall-clock time and the cursor still jumps the whole way, so the
+        # timeline stays truthful while the screen keeps moving.
+        self.max_gap_s = max_gap_s
+        self.sink = sink
+        self.clock = clock
+
+        self._from = start_ts
+        self._to = end_ts
+        self._lock = threading.RLock()
+        self._wake = threading.Event()
+        self.queue = InjectionQueue(on_push=self._wake.set)
+
+        self._source = None
+        self._pending = None
+        self._running = False
+        self._stopped = False
+        self._reset_requested = False
+        self._alive = False
+        self._finished = False
+        self._started_once = False
+        self._last_sim: datetime | None = None
+        self._chosen_key = None
+        self._due_at = 0.0
+        self._rules_checked_at = 0.0
+
+        self.cursor: datetime | None = start_ts
+        self.events_emitted = 0
+
+    # ------------------------------------------------------------- factory
+
+    @classmethod
+    def from_events(cls, events, baselines: Baselines, **kwargs) -> "ReplayEngine":
+        """Build over an in-memory list, which is what the tests replay."""
+        pooled = sorted(events, key=lambda event: (event.ts, event.line))
+
+        def factory(start, end):
+            return iter(
+                [
+                    event
+                    for event in pooled
+                    if (start is None or event.ts >= start)
+                    and (end is None or event.ts < end)
+                ]
+            )
+
+        return cls(factory, baselines, **kwargs)
+
+    # --------------------------------------------------------------- state
+
+    def state(self) -> dict:
+        """The `replay_state` payload of section 12, plus what the UI asked for."""
+        rules = self.rules
+        return {
+            "running": self._running,
+            "speed_hours_per_second": self.speed,
+            "cursor_ts": _iso(self.cursor),
+            "events_emitted": self.events_emitted,
+            "from": _iso(self._from),
+            "to": _iso(self._to),
+            "mode": "fast" if self.fast else "paced",
+            "max_gap_s": self.max_gap_s,
+            "finished": self._finished,
+            "alerts_emitted": len(self.pipeline.alerts),
+            "incidents": len(self.pipeline.correlator.clusters),
+            "injected": self.queue.pushed,
+            "injected_pending": len(self.queue),
+            "rules": {
+                "loaded": len(rules.rules) if rules else 0,
+                "enabled": sum(1 for rule in rules.rules if rule.ok) if rules else 0,
+                "errors": len(rules.errors) if rules else 0,
+            },
+        }
+
+    def state_frame(self) -> Frame:
+        state = self.state()
+        return Frame("replay_state", state["cursor_ts"], state)
+
+    # ------------------------------------------------------------- control
+
+    def start(
+        self,
+        speed_hours_per_second: float | None = None,
+        start_ts: datetime | None = None,
+        end_ts: datetime | None = None,
+        max_gap_s: float | None = None,
+    ) -> dict:
+        """Run, or resume. A new window restarts the replay inside it."""
+        with self._lock:
+            if speed_hours_per_second is not None:
+                self.speed = float(speed_hours_per_second)
+            if max_gap_s is not None:
+                self.max_gap_s = max_gap_s
+            window_changed = (start_ts is not None and start_ts != self._from) or (
+                end_ts is not None and end_ts != self._to
+            )
+            if start_ts is not None:
+                self._from = start_ts
+            if end_ts is not None:
+                self._to = end_ts
+            # A new window, or a replay that already ran to the end, is a
+            # fresh run. A first start is not: events pushed before the
+            # judge pressed play are part of this run and must survive it.
+            if window_changed or self._finished:
+                self._reset_requested = True
+            self._running = True
+            self._started_once = True
+            self._chosen_key = None
+        self._wake.set()
+        return self.state()
+
+    def pause(self) -> dict:
+        with self._lock:
+            self._running = False
+        self._wake.set()
+        return self.state()
+
+    def reset(self) -> dict:
+        """Back to the start of the window, paused, with nothing carried over."""
+        with self._lock:
+            self._running = False
+            self._reset_requested = True
+            alive = self._alive
+        self._wake.set()
+        if not alive:
+            self._apply_reset()
+        return self.state()
+
+    def stop(self) -> dict:
+        with self._lock:
+            self._stopped = True
+            self._running = False
+        self._wake.set()
+        return self.state()
+
+    def set_speed(self, speed_hours_per_second: float) -> dict:
+        with self._lock:
+            self.speed = float(speed_hours_per_second)
+            # The event being slept towards is now due at a different time.
+            self._chosen_key = None
+        self._wake.set()
+        return self.state()
+
+    def inject(self, events, variant_id=None, synthetic: bool = True) -> int:
+        """The red team's entry point. Safe from any thread, at any time."""
+        return self.queue.push(events, variant_id=variant_id, synthetic=synthetic)
+
+    @property
+    def running(self) -> bool:
+        return self._running
+
+    @property
+    def finished(self) -> bool:
+        return self._finished
+
+    # ------------------------------------------------------------ internals
+
+    def _apply_reset(self) -> None:
+        with self._lock:
+            self._reset_requested = False
+            self._source = self._source_factory(self._from, self._to)
+            self._pending = None
+            # Injected variants belong to the run that was cancelled. The red
+            # team pushes again against the fresh replay rather than having
+            # last run's events reappear inside this one.
+            self.queue.clear()
+            self.pipeline.reset()
+            self.events_emitted = 0
+            self.cursor = self._from
+            self._finished = False
+            self._last_sim = None
+            self._chosen_key = None
+
+    def _peek_base(self):
+        if self._source is None:
+            self._source = self._source_factory(self._from, self._to)
+        if self._pending is None:
+            self._pending = next(self._source, None)
+        return self._pending
+
+    def _head(self):
+        """The next event due, injected or not, as (event, meta, from_queue)."""
+        base = self._peek_base()
+        injected = self.queue.peek()
+        if injected is None and base is None:
+            return None
+        if base is None:
+            return (injected[3], injected[4], True)
+        if injected is None:
+            return (base, None, False)
+        if (injected[0], injected[1]) <= (base.ts, base.line):
+            return (injected[3], injected[4], True)
+        return (base, None, False)
+
+    def _take(self, from_queue: bool) -> None:
+        if from_queue:
+            self.queue.pop()
+        else:
+            self._pending = None
+
+    def _delay_for(self, ts: datetime) -> float:
+        if self.fast or self._last_sim is None:
+            return 0.0
+        gap = (ts - self._last_sim).total_seconds()
+        if gap <= 0:
+            return 0.0
+        delay = gap / (SECONDS_PER_HOUR * max(self.speed, 1e-9))
+        if self.max_gap_s:
+            delay = min(delay, float(self.max_gap_s))
+        return delay
+
+    def _maybe_reload_rules(self) -> bool:
+        if self.rules is None:
+            return False
+        now = self.clock()
+        if now - self._rules_checked_at < RULE_RELOAD_INTERVAL_S:
+            return False
+        self._rules_checked_at = now
+        return self.rules.maybe_reload()
+
+    def _wait(self, seconds: float) -> None:
+        self._wake.wait(max(0.0, seconds))
+        self._wake.clear()
+
+    # ----------------------------------------------------------------- loop
+
+    def frames(self, follow: bool | None = None):
+        """Yield frames until the window ends, or forever while following.
+
+        Following is what a live stream wants: when the source runs dry the
+        engine stays up, so a variant injected after the last real event
+        still arrives and is still detected. The evaluation harness passes
+        follow=False and gets a generator that terminates.
+        """
+        follow = (not self.fast) if follow is None else follow
+        with self._lock:
+            self._alive = True
+        try:
+            yield self.state_frame()
+            while True:
+                if self._stopped:
+                    return
+                if self._reset_requested:
+                    self._apply_reset()
+                    yield self.state_frame()
+                    continue
+                if not self._running:
+                    if not follow:
+                        return
+                    self._wait(IDLE_POLL_S)
+                    continue
+
+                self._maybe_reload_rules()
+                head = self._head()
+                if head is None:
+                    if not self._finished:
+                        with self._lock:
+                            self._finished = True
+                        yield self.state_frame()
+                    if not follow:
+                        return
+                    self._wait(IDLE_POLL_S)
+                    continue
+
+                event, meta, from_queue = head
+                key = (event.ts, event.line, from_queue)
+                if self._chosen_key != key:
+                    self._chosen_key = key
+                    self._due_at = self.clock() + self._delay_for(event.ts)
+                remaining = self._due_at - self.clock()
+                if remaining > 0:
+                    self._wait(remaining)
+                    continue
+
+                self._take(from_queue)
+                self._last_sim = event.ts
+                if self.cursor is None or event.ts > self.cursor:
+                    self.cursor = event.ts
+                self.events_emitted += 1
+                self._chosen_key = None
+
+                for frame in self.pipeline.feed(event, meta):
+                    yield frame
+                if self.events_emitted % STATE_EVERY_EVENTS == 0:
+                    yield self.state_frame()
+        finally:
+            with self._lock:
+                self._alive = False
+
+    def run(self, sink=None, follow: bool | None = None) -> None:
+        """Drive the loop, handing every frame to the sink. Blocks."""
+        target = sink if sink is not None else self.sink
+        for frame in self.frames(follow=follow):
+            if target is not None:
+                target(frame)
+
+    def drain(self) -> tuple:
+        """Run the whole window as fast as the machine allows.
+
+        The evaluation harness and the tests use this: no pacing, no
+        following, alerts and incidents at the end.
+        """
+        self.fast = True
+        self.start()
+        for _frame in self.frames(follow=False):
+            pass
+        return self.pipeline.alerts, self.pipeline.incidents()

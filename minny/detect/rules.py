@@ -676,6 +676,8 @@ class RuleSet:
     history: Any = None
     emitted: dict = field(default_factory=dict)
 
+    _window_cache: Any = None
+
     def __post_init__(self):
         if self.history is None:
             self.history = []
@@ -696,6 +698,7 @@ class RuleSet:
         """Build from parsed YAML, for tests and for an in-memory proposal."""
         ruleset = cls(path=None)
         ruleset.rules, ruleset.errors = _compile(documents)
+        ruleset._window_cache = None
         return ruleset
 
     def _current_stamp(self):
@@ -734,6 +737,7 @@ class RuleSet:
             # yet. It is not an error and it is not a reason to keep stale
             # rules in memory.
             self.rules, self.errors, self.stamp = [], [], None
+            self._window_cache = None
             return
         try:
             with open(self.path, "r", encoding="utf-8") as handle:
@@ -752,6 +756,7 @@ class RuleSet:
             return
 
         self.rules, self.errors = _compile(document)
+        self._window_cache = None
         self.stamp = stamp
         self.loaded_ts = _dt.datetime.now().astimezone().isoformat(timespec="seconds")
 
@@ -759,15 +764,22 @@ class RuleSet:
 
     @property
     def window_s(self) -> int:
-        """The longest count window any live rule asks for."""
-        windows = [
-            node.window_s
-            for rule in self.rules
-            if rule.ok
-            for node in _walk(rule.parsed.ast)
-            if isinstance(node, Count)
-        ]
-        return max(windows) if windows else 0
+        """The longest count window any live rule asks for.
+
+        Cached: this is read once per event on a replay of 180,800 of them,
+        and walking every rule's syntax tree that many times is the kind of
+        cost that turns a two-second replay into a two-minute one.
+        """
+        if self._window_cache is None:
+            windows = [
+                node.window_s
+                for rule in self.rules
+                if rule.ok
+                for node in _walk(rule.parsed.ast)
+                if isinstance(node, Count)
+            ]
+            self._window_cache = max(windows) if windows else 0
+        return self._window_cache
 
     def reset(self) -> None:
         """Forget the rolling history. A replay reset starts from empty."""
@@ -813,6 +825,7 @@ class RuleSet:
                 matched = evaluate_node(rule.parsed.ast, ctx)
             except Exception as exc:  # noqa: BLE001 - one bad rule, not a crash
                 rule.disabled_reason = f"evaluation failed: {exc}"
+                self._window_cache = None
                 self.errors.append(
                     {"id": rule.id, "error": rule.disabled_reason, "scope": "rule"}
                 )
@@ -827,6 +840,7 @@ class RuleSet:
                     f"stopped after {MAX_ALERTS_PER_RULE} alerts in one replay; "
                     f"the rule matches too much to be a finding"
                 )
+                self._window_cache = None
                 self.errors.append(
                     {"id": rule.id, "error": rule.disabled_reason, "scope": "rule"}
                 )
