@@ -1110,6 +1110,26 @@ select, input[type="text"] {
   .card.pulse { animation: none; box-shadow: var(--shadow-lift), 0 0 0 3px var(--stamp); }
 }
 
+
+/* ------------------------------------------------- the short projector */
+
+/* 1280x600 is a real projector, and on one the jacket is taking room the
+   exhibit needs. The file label loses nothing, it is just filed tighter. */
+@media (max-height: 760px) {
+  .board { padding: 8px 16px 10px; }
+  .jacket { padding: 7px 14px 8px; }
+  .case-name { font-size: 19px; }
+  .jacket-sub { margin-top: 3px; }
+  .case-no { padding: 4px 7px; font-size: 11.5px; }
+  .jacket-slips .slip { padding: 4px 8px 5px; }
+  .int-row { line-height: 1.5; }
+  .int-slip .section-label { margin-bottom: 1px; }
+  .tab { padding: 5px 14px 6px; }
+  .tab.active { padding-bottom: 9px; }
+  .surface { padding-top: 9px; }
+  .sheaf-nav { padding: 4px 12px 5px; margin-bottom: 8px; }
+}
+
 /* ---------------------------------------------------------- reduced motion */
 
 /* A judge may be on a machine with reduced motion set. The resting angle of a
