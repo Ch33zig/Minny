@@ -514,22 +514,45 @@ function wireStrings(container, rel) {
     window.addEventListener('resize', paint);
   }
 
-  layer.addEventListener('mouseover', (event) => {
-    const g = event.target.closest('.string');
-    if (!g) return;
-    g.classList.add('lit');
-    const [from, to] = g.dataset.edge.split('|');
-    wall.querySelectorAll('[data-ent]').forEach((c) => {
-      c.classList.toggle('lit', c.dataset.ent === from || c.dataset.ent === to);
+  // Four pins in a row means four strings running along nearly the same line,
+  // and a hit stroke wide enough to catch one is wide enough to catch its
+  // neighbour. So the string picked is the one actually nearest the pointer,
+  // not whichever happens to have been painted last.
+  function nearest(event) {
+    const base = layer.getBoundingClientRect();
+    const x = event.clientX - base.left;
+    const y = event.clientY - base.top;
+    let best = null;
+    let bestDist = Infinity;
+    layer.querySelectorAll('.string').forEach((g) => {
+      const path = g.querySelector('.string-hit');
+      const len = path.getTotalLength();
+      if (!len) return;
+      for (let step = 0; step <= 40; step += 1) {
+        const p = path.getPointAtLength((len * step) / 40);
+        const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+        if (d < bestDist) { bestDist = d; best = g; }
+      }
     });
-  });
-  layer.addEventListener('mouseout', (event) => {
-    const g = event.target.closest('.string');
-    if (g) g.classList.remove('lit');
-    wall.querySelectorAll('[data-ent]').forEach((c) => c.classList.remove('lit'));
-  });
+    return best;
+  }
+
+  let hovered = null;
+  function light(g) {
+    if (g === hovered) return;
+    if (hovered) hovered.classList.remove('lit');
+    hovered = g;
+    const ends = g ? g.dataset.edge.split('|') : [];
+    if (g) g.classList.add('lit');
+    wall.querySelectorAll('[data-ent]').forEach((c) => {
+      c.classList.toggle('lit', ends.includes(c.dataset.ent));
+    });
+  }
+
+  layer.addEventListener('mousemove', (event) => light(nearest(event)));
+  layer.addEventListener('mouseout', () => light(null));
   layer.addEventListener('click', (event) => {
-    const g = event.target.closest('.string');
+    const g = nearest(event);
     if (!g) return;
     const claims = (g.dataset.claims || '').split(',').filter(Boolean);
     // Nothing is guessed at. A string with no finding behind it does nothing.
