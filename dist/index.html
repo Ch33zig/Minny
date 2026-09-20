@@ -28,15 +28,17 @@
         </div>
 
         <div class="jacket-slips">
-          <!-- Pinned status slips live here. A strip added by another track is
-               restyled into this row as a `.slip`, no layout change needed. -->
+          <!-- Pinned status slips live here. -->
           <div class="slip source-slip">
             <span class="slip-head">EXHIBIT SOURCE</span>
             <b class="slip-line" id="srcLines"><span class="none">&#183;</span></b>
             <b class="slip-line dim" id="srcHash"><span class="none">&#183;</span></b>
           </div>
           <div class="slip mode-slip" id="modeChip"><span class="none">&#183;</span></div>
-          <div class="slip-row" id="statusSlips"></div>
+          <!-- The integrations strip pins here. dist/js/integrations.js writes
+               into #integrations and its rows are themed below as a slip, so
+               nothing in that module has to change. -->
+          <div class="slip int-slip" id="integrations"></div>
         </div>
       </header>
 

@@ -993,3 +993,29 @@ select, input[type="text"] {
   }
   .progress i { transition: none; }
 }
+
+/* ------------------------------------------------- the integrations slip */
+
+/* dist/js/integrations.js writes its own markup into #integrations. It is
+   themed here rather than changed there: the strip becomes one more slip
+   pinned to the jacket. State is carried by border style, never by hue, and
+   red stays reserved for the finding. */
+.int-slip:empty { display: none; }
+.int-slip { padding: 5px 9px 6px; min-width: 128px; }
+.int-slip .section-label {
+  display: block; margin: 0 0 3px;
+  font-family: var(--elite); font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+.int-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-size: 10.5px; color: var(--ink); line-height: 1.85;
+}
+.int-row b {
+  font-family: var(--elite); font-size: 8.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-2); border: 1px solid currentColor; padding: 0 4px;
+}
+.int-connected b { border-style: solid; color: var(--ink); }
+.int-mock b { border-style: dashed; color: var(--pencil); }
+.int-error b { border-style: dotted; color: var(--ink-2); text-decoration: line-through; }
+.int-seeded { margin-top: 3px; font-family: var(--hand); font-size: 13px; color: var(--pencil); }
