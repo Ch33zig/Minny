@@ -14,6 +14,7 @@ import { api } from '../api.js';
 import { esc, fmtTs, NONE, noneTag } from '../dom.js';
 import { evidenceToggle, mountEvidence, toggleAll } from '../evidence.js';
 import { drawStrings, layStamp } from '../motion.js';
+import { mountSheets, sheaf } from '../sheets.js';
 
 const CONF_STAMP = {
   high: { text: 'CONFIRMED', cls: 'solid' },
@@ -23,6 +24,7 @@ const CONF_STAMP = {
 
 let boardRoot = null;
 let relayout = null;
+let book = null;
 
 export async function render(container) {
   const cf = await api.caseFile();
@@ -30,8 +32,10 @@ export async function render(container) {
   const ents = entities(actors);
   const rel = relations(cf, ents);
 
-  container.innerHTML = `
-    <div class="case-board">
+  // Five exhibits, one screen each. The sections are the same sections; they
+  // are simply no longer all pinned up at once.
+  container.innerHTML = sheaf([
+    { name: 'The board', html: `
       <section class="wall" id="wall">
         <svg class="string-layer" id="stringLayer" aria-hidden="true"></svg>
         <div class="wall-row">
@@ -40,42 +44,48 @@ export async function render(container) {
         <div class="wall-foot">
           <p class="wall-key">
             <span class="key-swatch"></span>
-            <span class="tw">String = a claim names both ends. Pull one.</span>
+            <span class="tw">String = a claim names both ends. Pull one and the claim comes up.</span>
           </p>
-          <div class="wall-slip" id="wallSlip" hidden></div>
         </div>
-      </section>
+      </section>` },
 
-      <div class="case-cols">
-        <section class="board-col findings-col">
-          <h2 class="board-head">Findings<span class="board-count">${(cf.findings || []).length}</span></h2>
-          ${(cf.findings || []).map(finding).join('') || empty('No findings in this case file.')}
-        </section>
+    { name: 'Verdict', html: verdict(cf) },
 
-        <section class="board-col right-col">
-          ${verdict(cf)}
-          <h2 class="board-head">Cleared<span class="board-count">${(cf.dismissed || []).length}</span></h2>
-          <div class="cleared-cluster">
-            ${(cf.dismissed || []).map(dismissed).join('') || empty('Nothing was ruled out.')}
-          </div>
-          <h2 class="board-head">Still open<span class="board-count">${(cf.unknowns || []).length}</span></h2>
-          <div class="unknown-cluster">
-            ${(cf.unknowns || []).map(unknown).join('') || empty('Nothing left open.')}
-          </div>
-        </section>
-      </div>
+    { name: 'Findings', html: `
+      <h2 class="board-head">Findings<span class="board-count">${(cf.findings || []).length}</span></h2>
+      <div class="findings-col spread">
+        ${(cf.findings || []).map(finding).join('') || empty('No findings in this case file.')}
+      </div>` },
 
+    { name: 'Timeline', html: `
       <section class="strip">
         <h2 class="board-head">Timeline<span class="board-count">${(cf.timeline || []).length}</span></h2>
         <div class="strip-scroll" id="stripScroll">
           <svg class="string-layer" id="stripLayer" aria-hidden="true"></svg>
           <div class="strip-row">${(cf.timeline || []).map(beat).join('') || empty('No timeline recorded.')}</div>
         </div>
-      </section>
-    </div>`;
+      </section>` },
+
+    { name: 'Cleared and still open', html: `
+      <div class="leads-sheet">
+        <section>
+          <h2 class="board-head">Cleared<span class="board-count">${(cf.dismissed || []).length}</span></h2>
+          <div class="cleared-cluster spread">
+            ${(cf.dismissed || []).map(dismissed).join('') || empty('Nothing was ruled out.')}
+          </div>
+        </section>
+        <section>
+          <h2 class="board-head">Still open<span class="board-count">${(cf.unknowns || []).length}</span></h2>
+          <div class="unknown-cluster spread">
+            ${(cf.unknowns || []).map(unknown).join('') || empty('Nothing left open.')}
+          </div>
+        </section>
+      </div>` },
+  ]);
 
   mountEvidence(container);
   boardRoot = container;
+  book = mountSheets(container, () => { clearPulse(); if (relayout) relayout(); });
   wireStrings(container, rel);
   // Cards do not animate in here: the board is already on the wall when the
   // view opens, and a page-load cascade is exactly what the design forbids.
@@ -85,6 +95,42 @@ export async function render(container) {
   // ?open=1 opens every evidence slip on load, for a walkthrough that starts
   // with the proof already on screen rather than a click away.
   if (new URLSearchParams(location.search).get('open') === '1') toggleAll(container, true);
+}
+
+/* --------------------------------------------------------------- pulse */
+
+// Pulling a string brings up the claim that named both of its ends. The card
+// is lit for a couple of seconds and then goes out again: this is an answer
+// to a question, not a selection the board has to remember.
+let pulseTimer = null;
+let pulsing = [];
+
+function clearPulse() {
+  clearTimeout(pulseTimer);
+  pulseTimer = null;
+  pulsing.forEach((c) => c.classList.remove('pulse'));
+  pulsing = [];
+}
+
+/** Step to the sheet the claim is filed on, then light it. */
+function liftClaims(container, ids) {
+  clearPulse();
+  const cards = ids
+    .map((id) => container.querySelector(`.card[data-fid="${id.replace(/"/g, '')}"]`))
+    .filter(Boolean);
+  if (!cards.length) return false;
+  if (book) {
+    const sheet = book.sheetOf(cards[0]);
+    if (sheet >= 0 && sheet !== book.at()) book.show(sheet);
+  }
+  // The class has to land after the sheet is shown, or the animation runs
+  // while the card is still hidden and is over before anyone sees it.
+  requestAnimationFrame(() => {
+    cards.forEach((c) => c.classList.add('pulse'));
+  });
+  pulsing = cards;
+  pulseTimer = setTimeout(clearPulse, 2200);
+  return true;
 }
 
 export function enter() { if (relayout) relayout(); }
@@ -303,18 +349,20 @@ function finding(f) {
   const mailOnly = (!f.evidence_lines || !f.evidence_lines.length) && (f.evidence_emails || []).length;
   const method = firstSentence(f.method);
   const soft = level !== 'high';
+  // The margin note travels behind the clip rather than on the front of the
+  // card: one claim at rest, the reasoning one click away.
   const detail = `
+    ${soft ? `<p class="hand aside">${esc(method.head)}</p>` : ''}
     <div class="slip-head-row"><span class="tw">Method</span><span class="meta">${esc(f.query || '')}</span></div>
     <p class="slip-body">${esc(f.method || '')}</p>`;
   return `
-    <article class="card index pinned conf-${esc(level)}" style="--rot:${rot(f.id || f.claim)}">
+    <article class="card index pinned conf-${esc(level)}" data-fid="${esc(f.id || '')}" style="--rot:${rot(f.id || f.claim)}">
       <span class="pin"></span>
       <div class="index-top">
         <span class="card-id">${esc(f.id || '')}</span>
         ${confStamp(f.confidence)}
       </div>
       <p class="claim">${esc(f.claim)}</p>
-      ${soft ? `<p class="hand aside">${esc(method.head)}</p>` : ''}
       ${mailOnly ? '<p class="hand aside">Mailbox records only.</p>' : ''}
       ${evidenceToggle({ lines: f.evidence_lines || [], emails: f.evidence_emails || [], detail })}
     </article>`;
@@ -410,7 +458,6 @@ const SAG_MAX = 15;
 function wireStrings(container, rel) {
   const wall = container.querySelector('#wall');
   const layer = container.querySelector('#stringLayer');
-  const slip = container.querySelector('#wallSlip');
   if (!wall || !layer) return;
 
   function anchor(key) {
@@ -438,9 +485,15 @@ function wireStrings(container, rel) {
       // same pin stay telling apart.
       const cy = (a.y + b.y) / 2 + Math.min(SAG_MAX, dist * SAG) + 7 + (i % 3) * 7;
       const d = `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`;
-      const ids = edge.basis.map((s) => s.id).join(', ');
-      parts.push(`<g class="string conf-${esc(edge.conf)}" data-edge="${esc(edge.from)}|${esc(edge.to)}">
-        <path class="string-hit" d="${d}"><title>${esc(`${edge.from} and ${edge.to}: ${ids}`)}</title></path>
+      // Only a finding can be lifted: a timeline beat is not a claim. A
+      // string with no finding behind it is still a real relation and is
+      // still drawn, but it is not offered as something to pull.
+      const claims = edge.basis.filter((s) => s.kind === 'finding').map((s) => s.id);
+      const tip = claims.length
+        ? `${edge.from} and ${edge.to}, named together by ${claims.join(', ')}`
+        : `${edge.from} and ${edge.to}: no finding names both`;
+      parts.push(`<g class="string conf-${esc(edge.conf)}${claims.length ? '' : ' mute'}" data-edge="${esc(edge.from)}|${esc(edge.to)}" data-claims="${esc(claims.join(','))}">
+        <path class="string-hit" d="${d}"><title>${esc(tip)}</title></path>
         <path class="string-line" d="${d}"></path>
       </g>`);
     });
@@ -461,41 +514,50 @@ function wireStrings(container, rel) {
     window.addEventListener('resize', paint);
   }
 
-  layer.addEventListener('mouseover', (event) => {
-    const g = event.target.closest('.string');
-    if (!g) return;
-    g.classList.add('lit');
-    const [from, to] = g.dataset.edge.split('|');
-    wall.querySelectorAll('[data-ent]').forEach((c) => {
-      c.classList.toggle('lit', c.dataset.ent === from || c.dataset.ent === to);
+  // Four pins in a row means four strings running along nearly the same line,
+  // and a hit stroke wide enough to catch one is wide enough to catch its
+  // neighbour. So the string picked is the one actually nearest the pointer,
+  // not whichever happens to have been painted last.
+  function nearest(event) {
+    const base = layer.getBoundingClientRect();
+    const x = event.clientX - base.left;
+    const y = event.clientY - base.top;
+    let best = null;
+    let bestDist = Infinity;
+    layer.querySelectorAll('.string').forEach((g) => {
+      const path = g.querySelector('.string-hit');
+      const len = path.getTotalLength();
+      if (!len) return;
+      for (let step = 0; step <= 40; step += 1) {
+        const p = path.getPointAtLength((len * step) / 40);
+        const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+        if (d < bestDist) { bestDist = d; best = g; }
+      }
     });
-  });
-  layer.addEventListener('mouseout', (event) => {
-    const g = event.target.closest('.string');
-    if (g) g.classList.remove('lit');
-    wall.querySelectorAll('[data-ent]').forEach((c) => c.classList.remove('lit'));
-  });
+    return best;
+  }
+
+  let hovered = null;
+  function light(g) {
+    if (g === hovered) return;
+    if (hovered) hovered.classList.remove('lit');
+    hovered = g;
+    const ends = g ? g.dataset.edge.split('|') : [];
+    if (g) g.classList.add('lit');
+    wall.querySelectorAll('[data-ent]').forEach((c) => {
+      c.classList.toggle('lit', ends.includes(c.dataset.ent));
+    });
+  }
+
+  layer.addEventListener('mousemove', (event) => light(nearest(event)));
+  layer.addEventListener('mouseout', () => light(null));
   layer.addEventListener('click', (event) => {
-    const g = event.target.closest('.string');
+    const g = nearest(event);
     if (!g) return;
-    const [from, to] = g.dataset.edge.split('|');
-    const edge = rel.find((e) => e.from === from && e.to === to);
-    if (!edge) return;
-    slip.hidden = false;
-    slip.innerHTML = `
-      <div class="slip-head-row">
-        <span class="tw">Why this string is here</span>
-        <button class="slip-close" type="button" aria-label="Close">close</button>
-      </div>
-      <p class="slip-lede">${esc(from)} and ${esc(to)} are named together by ${edge.basis.length} record${edge.basis.length === 1 ? '' : 's'}.</p>
-      ${edge.basis.map((s) => `
-        <div class="basis">
-          <div class="basis-top"><span class="card-id">${esc(s.id)}</span>${confStamp(s.conf)}</div>
-          <p class="basis-text">${esc(s.text)}</p>
-          ${evidenceToggle({ lines: s.lines, label: 'Raw' })}
-        </div>`).join('')}`;
-    slip.querySelector('.slip-close').addEventListener('click', () => { slip.hidden = true; });
-    slip.scrollIntoView({ block: 'nearest' });
+    const claims = (g.dataset.claims || '').split(',').filter(Boolean);
+    // Nothing is guessed at. A string with no finding behind it does nothing.
+    if (!claims.length) return;
+    liftClaims(container, claims);
   });
 
   // The timeline is a string too: it runs from beat to beat in order.

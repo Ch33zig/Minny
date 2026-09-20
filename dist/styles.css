@@ -44,7 +44,8 @@
 html { height: 100%; }
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
   color: var(--ink);
   font-family: var(--type);
   font-size: 13px;
@@ -173,7 +174,10 @@ code { font-family: var(--type); }
 
 /* ------------------------------------------------------------------ shell */
 
-.board { position: relative; z-index: 1; min-height: 100vh; padding: 13px 18px 18px; }
+.board {
+  position: relative; z-index: 1; height: 100vh; padding: 13px 18px 14px;
+  display: flex; flex-direction: column;
+}
 
 /* The file jacket across the top: case number, label, pinned status slips. */
 .jacket {
@@ -264,8 +268,8 @@ nav { display: flex; gap: 4px; padding: 0 12px; position: relative; z-index: 2; 
 }
 
 /* The views pin straight onto the cork: no panel behind them. */
-.surface { position: relative; padding-top: 15px; }
-.view { min-height: 40px; }
+.surface { position: relative; padding-top: 14px; flex: 1; min-height: 0; }
+.view { height: 100%; }
 .loading {
   font-family: var(--elite); letter-spacing: .1em; color: var(--paper-2);
   padding: 20px 4px; text-transform: uppercase; font-size: 12px;
@@ -429,11 +433,14 @@ select, input[type="text"] {
   pointer-events: none;
   filter: drop-shadow(0 1.5px 1px rgba(22,14,7,.5));
 }
-.string-hit { fill: none; stroke: transparent; stroke-width: 22; pointer-events: stroke; cursor: pointer; }
+/* Wide and invisible, so the string is easy to catch. The board's own
+   magnifier cursor already says it can be picked up, so no cursor change. */
+.string-hit { fill: none; stroke: transparent; stroke-width: 24; pointer-events: stroke; }
 .string-line { fill: none; stroke: var(--stamp); stroke-opacity: .88; stroke-width: 2; stroke-linecap: round; }
 .string.conf-medium .string-line { stroke-dasharray: 7 5; stroke-opacity: .6; }
 .string.conf-low .string-line { stroke: var(--stamp-dim); stroke-dasharray: 3 5; }
 .string.lit .string-line { stroke-width: 3.4; stroke-opacity: 1; }
+.string:hover .string-line { stroke-opacity: 1; }
 .string-line.thread { stroke-width: 1.6; }
 .string-line.thread { stroke: var(--stamp-dim); stroke-opacity: .8; stroke-width: 1.4; }
 
@@ -583,6 +590,7 @@ select, input[type="text"] {
   transform: rotate(var(--rot, 0deg));
 }
 .report-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.metrics-page .report-head { margin-bottom: 7px; }
 .report-title { font-size: 21px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
 .verdict-stamp { top: 12px; right: 16px; }
 .report-facts {
@@ -855,7 +863,7 @@ select, input[type="text"] {
 
 /* ============================================================== METRICS PAGE */
 
-.metrics-page { padding: 22px 26px 16px; margin-bottom: 0; }
+.metrics-page { padding: 14px 26px 6px; margin-bottom: 0; }
 .placeholder-slip {
   display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 9px 12px;
   background: rgba(139,118,96,.16); border: 1px dashed var(--ink-3); font-size: 12px; color: var(--ink-2);
@@ -864,7 +872,7 @@ select, input[type="text"] {
 .stat-row {
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px;
   border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink-3);
-  padding: 13px 0 12px; margin-bottom: 18px;
+  padding: 10px 0 9px; margin-bottom: 13px;
 }
 .big-num { display: grid; gap: 2px; align-content: start; min-width: 0; }
 .big-num > .tw { font-size: 9.5px; letter-spacing: .12em; color: var(--ink-meta); }
@@ -877,7 +885,7 @@ select, input[type="text"] {
 .big-num-sub { font-size: 10.5px; line-height: 1.3; color: var(--ink-meta); }
 
 .m-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 26px; align-items: start; }
-.m-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 6px; }
+.m-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 3px; }
 .m-head .hand { font-size: 15px; }
 .m-side .tw { display: block; margin-bottom: 6px; }
 .m-side .fp-head { margin-top: 16px; }
@@ -891,6 +899,10 @@ select, input[type="text"] {
 .mtable th.num, .mtable td.num { text-align: right; }
 .mtable td { font-size: 12.5px; color: var(--ink); padding: 4px 8px; border-bottom: 1px dotted var(--ink-3); }
 .mtable tbody tr:nth-child(even) { background: rgba(201,168,124,.14); }
+/* The per-operator table is the artifact of this page, so it keeps its room
+   by losing the padding around it rather than any of its rows. */
+.metrics-page .mtable td { padding: 2px 8px; }
+.metrics-page .mtable th { padding: 2px 8px 3px; }
 .mtable td.rate { display: flex; align-items: center; gap: 9px; width: 190px; }
 .bar { flex: 1; height: 9px; background: rgba(46,36,28,.14); border: 1px solid var(--ink-3); }
 .bar i { display: block; height: 100%; background: var(--ink-2); }
@@ -909,7 +921,7 @@ select, input[type="text"] {
 
 .provenance {
   display: flex; flex-wrap: wrap; gap: 8px 24px;
-  margin-top: 18px; padding-top: 10px; border-top: 1px dashed var(--ink-3);
+  margin-top: 2px; padding-top: 2px;
   font-size: 11.5px; color: var(--ink-2);
 }
 .provenance .tw { font-size: 9.5px; color: var(--ink-meta); margin-right: 5px; }
@@ -981,6 +993,191 @@ select, input[type="text"] {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
   padding-top: 8px; border-top: 1px dashed var(--ink-3);
   font-size: 11px; color: var(--ink-meta);
+}
+
+
+/* =================================================================== SHEETS */
+
+/* A case folder is flipped, not scrolled. Each exhibit is one screen, the
+   sections inside it are unchanged, and the flip controls sit across the top
+   where the folder's own tab would be. */
+.sheaf { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.sheaf-nav {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 5px 12px 6px; margin-bottom: 11px;
+  background-color: var(--kraft);
+  background-image: linear-gradient(180deg, rgba(255,246,224,.28), rgba(120,86,48,.12)), var(--grain);
+  box-shadow: var(--shadow-card);
+}
+.flip {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--elite); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink);
+  background-color: var(--paper-2); background-image: var(--grain);
+  border: 1.5px solid var(--ink-3); border-radius: 2px; padding: 4px 13px;
+  box-shadow: 0 1px 0 rgba(255,250,236,.5) inset, 0 2px 5px rgba(28,18,10,.26);
+}
+.flip:hover { background-color: var(--paper); }
+.flip:active { transform: translateY(1px); }
+.flip-arrow { font-size: 9px; color: var(--ink-2); }
+.exhibit { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.exhibit-no {
+  flex: none;
+  font-family: var(--elite); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink); border: 1.5px solid var(--ink); padding: 2px 9px; transform: rotate(-1.4deg);
+}
+.exhibit-no b { font-family: var(--type); font-weight: 700; letter-spacing: 0; }
+.exhibit-name {
+  font-family: var(--hand); font-size: 19px; line-height: 1; color: var(--pencil);
+  transform: rotate(-.9deg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.exhibit-dots { display: flex; gap: 5px; flex: none; }
+.exhibit-dot {
+  width: 9px; height: 9px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--ink-2); background: rgba(46,36,28,.1);
+}
+.exhibit-dot.on { background: var(--ink); }
+
+.sheet .board-head { margin-bottom: 8px; }
+.sheets { position: relative; flex: 1; min-height: 0; }
+.sheet { height: 100%; overflow: hidden; }
+
+/* Findings spread across the sheet instead of running down a column. Same
+   cards, same rules, same resting angles: only the column is gone. */
+.findings-col.spread {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px 18px; align-items: start;
+}
+.findings-col.spread .card { margin: 0; }
+.findings-col.spread .claim { overflow-wrap: anywhere; }
+.findings-col.spread .hand.aside {
+  float: none; width: auto; margin: 6px 0 0;
+  padding-left: 9px; border-left: 2px solid rgba(63,81,102,.35);
+}
+
+.leads-sheet { display: grid; gap: 13px; align-content: start; }
+.cleared-cluster.spread, .unknown-cluster.spread { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Three across, so the stamp comes in off the margin and the claim sets
+   around it rather than running underneath. */
+.cleared-cluster.spread .card.cleared { padding-right: 16px; }
+.cleared-cluster.spread .cleared-stamp { position: static; float: right; margin: 0 0 6px 12px; }
+
+/* Evidence still opens in place. On a sheet it opens as a photocopy slip that
+   hangs over the board rather than growing the card, so pulling the clip can
+   never push the page: the slip is bounded and scrolls inside itself. */
+.sheet .ev { position: relative; }
+.sheet .ev-body:not([hidden]) {
+  position: absolute; left: -12px; right: -12px; top: 100%; z-index: 20;
+  max-height: var(--ev-max, 240px); overflow-y: auto; overflow-x: hidden;
+  overscroll-behavior: contain;
+  background-color: var(--photo);
+  border: 1px solid var(--ink-3);
+  box-shadow: var(--shadow-lift);
+  padding: 9px 13px 11px;
+  scrollbar-color: var(--kraft) rgba(201,168,124,.22); scrollbar-width: thin;
+}
+.sheet .ev-body.up:not([hidden]) { top: auto; bottom: 100%; }
+.sheet .ev-body::-webkit-scrollbar { width: 8px; }
+.sheet .ev-body::-webkit-scrollbar-track { background: rgba(201,168,124,.22); }
+.sheet .ev-body::-webkit-scrollbar-thumb { background: var(--kraft); border-radius: 4px; }
+.sheet .ev-body .photocopy { margin-top: 0; }
+
+
+/* On a sheet the standing note is a strip across the top rather than a card
+   in the corner: the memo underneath needs the room more than it does. */
+.sheet .blue-grid { gap: 12px; }
+.sheet .blue-note {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px;
+  width: 100%; max-width: none; padding: 9px 18px 10px;
+}
+.sheet .blue-note .blue-lede, .sheet .blue-note .aside { margin: 0; }
+/* One memo to a sheet, but a memo is still a page and not a banner. */
+.sheet .memo-row { grid-template-columns: minmax(0, 880px); }
+.sheet .memo { padding: 18px 22px 10px; }
+
+/* Pulling a string brings up the claim that named both of its ends. It is lit
+   for a couple of seconds and then goes out: an answer, not a selection. */
+@keyframes claim-lift {
+  0%   { box-shadow: var(--shadow-card); }
+  10%  { box-shadow: var(--shadow-lift), 0 0 0 3px var(--stamp); }
+  74%  { box-shadow: var(--shadow-lift), 0 0 0 3px var(--stamp); }
+  100% { box-shadow: var(--shadow-card); }
+}
+.card.pulse { animation: claim-lift 2.2s ease-out; position: relative; z-index: 8; }
+@media (prefers-reduced-motion: reduce) {
+  .card.pulse { animation: none; box-shadow: var(--shadow-lift), 0 0 0 3px var(--stamp); }
+}
+
+
+/* ------------------------------------------------- the short projector */
+
+/* 1280x600 is a real projector, and on one the jacket is taking room the
+   exhibit needs. The file label loses nothing, it is just filed tighter. */
+@media (max-height: 760px) {
+  .board { padding: 8px 16px 10px; }
+  .jacket { padding: 7px 14px 8px; }
+  .case-name { font-size: 19px; }
+  .jacket-sub { margin-top: 3px; }
+  .case-no { padding: 4px 7px; font-size: 11.5px; }
+  .jacket-slips .slip { padding: 4px 8px 5px; }
+  .int-row { line-height: 1.5; }
+  .int-slip .section-label { margin-bottom: 1px; }
+  .tab { padding: 5px 14px 6px; }
+  .tab.active { padding-bottom: 9px; }
+  .surface { padding-top: 9px; }
+  .sheaf-nav { padding: 4px 12px 5px; margin-bottom: 8px; }
+}
+
+
+/* Under 660px there is no spare paper anywhere, so the cards close up. Type
+   sizes hold: the brief is explicit that legibility outranks the theme. */
+@media (max-height: 660px) {
+  .sheet .card { padding: 9px 13px 4px; }
+  .sheet .index-top { margin-bottom: 4px; }
+  .sheet .claim { line-height: 1.42; }
+  .sheet .ev { margin-top: 5px; }
+  .sheet .ev-toggle { padding: 5px 0 1px; }
+  .sheet .beat { padding: 9px 11px 6px; }
+  .sheet .memo { padding: 11px 16px 6px; }
+  .sheet .memo-head { padding-bottom: 5px; }
+  .sheet .memo-title { margin: 5px 0 4px; }
+  .sheet .memo-from { margin-bottom: 6px; }
+  .sheet .dsl { padding: 5px 9px 6px; margin-bottom: 6px; }
+  .sheet .gate-row { padding: 0 2px; }
+  .sheet .gate { margin-bottom: 5px; }
+  .sheet .memo-foot { padding-top: 5px; }
+  .sheet .blue-note { padding: 6px 16px 7px; }
+  .sheet .report { padding: 13px 18px 9px; }
+  .metrics-page .stat-row { padding: 6px 0 5px; margin-bottom: 6px; }
+  .metrics-page .big-num b { font-size: 26px; }
+  .metrics-page .report-title { font-size: 18px; }
+  .fpdays { height: 56px; }
+  .ent { padding: 22px 12px 7px; }
+  .mugshot { height: 66px; margin-bottom: 7px; }
+  .monogram { font-size: 30px; }
+  .sheet .findings-col.spread { gap: 4px 15px; }
+  .sheet .claim { line-height: 1.36; }
+  .sheet .leads-sheet { gap: 9px; }
+  .sheet .memo-title { font-size: 15px; }
+  .sheet .dsl code { line-height: 1.4; }
+  .metrics-page { padding: 10px 22px 2px; }
+  .metrics-page .report-head { margin-bottom: 4px; }
+  .metrics-page .mtable td { padding: 0 8px; line-height: 1.35; }
+  .metrics-page .mtable th { padding: 1px 8px 2px; }
+  .metrics-page .m-head { margin-bottom: 1px; }
+  .metrics-page .big-num b { font-size: 23px; }
+  .metrics-page .big-num.good b, .metrics-page .big-num.bad b { font-size: 17px; }
+  .m-side .fp-head { margin-top: 9px; }
+
+  /* The judge's slip is not a sheet, but it has to hold a projector too. */
+  .form-slip { padding: 13px 20px 10px; }
+  .form-note { margin: 7px 0 10px; }
+  .form-body { gap: 10px; }
+  .form-foot { margin-top: 11px; padding-top: 8px; }
+  .filed-stamp { top: 44px; }
+  .variant-slip { padding: 11px 14px 8px; }
 }
 
 /* ---------------------------------------------------------- reduced motion */

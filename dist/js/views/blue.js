@@ -5,7 +5,9 @@
 
 import { api } from '../api.js';
 import { esc, fmtPct, fmtTs, noneTag } from '../dom.js';
+import { evidenceToggle, mountEvidence } from '../evidence.js';
 import { layStamp } from '../motion.js';
+import { sheaf, mountSheets } from '../sheets.js';
 
 const GATE_LABEL = {
   heldout_detection: 'held-out detection',
@@ -18,20 +20,25 @@ export async function render(container) {
   const accepted = proposals.filter((p) => p.status === 'accepted' || (p.gate || {}).accepted);
   const rejected = proposals.filter((p) => !(p.status === 'accepted' || (p.gate || {}).accepted));
 
-  container.innerHTML = `
-    <div class="blue-grid">
+  // Two memos will not sit side by side inside one screen, so they are dealt
+  // one to a sheet. The pairing still reads: accepted first, rejected next,
+  // one flip apart.
+  const note = `
       <section class="blue-note">
         <span class="pin"></span>
         <h2 class="tw">Proposed detection rules</h2>
         <p class="blue-lede">A rule ships only if it clears a gate on data it has never seen.</p>
         <p class="hand aside">both outcomes are pinned up, because a rule that cannot pass is just as informative</p>
-      </section>
+      </section>`;
+  const sheets = [];
+  accepted.forEach((r) => sheets.push({ name: `Accepted · ${r.id || ''}`, html: memo(r, true) }));
+  rejected.forEach((r) => sheets.push({ name: `Rejected · ${r.id || ''}`, html: memo(r, false) }));
+  if (!sheets.length) sheets.push({ name: 'Nothing proposed', html: '<div class="empty">No rules have been proposed.</div>' });
+  sheets[0].html = `<div class="blue-grid">${note}${sheets[0].html}</div>`;
 
-      <div class="memo-row">
-        ${accepted.map((r) => memo(r, true)).join('') || '<div class="empty">Nothing has cleared the gate.</div>'}
-        ${rejected.map((r) => memo(r, false)).join('') || '<div class="empty">Nothing was rejected.</div>'}
-      </div>
-    </div>`;
+  container.innerHTML = sheaf(sheets);
+  mountEvidence(container);
+  mountSheets(container);
 
   // The gate result is a verdict, so its stamp lands once.
   container.querySelectorAll('.memo-stamp').forEach(layStamp);
@@ -68,7 +75,6 @@ function memo(r, passed) {
             : `<span class="dsl-ok">parses, depth ${esc(parse.depth === undefined ? '?' : parse.depth)}, ${esc(parse.nodes === undefined ? '?' : parse.nodes)} nodes</span>`}
         </div>
         <code>${esc(r.when || '')}</code>
-        ${r.explain ? `<div class="dsl-explain">${esc(r.explain)}</div>` : ''}
         ${parse.error ? `<div class="dsl-error">${esc(parse.error)}</div>` : ''}
       </div>
 
@@ -77,8 +83,11 @@ function memo(r, passed) {
         ${checks}
       </div>
       ${rejectReason(gate.rejected_reason)}
-      ${beforeAfter(r.before_after)}
-      ${r.rationale ? `<p class="memo-why">${esc(r.rationale)}</p>` : ''}
+      ${evidenceToggle({
+        label: 'What the rule says, what it did to the numbers, and why',
+        detail: `${r.explain ? `<p class="dsl-explain">${esc(r.explain)}</p>` : ''}
+          ${beforeAfter(r.before_after)}${r.rationale ? `<p class="memo-why">${esc(r.rationale)}</p>` : ''}`,
+      })}
       <div class="memo-foot">
         <span>${r.created_ts ? esc(fmtTs(r.created_ts, { withYear: true })) : 'no timestamp'}</span>
         <span>${r.pull_request ? esc(r.pull_request) : 'no pull request opened'}</span>

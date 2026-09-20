@@ -61,6 +61,7 @@ async function toggle(button) {
   }
   button.setAttribute('aria-expanded', 'true');
   body.hidden = false;
+  bound(body);
   if (body.dataset.loaded === '1') return expandEvidence(body);
   const lines = (button.dataset.lines || '').split(',').filter(Boolean).map(Number);
   const emailIds = (button.dataset.emails || '').split(',').filter(Boolean);
@@ -86,6 +87,24 @@ async function toggle(button) {
     slot.className = 'ev-error';
     slot.textContent = `could not resolve evidence: ${err.message}`;
   }
+}
+
+
+/**
+ * On a sheet the slip hangs off the card instead of growing it, so it has to
+ * be told how much room it has and which way to unfold. Off a sheet this does
+ * nothing and the block opens the way it always did.
+ */
+function bound(body) {
+  const sheet = body.closest('.sheet');
+  if (!sheet) return;
+  const box = body.parentElement.getBoundingClientRect();
+  const area = sheet.getBoundingClientRect();
+  const below = area.bottom - box.bottom - 12;
+  const above = box.top - area.top - 12;
+  const up = below < 170 && above > below;
+  body.classList.toggle('up', up);
+  body.style.setProperty('--ev-max', `${Math.max(130, Math.round(up ? above : below))}px`);
 }
 
 /* The photocopy: the flattest, cleanest paper on the board. No grain sits
