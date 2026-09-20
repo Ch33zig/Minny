@@ -21,7 +21,7 @@ For rules, enforce maximum AST depth 4 and total node count 30, field-compatible
 
 For evaluation, schema conditionals prevent an evasion with incomplete ingestion/query and a detected result with zero matched attack events. The evaluator must additionally prove the matched IDs belong to the frozen event set and the query completed without truncation. An error record is never converted to an evasion for display.
 
-For VerifiedMerge, GitHub verification—not the schema—proves the merge occurred. Normalize and validate paths before use; a regex matching `detection-rules/` is not sufficient to prevent path traversal. File bytes must be read at the recorded merged commit.
+For VerifiedMerge, GitHub verification, not the schema, proves the merge occurred. Normalize and validate paths before use; a regex matching `detection-rules/` is not sufficient to prevent path traversal. File bytes must be read at the recorded merged commit.
 
 ## Contract-change procedure
 

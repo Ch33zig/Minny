@@ -17,4 +17,4 @@ The schemas do not prove semantic correctness, tenancy isolation, or detection q
 
 ## Gmail scope revision
 
-Added Gmail through Composio as required build scope with per-user opt-in. Reviewed the official Composio Gmail catalog, Google Gmail scopes, and sending guide. Updated platform policy/delivery contracts, frontend requirements, environment inventory, provisioning tickets, and acceptance cases G01–G10. Rechecked local links, fenced blocks, JSON parsing, and archive integrity. No email was sent and no account was connected.
+Added Gmail through Composio as required build scope with per-user opt-in. Reviewed the official Composio Gmail catalog, Google Gmail scopes, and sending guide. Updated platform policy/delivery contracts, frontend requirements, environment inventory, provisioning tickets, and acceptance cases G01-G10. Rechecked local links, fenced blocks, JSON parsing, and archive integrity. No email was sent and no account was connected.

@@ -85,7 +85,7 @@ Application budgets per experiment: max 3 red proposals, 2 semantic critic revis
 }
 ```
 
-This is an illustrative synthetic scenario, not a finding in the CSE data. P2 owns verification of the technique label and required telemetry. Initial personas: `stealth`, `opportunistic`; attributes are a template-specific enum, not arbitrary strings that become executable commands. Delay range 0–300,000 ms; max 20 steps; all step IDs unique. An unsupported template/technique/action returns validation error, not generic logs mislabeled with that technique.
+This is an illustrative synthetic scenario, not a finding in the CSE data. P2 owns verification of the technique label and required telemetry. Initial personas: `stealth`, `opportunistic`; attributes are a template-specific enum, not arbitrary strings that become executable commands. Delay range 0-300,000 ms; max 20 steps; all step IDs unique. An unsupported template/technique/action returns validation error, not generic logs mislabeled with that technique.
 
 Supported compiler actions in v1: `process_start`, `network_connection`, `authentication`. Only enable templates whose field requirements and validator exist. File/DNS/cloud events require an additional tested compiler path before being selectable.
 

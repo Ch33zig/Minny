@@ -38,7 +38,7 @@ Root mapping uses `dynamic: strict`; reject unknown normalized fields. Keep unpa
 | `process.parent.entity_id`, `process.parent.name` | keyword | Parent identity |
 | `process.pe.original_file_name` | keyword | Optional PE identity, only when observed/synthetic template provides it |
 | `source.ip`, `destination.ip` | ip | Valid IP values |
-| `source.port`, `destination.port` | integer | Range checked 0–65535 |
+| `source.port`, `destination.port` | integer | Range checked 0-65535 |
 | `network.transport`, `network.direction`, `related.user` | keyword | Network/entity information |
 | `message` | text | Searchable description |
 | `minny.raw_fields` | flattened | Unmapped source display metadata; not detector features |

@@ -61,7 +61,7 @@ Dataset/source, imported/quarantined counts, timestamp assumptions, timeline, en
 
 Use `fetch` with same-origin credentials, CSRF header for mutations, and retained idempotency key per logical action. Abort on navigation/workspace change. Do not automatically retry non-idempotent requests with a new key.
 
-During an active experiment poll incremental events every 1 second, using `after_seq`. On transient network failure back off to 2/4/8 seconds, maximum 15; show “Connection interrupted—last updated …”. Pause/slow polling in hidden tabs to 10 seconds. Refetch authoritative detail after reconnect. Deduplicate by sequence; reject older versions. Poll waiting-for-merge state every 5 seconds. Stop polling terminal experiment-only views unless a remediation remains active.
+During an active experiment poll incremental events every 1 second, using `after_seq`. On transient network failure back off to 2/4/8 seconds, maximum 15; show “Connection interrupted. Last updated …”. Pause/slow polling in hidden tabs to 10 seconds. Refetch authoritative detail after reconnect. Deduplicate by sequence; reject older versions. Poll waiting-for-merge state every 5 seconds. Stop polling terminal experiment-only views unless a remediation remains active.
 
 Render stage transitions as received. Animations may visualize persisted progress but cannot invent a provider result. On a second click before response arrives, reuse the original idempotency key and disable duplicate submit.
 

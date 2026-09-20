@@ -12,7 +12,7 @@ Rules that apply to all of them:
 - **Unknown is `null`, never `0` or `""`.** A missing IP owner is `null`; it is not "unknown".
 - **Additive changes only after the freeze.** Adding a field is free, renaming one is not.
 
-## 1. `data/events.parquet` — produced by A (M0)
+## 1. `data/events.parquet`: produced by A (M0)
 
 One row per log line, 180,800 rows. Produced by A, read by B, C, and the evidence endpoint.
 
@@ -32,7 +32,7 @@ One row per log line, 180,800 rows. Produced by A, read by B, C, and the evidenc
 | `template` | string | `base` with numeric IDs normalized |
 | `obj_id` | int64 | The number extracted by normalization, else `null` |
 
-Templates are normalized to exactly these forms: `/intranet/forum/view/{id}`, `/intranet/forum/edit/{id}`, `/assets/avatar_{id}.png`. Every other path is its own template. **The normalization list is a contract** — B keys baselines on templates and C keys mutations on them, so if A adds a fourth normalization after the freeze, both break silently.
+Templates are normalized to exactly these forms: `/intranet/forum/view/{id}`, `/intranet/forum/edit/{id}`, `/assets/avatar_{id}.png`. Every other path is its own template. **The normalization list is a contract**: B keys baselines on templates and C keys mutations on them, so if A adds a fourth normalization after the freeze, both break silently.
 
 Parser regex, applied to every line with zero tolerance for failure:
 
@@ -42,7 +42,7 @@ Parser regex, applied to every line with zero tolerance for failure:
 
 Assert 0 unparsed lines and assert the row count is 180,800. If either assert fails, stop and post in chat before anyone builds on the output.
 
-## 2. `data/size_table.json` — produced by A (M0), consumed by C
+## 2. `data/size_table.json`: produced by A (M0), consumed by C
 
 The realism constraint for the red team. Every synthetic line C renders must carry a status/size pair that already occurs in the real data, or a judge diffing the file spots the forgery instantly.
 
@@ -68,7 +68,7 @@ The realism constraint for the red team. Every synthetic line C renders must car
 
 A generates this by grouping the parsed events on `(base, status)` and recording the size where it is constant. Any `(base, status)` pair with more than one observed size goes in `variable_size_paths` as `[min, median, max]` of what actually occurs, and C must sample from the real range rather than inventing a value. The real dataset has 102 fixed-size and 85 variable-size paths.
 
-## 3. `data/access_matrix.json` — produced by A (M0), consumed by C
+## 3. `data/access_matrix.json`: produced by A (M0), consumed by C
 
 Who is actually allowed to read what, derived from the data rather than assumed. C needs it for `victim_swap` and `target_swap`, because a variant whose victim was never authorized is incoherent and the critic must reject it.
 
@@ -88,7 +88,7 @@ Who is actually allowed to read what, derived from the data rather than assumed.
 
 `authorized` is every user with at least one `200` on that path **in the baseline window**; `denied` is every user with a `403` and no `200`. The window matters: the attacker succeeds exactly once on the confidential zip, so counting March would enrol him as an authorized reader of the file he stole.
 
-## 4. `data/baselines.json` — produced by B (M2), consumed by B and C
+## 4. `data/baselines.json`: produced by B (M2), consumed by B and C
 
 Fit on `ts < 2026-03-01` only. March is held out and must never touch this file, or the evaluation is worthless.
 
@@ -117,11 +117,11 @@ Fit on `ts < 2026-03-01` only. March is held out and must never touch this file,
 
 `allowed_paths` means at least one `200`. `denied_paths` means at least one `403` and zero `200`s. `privileged_templates` is everything under `/api/admin/` plus any template seen fewer than *k* times globally that returns `200` to a `POST`; B picks and records *k*.
 
-`hour_hist` exists for explanation text only. **It never triggers an alert** — the dataset contains legitimate off-hours access, including routine after-midnight downloads of the same confidential zip by its authorized readers from their own IPs. Alerting on hours would fire on her and make the demo an argument instead of a story.
+`hour_hist` exists for explanation text only. **It never triggers an alert**: the dataset contains legitimate off-hours access, including routine after-midnight downloads of the same confidential zip by its authorized readers from their own IPs. Alerting on hours would fire on her and make the demo an argument instead of a story.
 
 Load target: under one second, and it answers "has user X ever succeeded on Y, used IP Z, or sent param P to template T" without a scan.
 
-## 5. Alert — produced by B (M3), consumed by B's correlator, C's eval, D's UI
+## 5. Alert: produced by B (M3), consumed by B's correlator, C's eval, D's UI
 
 One alert per signal firing on one event.
 
@@ -144,11 +144,11 @@ One alert per signal firing on one event.
 }
 ```
 
-Signal IDs are fixed: `S1` ip_mismatch, `S2` first_success_on_denied, `S3` auth_fail_burst, `S4` novel_template, `S5` unexpected_params, `S6` content_triggered_privileged_action, `S7` post_authorship, `S8` anomalous_status. **S7 never emits an alert** — it is supporting evidence that the correlator reads for attribution. Severity is `low`, `medium`, or `high`. `incident_id` is `null` until the correlator claims it.
+Signal IDs are fixed: `S1` ip_mismatch, `S2` first_success_on_denied, `S3` auth_fail_burst, `S4` novel_template, `S5` unexpected_params, `S6` content_triggered_privileged_action, `S7` post_authorship, `S8` anomalous_status. **S7 never emits an alert**: it is supporting evidence that the correlator reads for attribution. Severity is `low`, `medium`, or `high`. `incident_id` is `null` until the correlator claims it.
 
 Explanations are **template-generated from signal values**. An LLM may smooth the wording; it must not add a fact that is not in `value` or `evidence_lines`. This is the rule that keeps the demo defensible under questioning.
 
-## 6. Incident — produced by B (M3), consumed by C, D, and Slack
+## 6. Incident: produced by B (M3), consumed by C, D, and Slack
 
 Alerts sharing an entity (user, IP, IP owner, `obj_id`, or target file) within a rolling 72-hour window collapse into one incident.
 
@@ -180,7 +180,7 @@ Role resolution: the **attacker** is the IP owner behind `S1` alerts and the aut
 
 `labels.synthetic` is `true` and `variant_id` is set only when C injected the events. C's eval reads these; D's UI shows a synthetic badge so nobody on stage mistakes an injected variant for the real breach.
 
-## 7. `case_file.json` — produced by A (M1), consumed by D
+## 7. `case_file.json`: produced by A (M1), consumed by D
 
 The UI renders the entire case file from this file alone, with no other source.
 
@@ -240,7 +240,7 @@ The UI renders the entire case file from this file alone, with no other source.
 
 `confidence` is `high`, `medium`, or `low` everywhere it appears, and the UI renders it as a visible label. Every `query` names a saved, re-runnable query in A's module; nothing in this file is hand-typed prose about data nobody can re-derive.
 
-## 8. Variant label — produced by C (M4), consumed by C's eval and D's judge panel
+## 8. Variant label: produced by C (M4), consumed by C's eval and D's judge panel
 
 ```json
 {
@@ -264,7 +264,7 @@ Families are fixed: `F1` credential_takeover, `F2` content_privilege_escalation,
 
 Injected lines are numbered above 180800 so a synthetic event can never collide with a real event ID.
 
-## 9. `metrics.json` — produced by C (M5), consumed by D
+## 9. `metrics.json`: produced by C (M5), consumed by D
 
 Everything said on stage comes from this file, and this file comes from one command.
 
@@ -295,7 +295,7 @@ Everything said on stage comes from this file, and this file comes from one comm
 
 The numeric zeros are placeholders in the fixture so D can render the layout; real numbers land at C5. A variant counts as **detected** when an incident contains at least one of its `injected_lines`. Time to detect is log-time from `first_malicious_ts` to the first alert, reported separately from wall-clock processing latency.
 
-## 10. Rule DSL — C (M6), stored in `detection-rules/rules.yaml`
+## 10. Rule DSL: C (M6), stored in `detection-rules/rules.yaml`
 
 Parsed by a small grammar. No free-form code execution, ever, including from an LLM.
 
@@ -330,7 +330,7 @@ duration := <int>("s"|"m"|"h"|"d")
 
 `$u` and `$ip` bind to the subject of the event under evaluation. Depth is capped at 4 and node count at 30. A rule that fails to parse is rejected before the gate runs, and the parse error is shown in the UI.
 
-## 11. Email evidence — pulled by D (M8) through Composio Gmail, consumed by A and B
+## 11. Email evidence: pulled by D (M8) through Composio Gmail, consumed by A and B
 
 Logs answer *what happened*. They are silent on *who authorized it*. The mailbox often holds exactly the missing sentence: a permission-change notification naming the grantee, an access-request approval, a group or cluster membership change, a credential reset, a data-export confirmation. Our case file has three open unknowns (U1, U2, U3) and at least two of them are the kind of thing an automated notification email answers outright.
 
@@ -364,7 +364,7 @@ So Gmail is **both** an output channel and an evidence source. This section cove
 
 An email attaches to a finding or incident when **both** hold:
 
-1. **Entity match.** A username, email local-part, asset filename, group name, or IP from the incident appears in the subject, snippet, sender, or recipients. Matching is exact on a normalized token, not substring — `david_m`, `david.m`, and `david.m@example.com` all normalize to `david_m`, while "davidson" does not.
+1. **Entity match.** A username, email local-part, asset filename, group name, or IP from the incident appears in the subject, snippet, sender, or recipients. Matching is exact on a normalized token, not substring: `david_m`, `david.m`, and `david.m@example.com` all normalize to `david_m`, while "davidson" does not.
 2. **Time proximity.** The message timestamp falls inside the incident window widened by 24 hours on each side.
 
 `link_basis` records which rules fired, so the UI can show why an email is attached. An email that matches on time alone is not evidence and is not attached.
@@ -378,8 +378,8 @@ Email never feeds a detector signal. No S-signal reads the mailbox; alerts stay 
 ### Scope, privacy, and failure
 
 - **Read-only.** Gmail read scope for the evidence path. The send scope for notifications is a separate grant, and the UI shows them as two independent capabilities.
-- **Bounded queries only.** Fixed app-coded searches over a fixed window — `newer_than:`, plus a sender allowlist and a subject keyword set. Never a free-text query built from LLM output, and never a full mailbox crawl.
-- **Store headers and snippet, not bodies.** Nothing beyond the fields above is persisted, and **no email content ever leaves the app** — not into a GitHub issue, not into a PR body, not into Slack. Those carry a Minny evidence link instead. This matches the existing rule in [04-COMPOSIO.md](../technical-spec/04-COMPOSIO.md) section 7 about never publishing raw source records.
+- **Bounded queries only.** Fixed app-coded searches over a fixed window (`newer_than:`, plus a sender allowlist and a subject keyword set). Never a free-text query built from LLM output, and never a full mailbox crawl.
+- **Store headers and snippet, not bodies.** Nothing beyond the fields above is persisted, and **no email content ever leaves the app**: not into a GitHub issue, not into a PR body, not into Slack. Those carry a Minny evidence link instead. This matches the existing rule in [04-COMPOSIO.md](../technical-spec/04-COMPOSIO.md) section 7 about never publishing raw source records.
 - **Fails soft, always.** No Gmail connection, an expired token, or a rate limit changes nothing about the case file, the detector, the incidents, or the metrics. The UI hides the corroboration strip and the demo continues. Nothing on the critical path may `await` the mailbox.
 - **The demo mailbox is seeded, and we say so.** No real corporate mailbox exists for this dataset. D seeds a demo account with 5 or 6 messages matching the story timeline, and both the UI and the Devpost writeup label it a seeded demonstration mailbox. Do not let a judge discover that on their own.
 

@@ -1,4 +1,4 @@
-# Minny — technical scope and integration specification
+# Minny technical scope and integration specification
 
 Draft 2 · 19 September 2026 · Prepared for four parallel builders
 

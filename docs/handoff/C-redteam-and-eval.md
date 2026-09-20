@@ -1,4 +1,4 @@
-# Track C — red team, evaluation, blue agent
+# Track C: red team, evaluation, blue agent
 
 **Owner:** C. **Branch:** `track/c-redteam`. **Milestones:** M4 generator, M5 eval harness, M6 blue agent.
 
@@ -11,9 +11,9 @@ Your track is the most over-budget of the four: roughly 12 hours of estimate in 
 - [ ] **20:15** Renderer and critic written against the CLF format, no parquet needed
 - [ ] **21:00** Consume A's `size_table.json` and `access_matrix.json`
 - [ ] **22:00** First variants rendering, critic rejecting bad ones
-- [ ] **23:00** 20+ critic-accepted variants merged — **C3**
+- [ ] **23:00** 20+ critic-accepted variants merged (**C3**)
 - [ ] **00:30** ~200 variants, LLM parameter generation working, blind test passed
-- [ ] **02:30** `python eval.py --seed 42` writes `metrics.json` — **C5, this is the one that cannot slip**
+- [ ] **02:30** `python eval.py --seed 42` writes `metrics.json` (**C5, this is the one that cannot slip**)
 - [ ] **03:00** Judge panel endpoint live for D
 - [ ] **04:30** Blue agent with one real before/after, or cut cleanly
 - [ ] **05:00** Everything precomputed and seeded for the demo
@@ -22,16 +22,16 @@ Your track is the most over-budget of the four: roughly 12 hours of estimate in 
 
 The renderer does not need a parquet file. It needs the log format, which you already have. Build `minny/redteam/render.py` and `critic.py` at 19:30 against the format spec, using placeholder sizes, then swap in A's real `size_table.json` at C2. By 21:00 you should be generating, not starting.
 
-## M4 — the generator (target 00:30)
+## M4: the generator (target 00:30)
 
 ### Families
 
 Derived from the real incident, fixed IDs per [00-CONTRACTS.md](00-CONTRACTS.md) section 8:
 
-- **F1 `credential_takeover`** — failed logins as the victim, then a success, then access.
-- **F2 `content_privilege_escalation`** — malicious post, victim views it, privileged action, attacker's first success on a denied file.
-- **F3 `cover_download`** — victim's account used from the attacker's IP to pull the asset.
-- **F4 `full_chain`** — F1 + F2 + F3, the real thing.
+- **F1 `credential_takeover`**: failed logins as the victim, then a success, then access.
+- **F2 `content_privilege_escalation`**: malicious post, victim views it, privileged action, attacker's first success on a denied file.
+- **F3 `cover_download`**: victim's account used from the attacker's IP to pull the asset.
+- **F4 `full_chain`**: F1 + F2 + F3, the real thing.
 
 ### Mutation operators
 
@@ -44,7 +44,7 @@ Each one targets a specific signal. That is the point: a variant that evades tel
 | `param_rename` | innocuous-looking query keys, or none | S5 |
 | `victim_swap` | a different authorized user as victim | attribution |
 | `target_swap` | a different sensitive file, real size, real authorized users | asset-specific tuning |
-| `business_hours` | shift everything into 09:00–17:00 on a weekday | any hour-based heuristic |
+| `business_hours` | shift everything into 09:00-17:00 on a weekday | any hour-based heuristic |
 | `delay_gap` | widen view-to-action or escalation-to-exfil | S6's 5-second window |
 | `no_cleanup`, `no_cover_download` | drop steps | signals that assume the full chain |
 
@@ -52,7 +52,7 @@ Each one targets a specific signal. That is the point: a variant that evades tel
 
 ### The LLM's job, and its limits
 
-Given a family and a persona — impatient insider, careful insider, outsider with stolen credentials — the model returns **JSON parameters only**: attacker, victim, target, operator list, timing offsets. Enum values are restricted to the dataset's real users, IPs, templates, and files.
+Given a family and a persona (impatient insider, careful insider, outsider with stolen credentials), the model returns **JSON parameters only**: attacker, victim, target, operator list, timing offsets. Enum values are restricted to the dataset's real users, IPs, templates, and files.
 
 **The LLM never writes a log line.** It never sees or emits an exploit. Attack forum posts exist in our output only as the log lines they would produce. Deterministic code renders everything, which is what keeps the output safe to publish and makes the whole harness reproducible from a seed.
 
@@ -62,7 +62,7 @@ The structured-output shape in [attack-plan.schema.json](../technical-spec/attac
 
 Build CLF lines from **real benign lines used as templates**, overwriting only `ip`, `user`, `ts`, `path`, `status`, and `size`. Sizes come from A's `size_table.json`; a `(base, status)` pair listed under `variable_size_paths` must sample a real observed size rather than inventing one. Injected line IDs start above 180800 so a synthetic event can never collide with a real one. Inject into March at a seeded random start time.
 
-### Critic — deterministic, rejects on failure
+### Critic: deterministic, rejects on failure
 
 Not an LLM. Six checks:
 
@@ -77,12 +77,12 @@ Check 6 is the one people skip and it is the one that matters: if `slow_guess` i
 
 **Done when** ~200 labeled variants generate in a few minutes and **a teammate cannot pick the synthetic lines out of a blind mixed sample of 50.** Actually run that test with A or D at 00:30. It takes four minutes and it is the difference between "we generated attacks" and "we generated attacks that pass inspection."
 
-## M5 — evaluation harness (target 02:30, never cut)
+## M5: evaluation harness (target 02:30, never cut)
 
 This is the milestone that makes the project honest. Everything A says on stage comes out of it.
 
 - **Benign stream:** March events minus the labeled incident lines. The incident is excluded when measuring false positives, or we would be counting our own success as noise.
-- **Detection:** a variant counts as detected when an incident contains at least one of its `injected_lines`. Report overall, per operator, and per family. **The per-operator table is the most interesting artifact of the night** — it says precisely which evasions work.
+- **Detection:** a variant counts as detected when an incident contains at least one of its `injected_lines`. Report overall, per operator, and per family. **The per-operator table is the most interesting artifact of the night**: it says precisely which evasions work.
 - **Attribution:** of detected variants, the fraction where the incident names the correct attacker *and* victim. Detecting something and blaming the wrong person is not a win, and reporting the two separately is what a security team would actually ask for.
 - **False positives:** alerts and incidents on the benign stream, per day. Get this from B at 02:00 and cross-check it yourself.
 - **Time to detect:** log-time from `first_malicious_ts` to the first alert, plus wall-clock processing latency per event. Keep them separate; they answer different questions.
@@ -92,7 +92,7 @@ One command: `python eval.py --seed 42` writes `metrics.json` per section 9 plus
 
 **Done when** the numbers said on stage are reproducible from that command. Run it in front of A at least once, because A has to defend the numbers and will ask you what "detected" means.
 
-## M6 — blue agent (target 04:30, first to cut)
+## M6: blue agent (target 04:30, first to cut)
 
 The rule DSL and gate are in [00-CONTRACTS.md](00-CONTRACTS.md) section 10. Parse with a small grammar. **No free-form code execution, ever, least of all from an LLM.**
 
@@ -104,7 +104,7 @@ Input to the agent: one evaded operator family with its variants and the feature
 2. Adds no more than the FP budget on benign March.
 3. Fires zero times on the baseline window, Aug through Feb.
 
-Accepted rules append to `detection-rules/rules.yaml` and B's detector hot-reloads. Rejected rules are logged with the reason and shown in the UI — **the rejections are as much a demo asset as the acceptances**, because they prove the gate is real and not a rubber stamp.
+Accepted rules append to `detection-rules/rules.yaml` and B's detector hot-reloads. Rejected rules are logged with the reason and shown in the UI: **the rejections are as much a demo asset as the acceptances**, because they prove the gate is real and not a rubber stamp.
 
 **Build the planned rejection deliberately:** a rule whose predicate is essentially `query contains "csrf"` catches the original incident perfectly and fails gate 1 against `param_rename` variants. It is a 30-second story that shows exactly why overfitting to one incident is the failure mode this whole part of the project exists to prevent. Have it ready as a fixture even if the live agent is struggling.
 
@@ -120,7 +120,7 @@ Accepted rules append to `detection-rules/rules.yaml` and B's detector hot-reloa
 
 ## M4 as built
 
-`python -m minny.redteam.generate --seed 42 --count 200` — 2 seconds, no API key, writes `data/variants.json` (200 accepted, 0 rejected, 1,810 lines, IDs 180801-182610, spanning 2-30 March) and `data/variants_rejected.json`.
+`python -m minny.redteam.generate --seed 42 --count 200`: 2 seconds, no API key, writes `data/variants.json` (200 accepted, 0 rejected, 1,810 lines, IDs 180801-182610, spanning 2-30 March) and `data/variants_rejected.json`.
 
 Module layout, in the order the pipeline runs:
 
@@ -138,8 +138,8 @@ Three decisions worth knowing about downstream.
 
 **Declared operators are derived from the finished plan, not from what was requested.** Asking for `target_swap` and landing on the canonical target used to produce a label the lines did not support. `--declare-requested` turns the reconciliation off and runs the generator deliberately faulty: at seed 42 that yields 180 rejections out of 380 attempts, every one of them `operators_present`, which is the check doing exactly the job it exists for.
 
-**The log is `-0400` everywhere.** All 180,800 real lines carry it, including August and December ones, so the DST split the brief predicted does not exist in the data and the renderer uses a constant offset. `events.parquet` stores `ts` in `America/New_York`, which for any date before 8 March renders an hour earlier than the text of the same line — worth knowing before quoting a `ts` column value next to a raw evidence line.
+**The log is `-0400` everywhere.** All 180,800 real lines carry it, including August and December ones, so the DST split the brief predicted does not exist in the data and the renderer uses a constant offset. `events.parquet` stores `ts` in `America/New_York`, which for any date before 8 March renders an hour earlier than the text of the same line. That is worth knowing before quoting a `ts` column value next to a raw evidence line.
 
-**Blind realism check, run twice at 40 real March lines against 10 synthetic.** First pass: 7 of 10 picked, and two of them only because `own_ip_takeover` was using 10.0.10.x and 10.0.12.x, subnets that appear nowhere in the corpus. That is a rendering tell rather than an attack signal, so the unseen-host pool moved onto the real 10.0.5-10.0.9 subnets with host octets that never occur. Second pass, fresh seed: 8 of 10 picked, every one of them by attack semantics — a user on someone else's host, a 200 on a file that account is denied, or the literal `script=success` payload string. Nothing was pickable by size, timestamp spelling, path shape or byte layout, and the two lines carrying no attack signal (a forum view, a logout) were indistinguishable. Synthetic sizes match the real distributions: `/dashboard` 2051.2 ± 26.8 against 2049.5 ± 29.0, forum views 2949 ± 602 against 3000 ± 577.
+**Blind realism check, run twice at 40 real March lines against 10 synthetic.** First pass: 7 of 10 picked, and two of them only because `own_ip_takeover` was using 10.0.10.x and 10.0.12.x, subnets that appear nowhere in the corpus. That is a rendering tell rather than an attack signal, so the unseen-host pool moved onto the real 10.0.5-10.0.9 subnets with host octets that never occur. Second pass, fresh seed: 8 of 10 picked, every one of them by attack semantics: a user on someone else's host, a 200 on a file that account is denied, or the literal `script=success` payload string. Nothing was pickable by size, timestamp spelling, path shape or byte layout, and the two lines carrying no attack signal (a forum view, a logout) were indistinguishable. Synthetic sizes match the real distributions: `/dashboard` 2051.2 ± 26.8 against 2049.5 ± 29.0, forum views 2949 ± 602 against 3000 ± 577.
 
 **Reproducibility was broken and is now pinned.** The operator draw iterated a set of strings while consuming the rng, and Python salts string hashing per process, so `--seed 42` produced a different batch in every interpreter while looking perfectly stable inside one. `test_generation_is_reproducible_across_processes` runs the generator under three `PYTHONHASHSEED` values and compares digests.

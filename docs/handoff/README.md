@@ -1,4 +1,4 @@
-# Minny — build handoff
+# Minny build handoff
 
 Four people, four branches, one merge target. Read this file, then read **only your own track file** and [00-CONTRACTS.md](00-CONTRACTS.md). Everything else is reference.
 
@@ -13,17 +13,17 @@ Four people, four branches, one merge target. Read this file, then read **only y
 
 ## The product, in plain English
 
-A company gave us eight months of web logs — every page and file their ten employees opened — and asked whether anyone was up to no good. Someone was.
+A company gave us eight months of web logs (every page and file their ten employees opened) and asked whether anyone was up to no good. Someone was.
 
-**Part 1, the case file.** David planted a booby-trapped forum post. Sarah, an admin, opened it, and her browser quietly granted David access to a confidential financial draft he was never allowed to see. Twenty minutes later he downloaded it. He had also been guessing her password from his own machine, and that night someone logged in as Sarah *from David's computer* and downloaded the same file again — cover. Every claim in our case file clicks through to the exact log lines that prove it, including the leads we dismissed: employees working late are not attackers. Where the logs go quiet — they record requests, never who authorized what — we pull corroborating records from the company mailbox: the permission-change notification names the person the log does not.
+**Part 1, the case file.** David planted a booby-trapped forum post. Sarah, an admin, opened it, and her browser quietly granted David access to a confidential financial draft he was never allowed to see. Twenty minutes later he downloaded it. He had also been guessing her password from his own machine, and that night someone logged in as Sarah *from David's computer* and downloaded the same file again, as cover. Every claim in our case file clicks through to the exact log lines that prove it, including the leads we dismissed: employees working late are not attackers. Where the logs go quiet (they record requests, never who authorized what), we pull corroborating records from the company mailbox: the permission-change notification names the person the log does not.
 
-**Part 2, the watchdog.** A detector that learns what normal looks like per person — which machine, which files, what hours — and raises one plain-English alarm when the pattern breaks: *"Sarah's account just logged in from David's computer."* Related alarms collapse into a single incident, so an analyst reads one story instead of twenty warnings.
+**Part 2, the watchdog.** A detector that learns what normal looks like per person (which machine, which files, what hours) and raises one plain-English alarm when the pattern breaks: *"Sarah's account just logged in from David's computer."* Related alarms collapse into a single incident, so an analyst reads one story instead of twenty warnings.
 
-**Part 3, the stress test.** Catching David proves nothing; we already knew the answer. So an AI burglar invents hundreds of variations of his scheme — slower password guessing, a different victim, disguised posts, a lunchtime run — and slips them into the records. We measure catches and false alarms. When a variation slips through, an AI locksmith proposes a new rule, accepted only if it catches held-out variants it never saw, without crying wolf on normal days.
+**Part 3, the stress test.** Catching David proves nothing; we already knew the answer. So an AI burglar invents hundreds of variations of his scheme (slower password guessing, a different victim, disguised posts, a lunchtime run) and slips them into the records. We measure catches and false alarms. When a variation slips through, an AI locksmith proposes a new rule, accepted only if it catches held-out variants it never saw, without crying wolf on normal days.
 
 **The demo moment:** a judge plays the burglar, picks a victim and a trick, and watches the watchdog catch it in seconds. Then they try to sneak one past it.
 
-## Clock reality — read this before you plan your night
+## Clock reality: read this before you plan your night
 
 Handoff written **Sat 19 Sep 2026, 19:30 EDT**. Submission **Sun 20 Sep 2026, 08:00 EDT**. That is **12.5 hours**, of which the last 3 are M9 (hardening, backup video, Devpost) and are protected. **Effective build window: 19:30 to 05:00, 9.5 hours.**
 
@@ -95,7 +95,7 @@ Add `data/`, `*.parquet`, `.env`, `__pycache__/`, and `node_modules/` to `.gitig
 
 Sentry, then ES|QL translation, then the GitHub PR (keep Slack), then the blue agent (keep the stress-test metrics), then judge-panel operators beyond two. Never M1, M3, or M5.
 
-## Demo script — 3 minutes
+## Demo script (3 minutes)
 
 1. **Case, 40s.** "They asked if there was funny business. There was." Walk the timeline, click one claim into raw log lines, show one dismissed lead.
 2. **Watchdog, 40s.** Replay March; the incident card assembles itself alert by alert and names David.
@@ -108,10 +108,10 @@ Sentry, then ES|QL translation, then the GitHub PR (keep Slack), then the blue a
 These are honest gaps, not pessimism. Each has an owner and a checkpoint.
 
 - ~~`logs.txt` is missing~~ **Resolved at Wave 0.** The dataset is in place, parsed, and verified: 180,800 lines, `sha256 9f773643…70575`. It is gitignored because this repository is public, so set `MINNY_DATA_DIR` in a worktree.
-- ~~Line numbers are unverified~~ **Resolved at Wave 0.** Every line number in the brief checked out. The incident **date and several paths did not** — see [GROUND-TRUTH.md](GROUND-TRUTH.md), which overrides the brief and these documents wherever they disagree.
+- ~~Line numbers are unverified~~ **Resolved at Wave 0.** Every line number in the brief checked out. The incident **date and several paths did not**. See [GROUND-TRUTH.md](GROUND-TRUTH.md), which overrides the brief and these documents wherever they disagree.
 - **Post authorship is a heuristic.** The logs record no author for forum posts. We infer it from a `302` on `forum/new` followed within seconds by a view of the new post ID. Label it as a heuristic in the UI and say so on stage. Do not let it become the load-bearing claim.
 - **No service is provisioned.** No OpenAI project, Elastic deployment, Composio project, Slack workspace, or GitHub rules repo was found in this repository. D's M8 starts from zero, so budget the OAuth round trip and make every integration fail soft.
-- **The evidence mailbox is seeded by us, and we say so.** There is no real corporate mailbox for this dataset, so D seeds a demo account with messages matching the story timeline. The UI and the Devpost both label it a seeded demonstration mailbox. Mail headers are forgeable and we do not verify DKIM, which is why email corroborates a finding and never carries one alone — see [00-CONTRACTS.md](00-CONTRACTS.md) section 11.
+- **The evidence mailbox is seeded by us, and we say so.** There is no real corporate mailbox for this dataset, so D seeds a demo account with messages matching the story timeline. The UI and the Devpost both label it a seeded demonstration mailbox. Mail headers are forgeable and we do not verify DKIM, which is why email corroborates a finding and never carries one alone. See [00-CONTRACTS.md](00-CONTRACTS.md) section 11.
 - **Ask the organizers whether more than one incident is planted.** If yes, A repeats M1 for each.
 
 ## Relationship to `docs/technical-spec/`

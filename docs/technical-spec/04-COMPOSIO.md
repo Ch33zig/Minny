@@ -1,4 +1,4 @@
-# Composio — complete connection and remediation specification
+# Composio: complete connection and remediation specification
 
 Owner: P3. P1 supplies identity/database/API registration. P4 supplies Settings UI. This integration is application functionality built into Minny; installing a Composio plugin into a developer's editor does not implement it.
 
@@ -166,7 +166,7 @@ Provider proxy fallback is only for fixed app-coded relative paths/methods. Neve
 
 ### Gap issue
 
-Create a remediation row and outbox operation when the baseline returns a complete evasion. Marker: `<!-- minny:remediation:<uuid> -->`. Title includes technique and short variant ID. Body includes synthetic label, hypothesis, rule version, actual miss result, 3–10 sanitized evidence references, why this is a detection gap, and Minny detail URL. Do not publish raw CSE source records or secrets. Mention the CSE finding via access-controlled Minny evidence links if applicable.
+Create a remediation row and outbox operation when the baseline returns a complete evasion. Marker: `<!-- minny:remediation:<uuid> -->`. Title includes technique and short variant ID. Body includes synthetic label, hypothesis, rule version, actual miss result, 3-10 sanitized evidence references, why this is a detection gap, and Minny detail URL. Do not publish raw CSE source records or secrets. Mention the CSE finding via access-controlled Minny evidence links if applicable.
 
 Issue creation is independent of Blue success: a failed proposal should leave a real tracked gap. Persist issue result immediately, then post the Slack root message and enqueue Blue analysis. Slack failure does not prevent analysis or PR creation.
 

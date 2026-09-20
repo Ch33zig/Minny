@@ -1,4 +1,4 @@
-# Track A — forensics and the case file
+# Track A: forensics and the case file
 
 **Owner:** A. **Branch:** `track/a-forensics`. **Milestones:** M0 parser, M1 case file, M9 demo and submission.
 
@@ -8,9 +8,9 @@ You are the critical path for the first 90 minutes and the voice of the project 
 
 - [x] **19:50** `logs.txt` located, SHA-256 posted to the team
 - [x] **20:15** `pyproject.toml`, `.gitignore`, `minny/api/app.py` skeleton merged; contracts frozen
-- [x] **21:00** `events.parquet`, `size_table.json`, `access_matrix.json`, `GET /api/events` merged — **C2, this unblocks B and C**
+- [x] **21:00** `events.parquet`, `size_table.json`, `access_matrix.json`, `GET /api/events` merged (**C2, this unblocks B and C**)
 - [x] **23:00** Findings F1 through F5 with evidence lines; first `case_file.json` merged
-- [x] **01:00** Case file complete: timeline, unknowns, dismissed leads, all queries saved — **C4**
+- [x] **01:00** Case file complete: timeline, unknowns, dismissed leads, all queries saved (**C4**)
 - [ ] **01:00 onward** M9: Devpost draft, demo script, rehearsals
 - [ ] **05:00** Backup video recorded
 - [ ] **08:00** Submitted
@@ -23,7 +23,7 @@ Three things, in this order:
 2. **Ask the organizers whether more than one incident is planted.** If yes, M1 repeats per incident and you should know now, not at midnight.
 3. **Create the shared skeleton** so nobody else has to touch a shared file all night: `pyproject.toml` (pandas or polars, pyarrow, fastapi, uvicorn, sse-starlette, pyyaml, pytest), `.gitignore` (`data/`, `*.parquet`, `.env`, `__pycache__/`, `node_modules/`), and `minny/api/app.py` importing all four routers by the names fixed in [00-CONTRACTS.md](00-CONTRACTS.md) section 12, wrapped so a missing router logs a warning instead of crashing the process.
 
-## M0 — parser and canonical events (target 21:00)
+## M0: parser and canonical events (target 21:00)
 
 Ship `minny/parser.py` producing `data/events.parquet` to the column contract in 00-CONTRACTS.md section 1.
 
@@ -31,7 +31,7 @@ Ship `minny/parser.py` producing `data/events.parquet` to the column contract in
 ^(\S+) (\S+) (\S+) \[([^\]]+)\] "(\S+) (\S+) (\S+)" (\d{3}) (\S+)$
 ```
 
-**Assert, do not hope.** Zero unparsed lines. Exactly 180,800 rows. `line` ascending with no gaps. If an assert fails, stop and post in chat before anyone builds on the output — a silently dropped line is a silently wrong case file.
+**Assert, do not hope.** Zero unparsed lines. Exactly 180,800 rows. `line` ascending with no gaps. If an assert fails, stop and post in chat before anyone builds on the output. A silently dropped line is a silently wrong case file.
 
 Details that matter downstream:
 
@@ -42,18 +42,18 @@ Details that matter downstream:
 
 Then emit the two derived files C depends on, both in 00-CONTRACTS.md sections 2 and 3:
 
-- `data/size_table.json` — group on `(base, status)`, record the size where constant, list everything else under `variable_size_paths`. Without this, every synthetic line C renders is detectable by inspection and the stress test is theatre.
-- `data/access_matrix.json` — per sensitive file, who got a `200` and who got a `403`. C needs it for `victim_swap` and `target_swap`.
+- `data/size_table.json`: group on `(base, status)`, record the size where constant, list everything else under `variable_size_paths`. Without this, every synthetic line C renders is detectable by inspection and the stress test is theatre.
+- `data/access_matrix.json`: per sensitive file, who got a `200` and who got a `403`. C needs it for `victim_swap` and `target_swap`.
 
 Finish M0 with `GET /api/events?lines=` in `minny/api/routes_case.py`. It is 15 lines, D needs it for every drill-down in the UI, and it is the single most-used endpoint in the demo.
 
-## M1 — the case file (target 01:00)
+## M1: the case file (target 01:00)
 
-**One saved, re-runnable query per finding, each returning line numbers.** Put them in `minny/casefile/queries.py` as named functions; `case_file.json` references them by name. No finding may exist as prose alone. The expected results below come from the dataset brief and have not been verified against the file — **re-derive each one; where the data disagrees, the data wins and you post the correction.**
+**One saved, re-runnable query per finding, each returning line numbers.** Put them in `minny/casefile/queries.py` as named functions; `case_file.json` references them by name. No finding may exist as prose alone. The expected results below come from the dataset brief and have not been verified against the file. **Re-derive each one; where the data disagrees, the data wins and you post the correction.**
 
 | Finding | Query | Expected lines |
 |---|---|---|
-| F1 user/IP binding broken | user/IP pairs outside each user's single baseline IP | 168311–168314, 168321–168326, 168343–168346 |
+| F1 user/IP binding broken | user/IP pairs outside each user's single baseline IP | 168311-168314, 168321-168326, 168343-168346 |
 | F2 password guessing | consecutive 401s, same user and IP, gaps under 15s | the same two bursts, and **confirm zero other bursts in the whole file** |
 | F3 tampered forum post | query keys on `/intranet/forum/new` other than `topic` | 168330, 168331, 168332 |
 | F4 one-off privileged calls | globally unique templates | `/api/admin/role_update` 168336, `/assets/avatar_{id}.png` 168337 |
@@ -65,15 +65,15 @@ F2's second half matters more than the first. "Two bursts in 180,800 lines and n
 
 **Dismissed leads are a deliverable, not a footnote.** Each needs the query that kills it:
 
-- Off-hours access — routine here, including sarah_j pulling the same zip at 00:19 on 6 March from her own IP.
-- The ~900 scattered 401s — no burst structure, spread across users and months.
-- The ~5,300 403s — the access model denies constantly by design; volume is normal, a `403` becoming a `200` is not.
+- Off-hours access: routine here, including sarah_j pulling the same zip at 00:19 on 6 March from her own IP.
+- The ~900 scattered 401s: no burst structure, spread across users and months.
+- The ~5,300 403s: the access model denies constantly by design; volume is normal, a `403` becoming a `200` is not.
 
 **Unknowns are a deliverable too.** How the login as sarah_j eventually succeeded. What post 1042 contained, since the logs record requests and never bodies. Who revoked david_m's access before the 27 March `403`. Ship all three in `unknowns`; U1 and U3 are exactly what the mailbox evidence in [00-CONTRACTS.md](00-CONTRACTS.md) section 11 may answer, so coordinate with D once `data/email_evidence.json` exists and add an email-corroborated finding if a message genuinely lines up. If it does not, leave the unknowns standing. An honest unknown reads better than a stretched claim.
 
 **Done when** the UI renders the whole case file from `case_file.json` alone and every claim resolves to raw lines.
 
-## M9 — demo and submission (01:00 onward, protected)
+## M9: demo and submission (01:00 onward, protected)
 
 You own the story. Start the Devpost draft at 01:00 while the others are still building, because at 05:00 you will be editing, not writing.
 

@@ -122,52 +122,52 @@ No script should print provider keys, full account-state objects, authorization 
 
 These are scoped acceptance tickets, not completed implementation. Estimates are rough person-hours and assume familiarity with the stack; vendor access and CSE analysis may dominate. The full functional scope is aggressive for a hackathon, so use the cut lines below rather than weakening correctness.
 
-### P1 — OpenAI/Huawei/platform
+### P1: OpenAI/Huawei/platform
 
 | Ticket | Files | Output | Acceptance | Estimate |
 |---|---|---|---|---|
-| A1 Foundation | `backend/main.py`, settings, database, migrations, `contracts/` | HTTP skeleton, models, fixture contracts | Health + validated example payloads | 1–2 h |
-| A2 Identity | `backend/core/auth.py`, sessions, memberships, API auth | Invite/login/session/CSRF/workspace | Two users cannot cross workspace; logout revokes | 2–3 h |
-| A3 Durability | `backend/core/jobs.py`, worker, state, outbox models | Leased jobs, persisted stage transitions | Restart and duplicate job tests | 2–3 h |
-| A4 Simulation | `backend/simulation/` | Plan compiler/validator/templates | Deterministic hash, invalid-parent rejection | 2–3 h |
-| A5 Agents | `backend/agents/` | OpenAI roles, tool loop, budgets | Critic + Blue revisions from actual tool feedback | 3–4 h |
-| A6 Integration | `backend/api/`, orchestrator | Start/read/stop/publish/replay APIs | Complete frozen-variant replay | 2–3 h |
+| A1 Foundation | `backend/main.py`, settings, database, migrations, `contracts/` | HTTP skeleton, models, fixture contracts | Health + validated example payloads | 1-2 h |
+| A2 Identity | `backend/core/auth.py`, sessions, memberships, API auth | Invite/login/session/CSRF/workspace | Two users cannot cross workspace; logout revokes | 2-3 h |
+| A3 Durability | `backend/core/jobs.py`, worker, state, outbox models | Leased jobs, persisted stage transitions | Restart and duplicate job tests | 2-3 h |
+| A4 Simulation | `backend/simulation/` | Plan compiler/validator/templates | Deterministic hash, invalid-parent rejection | 2-3 h |
+| A5 Agents | `backend/agents/` | OpenAI roles, tool loop, budgets | Critic + Blue revisions from actual tool feedback | 3-4 h |
+| A6 Integration | `backend/api/`, orchestrator | Start/read/stop/publish/replay APIs | Complete frozen-variant replay | 2-3 h |
 
 P1 is the critical-path owner. P3 supplies connection-route implementations; P4 supplies deployment files. P1 only registers those routers and merges shared schema/migration requests; do not make P1 implement every vendor integration.
 
-### P2 — Elastic/CSE
+### P2: Elastic/CSE
 
 | Ticket | Files | Output | Acceptance | Estimate |
 |---|---|---|---|---|
-| B1 Elastic setup | `scripts/elastic/`, detection client/mappings | Live indices and restricted keys | Bulk/read/query pass | 1–2 h |
-| B2 CSE profile/parser | `backend/data/`, manifest | Actual schema/provenance mapping | Round-trip to original record; quarantine malformed | 2–4 h |
-| B3 Investigation | queries, findings doc | At least one supported finding | Who/what/when/how with evidence | 2–4 h |
-| B4 Rule evaluator | `backend/detection/`, fixtures | Predicate compiler, complete result semantics | Miss/catch/background-only/error tests | 2–3 h |
-| B5 Validation/replay | candidate/regression/revisions | Actual merged-rule loading and validation | Changed merged content tested, no older activation | 2–3 h |
-| B6 Stream replay | `backend/data/replay.py` | Cursor/window/dedup detection | Restart without repeated findings | 1–2 h |
+| B1 Elastic setup | `scripts/elastic/`, detection client/mappings | Live indices and restricted keys | Bulk/read/query pass | 1-2 h |
+| B2 CSE profile/parser | `backend/data/`, manifest | Actual schema/provenance mapping | Round-trip to original record; quarantine malformed | 2-4 h |
+| B3 Investigation | queries, findings doc | At least one supported finding | Who/what/when/how with evidence | 2-4 h |
+| B4 Rule evaluator | `backend/detection/`, fixtures | Predicate compiler, complete result semantics | Miss/catch/background-only/error tests | 2-3 h |
+| B5 Validation/replay | candidate/regression/revisions | Actual merged-rule loading and validation | Changed merged content tested, no older activation | 2-3 h |
+| B6 Stream replay | `backend/data/replay.py` | Cursor/window/dedup detection | Restart without repeated findings | 1-2 h |
 
-### P3 — Composio
-
-| Ticket | Files | Output | Acceptance | Estimate |
-|---|---|---|---|---|
-| C1 Schema/accounts | scripts, vendor schemas | Auth configs, pins, selected tool contract | Required tools and trigger schema captured | 1–2 h |
-| C2 User onboarding | workflow connections/resources/router | Connect callback + destination validation | Two-user OAuth isolation; denied/cancelled recovery | 2–3 h |
-| C3 Publication | workflow GitHub/Slack/outbox adapters | Issue, branch/file, PR, message thread | Real artifact links and retry reconciliation | 2–4 h |
-| C4 Inbound | webhook/parser/merge verifier | Signed inbox and VerifiedMerge | Closed-unmerged ignored; duplicate suppressed | 2–3 h |
-| C6 Gmail | `backend/workflows/gmail.py`, notification policy/delivery adapter | User-configurable operational emails through Composio | Gmail addendum G01–G10 pass | 2–3 h |
-| C5 Recovery | reconciler/disconnect/finalize | Reconnect/partial delivery/final outcomes | Gap closed only after detection success | 2–3 h |
-
-### P4 — Frontend/Sentry/deployment
+### P3: Composio
 
 | Ticket | Files | Output | Acceptance | Estimate |
 |---|---|---|---|---|
-| D1 Build/UI modules | `frontend/`, Node config | Existing visuals preserved, API client | Builds to `dist/`, fixtures render | 1–2 h |
-| D2 Login/settings | views login/integrations | Real connect/select/test UX | Hosted OAuth round trip, accurate errors | 2–3 h |
-| D3 Dashboard/evidence | views/components | Live stages, investigation, workflow links | Refresh restores state; no fake metrics | 2–3 h |
-| D4 Observability | browser + backend helper | Tracing/Replay/scrubbing | Real trace/replay plus redaction check | 1–2 h |
-| D5 Deployment | `infra/`, Docker, build config | API/worker/Postgres topology | Public webhook + restart test | 2–3 h |
-| D7 Gmail UI | integrations/settings and notification history | Sender/recipient/events/test/reconnect | Policy edits and uncertain-send state render correctly | 1–2 h |
-| D6 Demo/QA | Playwright and demo docs | Whole-flow test + observed Sentry improvement | Evidence checklist and live rehearsal | 2–3 h |
+| C1 Schema/accounts | scripts, vendor schemas | Auth configs, pins, selected tool contract | Required tools and trigger schema captured | 1-2 h |
+| C2 User onboarding | workflow connections/resources/router | Connect callback + destination validation | Two-user OAuth isolation; denied/cancelled recovery | 2-3 h |
+| C3 Publication | workflow GitHub/Slack/outbox adapters | Issue, branch/file, PR, message thread | Real artifact links and retry reconciliation | 2-4 h |
+| C4 Inbound | webhook/parser/merge verifier | Signed inbox and VerifiedMerge | Closed-unmerged ignored; duplicate suppressed | 2-3 h |
+| C6 Gmail | `backend/workflows/gmail.py`, notification policy/delivery adapter | User-configurable operational emails through Composio | Gmail addendum G01-G10 pass | 2-3 h |
+| C5 Recovery | reconciler/disconnect/finalize | Reconnect/partial delivery/final outcomes | Gap closed only after detection success | 2-3 h |
+
+### P4: Frontend/Sentry/deployment
+
+| Ticket | Files | Output | Acceptance | Estimate |
+|---|---|---|---|---|
+| D1 Build/UI modules | `frontend/`, Node config | Existing visuals preserved, API client | Builds to `dist/`, fixtures render | 1-2 h |
+| D2 Login/settings | views login/integrations | Real connect/select/test UX | Hosted OAuth round trip, accurate errors | 2-3 h |
+| D3 Dashboard/evidence | views/components | Live stages, investigation, workflow links | Refresh restores state; no fake metrics | 2-3 h |
+| D4 Observability | browser + backend helper | Tracing/Replay/scrubbing | Real trace/replay plus redaction check | 1-2 h |
+| D5 Deployment | `infra/`, Docker, build config | API/worker/Postgres topology | Public webhook + restart test | 2-3 h |
+| D7 Gmail UI | integrations/settings and notification history | Sender/recipient/events/test/reconnect | Policy edits and uncertain-send state render correctly | 1-2 h |
+| D6 Demo/QA | Playwright and demo docs | Whole-flow test + observed Sentry improvement | Evidence checklist and live rehearsal | 2-3 h |
 
 ## 8. Merge order and checkpoints
 
@@ -262,8 +262,8 @@ Keep a saved successful run for browsing if a provider is temporarily unavailabl
 | Slack workspace installation permission | Authorize and post test in selected channel | Slack workflow |
 | Hosting plan/budget | Choose provisioned resources and validate always-on worker | Public hosted runtime |
 
-These are explicit setup tests. None can be truthfully filled in by guessing. Everything under application control—contract names, IDs, paths, state transitions, isolation, recovery, and acceptance behavior—is specified above.
+These are explicit setup tests. None can be truthfully filled in by guessing. Everything under application control (contract names, IDs, paths, state transitions, isolation, recovery, and acceptance behavior) is specified above.
 
 ## 12. Gmail scope revision
 
-Gmail notifications are now required build scope, optional for each user to enable. Add the ten Gmail acceptance cases in [document 08](08-GMAIL-NOTIFICATIONS.md) to the original 40-case matrix. P3 owns the adapter; P4 owns Settings/history; P1 merges the policy/delivery model and route registration. Budget an additional 3–5 person-hours plus account approval time. These tickets join checkpoint 3 for initial notifications and checkpoint 4 for verified outcomes.
+Gmail notifications are now required build scope, optional for each user to enable. Add the ten Gmail acceptance cases in [document 08](08-GMAIL-NOTIFICATIONS.md) to the original 40-case matrix. P3 owns the adapter; P4 owns Settings/history; P1 merges the policy/delivery model and route registration. Budget an additional 3-5 person-hours plus account approval time. These tickets join checkpoint 3 for initial notifications and checkpoint 4 for verified outcomes.
