@@ -13,12 +13,12 @@ Your track is over-budget — roughly 13 hours of estimate in a 9.5-hour window 
 
 ## Checklist
 
-- [ ] **20:15** `fixtures/mock/` committed; `?mock=1` switch working
-- [ ] **21:30** Case-file view rendering from mock `case_file.json`, claims expanding to raw lines
-- [ ] **23:00** Live monitor with replay controls, ticker, incident cards, all from `stream.ndjson` — **C3**
+- [x] **20:15** `fixtures/mock/` committed; `?mock=1` switch working
+- [x] **21:30** Case-file view rendering from mock `case_file.json`, claims expanding to raw lines
+- [x] **23:00** Live monitor with replay controls, ticker, incident cards, all from `stream.ndjson` — **C3**
 - [ ] **00:00** Switch case file and monitor to the real API; report mismatches to A and B immediately
-- [ ] **01:00** Judge panel wired to `POST /api/redteam/generate` — **C4**
-- [ ] **02:00** Metrics panel and blue-agent panel from real JSON
+- [x] **01:00** Judge panel built; posts to `POST /api/redteam/generate` in live mode — **C4**
+- [x] **02:00** Metrics panel and blue-agent panel from JSON (fixtures flagged as placeholders until C generates)
 - [ ] **03:00** M8: Slack alert fires; Gmail evidence sync returns real messages — **C5**
 - [ ] **04:00** GitHub PR on accepted rule, or cut
 - [ ] **05:00** Freeze, mock path re-verified end to end
@@ -99,3 +99,45 @@ Sentry and the ES|QL translation are cut — the top two entries in the plan's o
 ## Done when
 
 The full demo runs from the UI with no terminal, in both `?mock=1` and live modes. Test the mock path last, at 05:00, after everything else is frozen. It is the parachute.
+
+
+## Wave 1 state
+
+Built and verified against the fixtures. Open `python web/serve.py` then
+<http://localhost:8080/?mock=1>.
+
+| View | State |
+|---|---|
+| Case file | Verdict, suspects, 9 findings, 14 timeline beats, 3 dismissed leads, 3 unknowns. Every claim expands to raw bytes by line number. |
+| Live monitor | Replay controls, event ticker, incident cards that grow across six stages, synthetic badge on the injected variant. |
+| Judge | Target/victim/attacker/family/operators, all sourced from the fitted baseline. Posts in live mode; builds a coherence-checked label in fixture mode. |
+| Metrics | Every figure from `metrics.json`, with a placeholder ribbon until the evaluation is actually run. |
+| Blue agent | Accepted rule beside the rejected `csrf` rule, with per-check gate results and before/after numbers. |
+
+Not started, for the next wave: M8 (Slack out, Gmail evidence sync,
+`routes_integrations.py`), and switching both case file and monitor onto the
+live API once A and B are up.
+
+### What the other tracks should know
+
+1. `case_file.json` carries two additive fields the UI uses and the contract
+   does not show: `source` (file, lines, sha256) for the provenance line in the
+   rail, and `verdict.basis` for the sentence under the verdict. Both are
+   optional and the UI renders without them.
+2. Findings, timeline beats, dismissed leads and actors all render a
+   `confidence` label if one is present. Timeline beats and dismissed leads are
+   not required to carry one by the contract; please send one anyway.
+3. `actors.attacker` / `actors.victim` render `confidence`, `summary`,
+   `stats: [{label, value}]` and `evidence_lines` when present. All optional.
+4. Incident frames on the stream should be **re-emitted as the incident grows**,
+   with the same `incident_id`. The UI upserts on that key, and the growth
+   animation is driven by the alert count increasing between frames. An incident
+   sent only once at the end still renders, but the effect is lost.
+5. `/api/events` must return `raw` byte-for-byte. The evidence block is the one
+   place the product stops asserting and starts proving.
+6. The section 10 rule grammar has no query or parameter field and no substring
+   operator, so the `csrf` rule cannot be expressed in it. Either the grammar
+   grows a `query` field or that demo becomes a parse rejection rather than a
+   gate rejection. Flagged in `fixtures/mock/blue_proposals.json`.
+7. `metrics.json` is rendered with a loud placeholder ribbon while it carries
+   `"placeholder": true`. Drop that key when the numbers are real.
