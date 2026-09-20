@@ -572,3 +572,88 @@ def test_every_alert_line_is_a_known_incident_line(replayed):
     } | set(range(168343, 168347))
     touched = {n for a in replayed["alerts"] for n in a["evidence_lines"]}
     assert touched <= known, f"alerts on non-incident lines: {sorted(touched - known)}"
+
+
+# --- routes ------------------------------------------------------------------
+
+
+@pytest.fixture()
+def client(tmp_path, monkeypatch):
+    """Point the whole app at a throwaway data directory.
+
+    The routes resolve paths through minny.paths on every request precisely so
+    a worktree can redirect them, and this test exercises that rather than
+    working around it.
+    """
+    from fastapi.testclient import TestClient
+
+    import json
+
+    from minny.api import routes_detect
+
+    monkeypatch.setenv("MINNY_DATA_DIR", str(tmp_path))
+    routes_detect._cache.clear()
+
+    incident = {
+        "incident_id": "inc_7b21e0",
+        "opened_ts": "2026-03-13T23:10:19-04:00",
+        "alerts": ["a_0f3c21"],
+    }
+    older = {
+        "incident_id": "inc_000001",
+        "opened_ts": "2026-03-01T01:00:00-05:00",
+        "alerts": [],
+    }
+    alert = {"alert_id": "a_0f3c21", "signal": "S1"}
+    (tmp_path / "incidents.json").write_text(json.dumps([older, incident]))
+    (tmp_path / "alerts.json").write_text(json.dumps([alert]))
+    (tmp_path / "baselines.json").write_text(json.dumps(BASELINE_DOC))
+
+    from minny.api.app import app
+
+    yield TestClient(app)
+    routes_detect._cache.clear()
+
+
+def test_baselines_route_serves_the_fitted_file(client):
+    body = client.get("/api/baselines").json()
+    assert body["event_count"] == 157818
+
+
+def test_incidents_route_is_newest_first(client):
+    body = client.get("/api/incidents").json()
+    assert [inc["incident_id"] for inc in body] == ["inc_7b21e0", "inc_000001"]
+
+
+def test_one_incident_inlines_its_alerts_without_dropping_the_id_array(client):
+    body = client.get("/api/incidents/inc_7b21e0").json()
+    assert body["alerts"] == ["a_0f3c21"]
+    assert body["alerts_expanded"][0]["signal"] == "S1"
+
+
+def test_an_unknown_incident_uses_the_shared_error_shape(client):
+    response = client.get("/api/incidents/inc_nope")
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": {"code": "not_found", "message": "No incident inc_nope"}
+    }
+
+
+def test_a_missing_artifact_names_the_command_that_builds_it(client, tmp_path):
+    (tmp_path / "incidents.json").unlink()
+    response = client.get("/api/incidents")
+    assert response.status_code == 503
+    body = response.json()["error"]
+    assert body["code"] == "artifact_missing"
+    assert "python -m minny.detect.run" in body["message"]
+
+
+def test_the_cache_follows_the_file_rather_than_the_process(client, tmp_path):
+    """A replay in another terminal has to show up without a restart."""
+    import json
+
+    assert len(client.get("/api/incidents").json()) == 2
+    (tmp_path / "incidents.json").write_text(
+        json.dumps([{"incident_id": "inc_new", "opened_ts": "2026-03-20T09:00:00-04:00", "alerts": []}])
+    )
+    assert [i["incident_id"] for i in client.get("/api/incidents").json()] == ["inc_new"]

@@ -36,7 +36,10 @@ def _load(path: Path):
     """Read a JSON artifact, reusing the parse until the file changes."""
     key = str(path)
     try:
-        stamp = path.stat().st_mtime_ns
+        info = path.stat()
+        # Size as well as mtime: two writes inside one filesystem clock tick
+        # are rare but a stale replay served to the UI is not worth the risk.
+        stamp = (info.st_mtime_ns, info.st_size)
     except OSError:
         _cache.pop(key, None)
         return None
