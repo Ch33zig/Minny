@@ -405,6 +405,76 @@ def test_the_count_predicate_is_evaluated_last(evidence_for, baselines):
     assert proposal.when.index("ip_owner") < proposal.when.index("count(")
 
 
+def test_the_model_path_is_gated_on_the_api_key(monkeypatch, evidence_for, baselines):
+    """No key, no network, and the seeded proposal still comes out.
+
+    The whole command has to run on a machine with no ANTHROPIC_API_KEY, so
+    the seeded proposer is the default path rather than a fallback bolted on
+    afterwards, and `auto` degrades to it silently.
+    """
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    assert proposer.anthropic_available() is False
+
+    evidence = evidence_for("slow_guess")
+    auto = proposer.propose(
+        operator="slow_guess",
+        evidence=evidence,
+        baselines=baselines,
+        seed=42,
+        planner="auto",
+    )
+    assert auto.spec.proposer == "deterministic"
+    assert auto.parse.ok
+
+    with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
+        proposer.propose(
+            operator="slow_guess",
+            evidence=evidence,
+            baselines=baselines,
+            seed=42,
+            planner="llm",
+        )
+
+
+def test_proposed_parameters_are_checked_against_the_grammar(evidence_for, baselines):
+    """Parameters come back as data and are assembled here, never executed.
+
+    A predicate the grammar has no shape for is refused while it is still a
+    mapping. A field name it does not know survives assembly and dies at the
+    parser, which is the rejection the gate never has to pay for.
+    """
+    fallback = proposer.propose(
+        operator="slow_guess",
+        evidence=evidence_for("slow_guess"),
+        baselines=baselines,
+        seed=42,
+    ).spec
+
+    with pytest.raises(proposer.ProposalError):
+        proposer.spec_from_mapping(
+            {"predicates": [{"kind": "regex", "value": ".*"}]},
+            strategy="auth_burst",
+            fallback=fallback,
+        )
+
+    spec = proposer.spec_from_mapping(
+        {
+            "name": "invented field",
+            "severity": "high",
+            "explain": "{user}",
+            "rationale": "why",
+            "join": "AND",
+            "predicates": [
+                {"kind": "field", "field": "hostname", "op": "==", "value": "x"}
+            ],
+        },
+        strategy="auth_burst",
+        fallback=fallback,
+    )
+    assert spec.proposer == "llm"
+    assert dsl.parse_expression(spec.when).ok is False
+
+
 def test_an_unknown_operator_names_the_ones_that_exist(evidence_for, baselines):
     with pytest.raises(ValueError, match="slow_guess"):
         proposer.propose(
