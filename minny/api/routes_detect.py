@@ -240,13 +240,20 @@ class StreamHub:
         if self._heartbeat is None or self._heartbeat.done():
             self._heartbeat = asyncio.ensure_future(self._beat())
 
-    async def subscribe(self, backfill: int = BACKFILL_DEFAULT):
+    async def subscribe(self, backfill: int = BACKFILL_DEFAULT, on_attach=None):
         loop = asyncio.get_running_loop()
         with self._lock:
             self._loop = loop
         queue: asyncio.Queue = asyncio.Queue(maxsize=2000)
         self._subscribers.add(queue)
         self._ensure_heartbeat()
+        if on_attach is not None:
+            # Published after the queue is registered, so it reaches this
+            # client whatever the backfill is. A client that has just
+            # connected needs to know where the replay is before it needs
+            # anything else, and a paused replay sends nothing else for 15
+            # seconds.
+            on_attach()
         try:
             last = 0
             for envelope in self._recent(backfill):
@@ -463,17 +470,21 @@ async def stream(request: Request, backfill: int = BACKFILL_DEFAULT):
 
     `backfill` replays the last N frames from the hub's ring so a client that
     connects late, or reconnects after a drop, sees recent context instead of
-    an empty screen. Those frames keep their original sequence numbers.
+    an empty screen. Those frames keep their original sequence numbers. A
+    `replay_state` frame follows the backfill whatever it is set to, so a
+    client always knows where the replay is before anything else arrives.
     """
     try:
-        SERVICE.autostart()
+        engine = SERVICE.autostart()
     except FileNotFoundError:
         return _missing(paths.events_path(), "python -m minny.build_events")
 
     count = max(0, min(int(backfill), RING_SIZE))
 
     async def frames():
-        async for envelope in SERVICE.hub.subscribe(count):
+        async for envelope in SERVICE.hub.subscribe(
+            count, on_attach=lambda: SERVICE.hub.publish(engine.state_frame())
+        ):
             yield {"data": json.dumps(envelope, separators=(",", ":"))}
 
     return EventSourceResponse(frames())

@@ -442,6 +442,7 @@ class ReplayEngine:
     def pause(self) -> dict:
         with self._lock:
             self._running = False
+            self._started_once = True
         self._wake.set()
         return self.state()
 
@@ -450,6 +451,7 @@ class ReplayEngine:
         with self._lock:
             self._running = False
             self._reset_requested = True
+            self._started_once = True
             alive = self._alive
         self._wake.set()
         if not alive:
@@ -481,11 +483,12 @@ class ReplayEngine:
 
     @property
     def started(self) -> bool:
-        """Whether anyone has ever pressed play.
+        """Whether anyone has taken control of this replay yet.
 
-        The stream starts a replay that has never run, so opening the UI
-        shows something. It does not restart one that a judge paused, which
-        would make a reconnect undo a deliberate action.
+        The stream starts a replay nobody has touched, so opening the UI
+        shows something rather than a blank screen. Any deliberate action,
+        including a pause or a reset, sets this, so a reconnect never undoes
+        what somebody meant to do.
         """
         return self._started_once
 
