@@ -12,6 +12,8 @@ A company handed over 180,800 lines of access logs covering every page and file 
 
 **The stress test** is the part that makes any of it believable. Catching a breach you were told about proves nothing, so a generator invents hundreds of variations of the same attack, slower password guessing, a different victim, renamed parameters, a lunchtime run, and injects them into the same month. The evaluation measures how many are caught and how often the detector cries wolf.
 
+**The improvement loop** closes what the stress test opens. It reads an evasion that worked, writes a detection rule for it, and keeps the rule only if it passes three checks: it catches attacks generated after it was written, it adds nothing to a normal month, and it is silent across the seven months the system calls normal. Rules that fail are kept with the reason, because a gate that accepts everything is not a gate.
+
 ## Run it
 
 ```bash
@@ -21,6 +23,7 @@ python -m minny.build_events               # parse logs.txt into the canonical a
 python -m minny.baselines.build            # fit per-user behaviour on Aug to Feb
 python -m minny.detect.run                 # replay March, write alerts and incidents
 python eval.py --seed 42                   # stress test, writes metrics.json
+python -m minny.blue.run --seed 42         # propose rules, gate them, keep what passes
 ```
 
 The front end needs no build step and no backend:
@@ -58,6 +61,7 @@ minny/baselines/       Per-user behaviour fitted strictly below the March cutoff
 minny/detect/          Signals S1 to S8, correlator, replay engine, rule DSL
 minny/redteam/         Attack families, mutation operators, renderer, critic
 minny/eval/            Detection, attribution, false positives, time to detect
+minny/blue/            Rule proposal and the three-part validation gate
 minny/api/             One FastAPI app, one router per track
 dist/, web/            Front end, no build step, fixtures or live API
 docs/handoff/          Build plan, shared contracts, verified ground truth, design
@@ -68,4 +72,6 @@ docs/handoff/          Build plan, shared contracts, verified ground truth, desi
 - **No signal reads email.** Mailbox records corroborate a finding and are capped at medium confidence, because headers are forgeable and we do not verify DKIM. Alerts stay reproducible from the parsed log alone, which is what makes the evaluation mean anything.
 - **Explanations are generated from signal values, not written by a model.** An LLM may smooth wording; it may never add a fact. Every sentence traces to a field and a line number.
 - **The LLM never writes a log line.** It picks parameters for attack variants; deterministic code renders everything, which is what keeps the output reproducible from a seed and safe to publish.
+- **A proposed rule is parameters, never code.** Rules are tokenised, parsed into a fixed set of nodes, capped and walked by a comparator. There is no eval, no exec and no regular expression compiled from the file, because that file is written unattended.
+- **A rule earns its place on attacks written after it.** The one that matches the literal payload from March catches the real incident perfectly and 0 of 40 variants that rename the parameter, so it is rejected and kept on display.
 - **Baselines are fitted strictly below 2026-03-01.** The incident sits inside the held-out window. Fitting on all of it would enrol the attacker as an authorised reader of the file he took.
