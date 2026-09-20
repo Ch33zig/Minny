@@ -6,6 +6,7 @@
 
 import { api, resolveLines } from './api.js';
 import { esc, fmtTs } from './dom.js';
+import { collapseEvidence, expandEvidence, resizeEvidence } from './motion.js';
 
 let uid = 0;
 
@@ -22,8 +23,8 @@ export function evidenceToggle({ lines = [], emails = [], label = null, open = f
       <button class="ev-toggle" type="button" data-lines="${esc(ids.join(','))}" data-emails="${esc(emails.join(','))}" aria-expanded="${open ? 'true' : 'false'}" title="${esc(title)}">
         <span class="ev-caret">▸</span>
         <span class="ev-label">${esc(label || 'Show evidence')}</span>
-        <span class="ev-count mono">${esc(range)}</span>
-        ${emails.length ? `<span class="ev-mail-count mono">+${emails.length} mail</span>` : ''}
+        <span class="ev-count meta">${esc(range)}</span>
+        ${emails.length ? `<span class="ev-mail-count meta">+${emails.length} mail</span>` : ''}
       </button>
       <div class="ev-body" hidden></div>
     </div>`;
@@ -45,13 +46,16 @@ async function toggle(button) {
   const isOpen = button.getAttribute('aria-expanded') === 'true';
   if (isOpen) {
     button.setAttribute('aria-expanded', 'false');
+    await collapseEvidence(body);
     body.hidden = true;
     return;
   }
   button.setAttribute('aria-expanded', 'true');
   body.hidden = false;
-  if (body.dataset.loaded === '1') return;
-  body.innerHTML = '<div class="ev-loading mono">resolving line numbers…</div>';
+  if (body.dataset.loaded === '1') return expandEvidence(body);
+  body.innerHTML = '<div class="ev-loading meta">resolving line numbers…</div>';
+  expandEvidence(body);
+  const fromHeight = body.getBoundingClientRect().height;
   const lines = (button.dataset.lines || '').split(',').filter(Boolean).map(Number);
   const emailIds = (button.dataset.emails || '').split(',').filter(Boolean);
   try {
@@ -61,8 +65,9 @@ async function toggle(button) {
     ]);
     body.innerHTML = renderRows(rows) + renderMail(mail);
     body.dataset.loaded = '1';
+    resizeEvidence(body, fromHeight);
   } catch (err) {
-    body.innerHTML = `<div class="ev-error mono">could not resolve evidence: ${esc(err.message)}</div>`;
+    body.innerHTML = `<div class="ev-error meta">could not resolve evidence: ${esc(err.message)}</div>`;
   }
 }
 
@@ -73,11 +78,11 @@ function renderRows(rows) {
       return `<div class="raw-row missing"><span class="raw-ln">${row.line}</span><span class="raw-bytes">not available in this data source</span></div>`;
     }
     const synth = row.synthetic ? ' synthetic' : '';
-    return `<div class="raw-row${synth}"><span class="raw-ln">${row.line}</span><span class="raw-bytes">${esc(row.raw)}</span>${row.synthetic ? '<span class="raw-synth mono">INJECTED</span>' : ''}</div>`;
+    return `<div class="raw-row${synth}"><span class="raw-ln">${row.line}</span><span class="raw-bytes">${esc(row.raw)}</span>${row.synthetic ? '<span class="raw-synth meta">INJECTED</span>' : ''}</div>`;
   }).join('');
   const anySynthetic = rows.some((r) => r.synthetic);
   return `
-    <div class="raw-head mono">
+    <div class="raw-head meta">
       <span>PRIMARY EVIDENCE</span>
       <span>${anySynthetic ? 'injected by the red team, not in logs.txt' : 'data/logs.txt, verbatim'}</span>
     </div>
@@ -90,17 +95,17 @@ function renderMail(mail) {
   const items = mail.map((m) => `
     <div class="mail-row">
       <div class="mail-top">
-        <span class="mail-cat mono">${esc(m.category || 'other')}</span>
-        <span class="mail-ts mono">${esc(fmtTs(m.ts))}</span>
+        <span class="mail-cat meta">${esc(m.category || 'other')}</span>
+        <span class="mail-ts meta">${esc(fmtTs(m.ts))}</span>
       </div>
       <div class="mail-subject">${esc(m.subject)}</div>
-      <div class="mail-meta mono">${esc(m.from)} → ${esc((m.to || []).join(', '))}</div>
+      <div class="mail-meta meta">${esc(m.from)} → ${esc((m.to || []).join(', '))}</div>
       <div class="mail-snippet">${esc(m.snippet)}</div>
-      <div class="mail-basis mono">${(m.link_basis || []).map((b) => `<span>${esc(b)}</span>`).join('')}<span class="mail-conf">confidence ${esc(m.confidence)}</span></div>
+      <div class="mail-basis meta">${(m.link_basis || []).map((b) => `<span>${esc(b)}</span>`).join('')}<span class="mail-conf">confidence ${esc(m.confidence)}</span></div>
     </div>`).join('');
   return `
     <div class="mail-strip">
-      <div class="mail-head mono">
+      <div class="mail-head meta">
         <span>CORROBORATING EVIDENCE · MAILBOX</span>
         ${seeded ? '<span class="mail-seeded">SEEDED DEMONSTRATION MAILBOX</span>' : ''}
       </div>
