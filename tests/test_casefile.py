@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 
 from minny import paths
+from minny.api.routes_case import MAX_LINES
 from minny.casefile import build, queries
 
 needs_dataset = pytest.mark.skipif(
@@ -269,3 +270,74 @@ def test_a_finding_without_evidence_cannot_be_built(results):
     empty = queries.QueryResult(name="nothing", question="?", lines=[])
     with pytest.raises(AssertionError):
         build._finding("FX", "claim", "high", "method", empty)
+
+
+# --- the endpoints ---------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def client():
+    from fastapi.testclient import TestClient
+
+    from minny.api.app import app
+
+    return TestClient(app)
+
+
+def test_evidence_endpoint_returns_the_original_bytes(client, events):
+    response = client.get("/api/events?lines=168330,168338")
+    assert response.status_code == 200
+
+    payload = response.json()
+    assert [row["line"] for row in payload] == [168330, 168338]
+    assert set(payload[0]) == {
+        "line",
+        "raw",
+        "ts",
+        "user",
+        "ip",
+        "method",
+        "path",
+        "status",
+        "size",
+    }
+    # Evidence is the file's own bytes, never a line re-rendered from fields.
+    assert payload[0]["raw"] == events.set_index("line").loc[168330, "raw"]
+    assert payload[0]["ts"].endswith("-04:00")
+    assert payload[1]["size"] == 8459200
+
+
+def test_evidence_endpoint_caps_the_batch(client):
+    too_many = ",".join(str(line) for line in range(1, MAX_LINES + 2))
+    response = client.get(f"/api/events?lines={too_many}")
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "too_many_lines"
+
+
+@pytest.mark.parametrize(
+    ("query", "code"),
+    [("", "missing_lines"), ("?lines=", "missing_lines"), ("?lines=abc", "invalid_lines")],
+)
+def test_evidence_endpoint_errors_carry_the_contract_shape(client, query, code):
+    response = client.get(f"/api/events{query}")
+    assert response.status_code == 400
+    assert set(response.json()["error"]) == {"code", "message"}
+    assert response.json()["error"]["code"] == code
+
+
+def test_unknown_line_numbers_do_not_cost_the_rest_of_the_batch(client):
+    response = client.get("/api/events?lines=999999,168338")
+    assert response.status_code == 200
+    assert [row["line"] for row in response.json()] == [168338]
+
+
+def test_case_file_endpoint_serves_the_built_document(client):
+    response = client.get("/api/case_file")
+    if not paths.case_file_path().exists():
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "case_file_missing"
+        return
+
+    payload = response.json()
+    assert payload["case_id"] == build.CASE_ID
+    assert len(payload["findings"]) == 7
