@@ -167,7 +167,7 @@ def fetch(query: mailbox.BoundedQuery, rendered: str):
 # -------------------------------------------------------------------- sync
 
 
-def sync(incident_id: str | None = None) -> dict:
+def sync(incident_id: str | None = None, *, persist: bool = True) -> dict:
     """Run the bounded queries and upsert the evidence store.
 
     Never raises and never touches anything outside `data/email_evidence.json`.
@@ -264,8 +264,11 @@ def sync(incident_id: str | None = None) -> dict:
     }
 
     merged = _upsert(report)
-    written = store.write_email_store(merged)
-    merged["written"] = written
+    if not persist:
+        # The read path builds the store in memory so the corroboration strip
+        # renders before anybody has clicked sync. A GET writes nothing.
+        return merged
+    merged["written"] = store.write_email_store(merged)
     merged["path"] = str(paths.email_evidence_path())
     return merged
 
@@ -403,7 +406,7 @@ def load_store() -> dict:
         )
 
     try:
-        report = sync()
+        report = sync(persist=False)
     except Exception as exc:  # noqa: BLE001 - a read never fails
         logger.warning("in-memory mailbox build failed: %s", exc)
         return _empty_report(
