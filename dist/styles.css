@@ -446,6 +446,11 @@ select, input[type="text"] {
   transition: transform .12s ease, box-shadow .12s ease;
 }
 .ent.lit { box-shadow: var(--shadow-lift), 0 0 0 2px var(--stamp-dim); }
+/* Nobody pins four cards in a straight line. Staggering them also gives the
+   string between the pins a real angle instead of a flat run. */
+.ent[data-ent="victim"] { margin-top: 20px; }
+.ent[data-ent="vector"] { margin-top: 36px; }
+.ent[data-ent="asset"]  { margin-top: 10px; }
 .mugshot {
   position: relative; height: 80px; margin-bottom: 9px;
   background-color: #6E5C46;
@@ -481,7 +486,7 @@ select, input[type="text"] {
 .big-stat b.wide { font-size: 17px; }
 .big-stat span { font-size: 10.5px; line-height: 1.25; color: var(--ink-meta); }
 
-.ent.prop { padding-top: 26px; }
+.ent.prop { padding-top: 30px; }
 .prop-kind { display: block; font-size: 10px; color: var(--ink-meta); }
 .prop-big {
   font-family: var(--type); font-weight: 700; font-size: 44px; line-height: 1.1;
