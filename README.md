@@ -58,6 +58,8 @@ minny/baselines/       Per-user behaviour fitted strictly below the March cutoff
 minny/detect/          Signals S1 to S8, correlator, replay engine, rule DSL
 minny/redteam/         Attack families, mutation operators, renderer, critic
 minny/eval/            Detection, attribution, false positives, time to detect
+minny/elastic/         ECS mapping, bulk indexer, rule to ES|QL, fidelity check
+minny/observability/   Sentry spans and the scrubber, offline without a DSN
 minny/api/             One FastAPI app, one router per track
 dist/, web/            Front end, no build step, fixtures or live API
 docs/handoff/          Build plan, shared contracts, verified ground truth, design
@@ -68,4 +70,17 @@ docs/handoff/          Build plan, shared contracts, verified ground truth, desi
 - **No signal reads email.** Mailbox records corroborate a finding and are capped at medium confidence, because headers are forgeable and we do not verify DKIM. Alerts stay reproducible from the parsed log alone, which is what makes the evaluation mean anything.
 - **Explanations are generated from signal values, not written by a model.** An LLM may smooth wording; it may never add a fact. Every sentence traces to a field and a line number.
 - **The LLM never writes a log line.** It picks parameters for attack variants; deterministic code renders everything, which is what keeps the output reproducible from a seed and safe to publish.
+- **Elastic and Sentry run offline by default and say so.** There is no
+  deployment and no project behind this repository, so `python -m
+  minny.elastic.run` writes the exact `_bulk` NDJSON, the strict mapping and
+  the translated ES|QL to `data/elastic/`, and the spans write their
+  payloads to `data/sentry/`. Set `ELASTICSEARCH_URL` with
+  `ELASTIC_INGEST_API_KEY`, or `SENTRY_BACKEND_DSN`, and the same code path
+  talks to the real service. `GET /api/elastic/status` and `GET
+  /api/observability/status` report which mode produced the numbers.
+- **The ES|QL translation is proved, not asserted.** Each rule is evaluated
+  by the Python rule walker over the real events and by a three-valued local
+  executor running the generated query over the documents the indexer would
+  ship, and the matched-line sets are compared. `tests/test_elastic.py`
+  breaks the translator three ways and checks the agreement disappears.
 - **Baselines are fitted strictly below 2026-03-01.** The incident sits inside the held-out window. Fitting on all of it would enrol the attacker as an authorised reader of the file he took.
