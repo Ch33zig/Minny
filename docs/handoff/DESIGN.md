@@ -1,96 +1,119 @@
 # Visual design
 
-Owner: D. Applies to everything under `dist/`. This file is the reference; where it and an older screenshot disagree, this file wins.
+Owner: D. Applies to everything under `dist/`. This file is the reference. Where it and an older screenshot disagree, this file wins.
 
-The product is a forensics tool. It should read like an instrument, not a dashboard. Restraint is the brief: near monochrome, one accent used sparingly enough that it still means something, and motion only where it carries information.
+**This replaces the dark monochrome instrument direction.** That version was legible and forgettable. The challenge is called Log & Order, design and wow factor are judged, and a detective's case board is both more memorable and easier to read at a glance than a dense panel of text.
+
+## The metaphor, and the one rule that protects it
+
+The screen is a detective's board: aged paper, kraft folders, index cards pinned to cork, photographs held down with tape, red string running between suspects, rubber stamps.
+
+**The evidence underneath has to stay real.** Every card on the board resolves to actual log lines by line number. The theme is the presentation layer over a working forensics tool, never a decoration pretending to be one. If a choice makes it look more like a case board but less true, the choice loses. A judge who pulls a thread must find a real record at the end of it.
+
+The second rule follows from the first: **low text, high artifact.** A wall of paragraphs is what we are replacing. A claim is one short line on a card. The detail lives behind the card, revealed when someone pulls the evidence. Numbers are large and typeset, not buried in a sentence.
 
 ## Palette
 
-Dark only. There is no light theme and nothing should be written to support one.
+Warm, aged, printed. No pure black and no pure white anywhere.
 
 ```css
 :root {
-  --bg:        #0B0B0C;  /* page */
-  --surface:   #141416;  /* cards, panels */
-  --surface-2: #1C1C1F;  /* raised rows, inputs, evidence blocks */
-  --line:      #2A2A2E;  /* hairlines, card borders */
-  --line-2:    #3A3A40;  /* emphasised borders */
+  --board:      #4A3B2C;  /* cork board, the surface everything pins to */
+  --board-dark: #3A2D21;  /* vignette, deep shadow */
+  --paper:      #F2E8D5;  /* index card, report page */
+  --paper-2:    #E6D8BE;  /* manila folder, secondary card */
+  --kraft:      #C9A87C;  /* envelope, tab, folder edge */
+  --tape:       #D9CBA3;  /* masking tape, translucent */
 
-  --text:      #EDEDEF;  /* primary */
-  --text-2:    #A1A1A8;  /* secondary, labels, table body */
-  --text-3:    #6E6E76;  /* tertiary, timestamps, muted metadata */
+  --ink:        #2E241C;  /* typed text */
+  --ink-2:      #5B4A3A;  /* secondary typed text */
+  --ink-3:      #8A7660;  /* faded carbon copy, metadata */
+  --pencil:     #3F5166;  /* handwritten annotation, blue-grey pencil */
 
-  --accent:    #E8A33D;  /* amber. see the rule below */
-  --accent-dim:#5A4423;  /* amber at low emphasis, for borders and rails */
+  --stamp:      #B4342A;  /* the one accent, see below */
+  --stamp-dim:  #8E5A52;  /* stamp at low emphasis, string, pin shadow */
 }
 ```
 
-**The accent rule: amber means "this is the finding".** Reserve it for high severity and for the attacker. It must not appear on navigation, headings, buttons, focus rings, links, charts, or anything decorative. If amber shows up in three places on one screen it has stopped carrying meaning. A screen where nothing is high severity should be entirely greyscale, and that is correct, not unfinished.
-
-Everything else that needs to be distinguished is distinguished without hue:
+**The accent rule survives the reskin unchanged.** `--stamp` red means "this is the finding": the attacker, high severity, the CONFIDENTIAL mark, the red string. It never appears on navigation, folder tabs, buttons or body text. If red shows up in four places on one screen it has stopped meaning anything. Everything else is separated by paper tone, tape, pin, stamp and handwriting, not by hue.
 
 | Distinction | How |
 |---|---|
-| Severity high / medium / low | Amber rail for high. Medium and low use `--text` and `--text-2` on a plain border |
-| Confidence high / medium / low | Border style: solid, dashed, dotted. Works in greyscale and survives a projector |
-| Synthetic vs real incident | Hatched grey border plus a `SYNTHETIC` label in Doto. Never amber, or it competes with severity |
-| Corroborating mailbox evidence | Dashed hairline and `--text-3`, set below the log block, never beside it |
+| Confidence high / medium / low | Stamp: `CONFIRMED` solid, `PROBABLE` outlined, `UNVERIFIED` faint and rotated |
+| Severity | Red string and a red pin for high, brass pin otherwise |
+| Synthetic incident | A `SIMULATION` stamp in blue-grey pencil, never red, so it cannot be confused with a finding |
+| Cleared lead | A `CLEARED` stamp across the card, card desaturated and slightly rotated away |
+| Mailbox corroboration | A smaller slip of paper taped on at an angle, visibly a different document |
 
 ## Type
 
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 ```
 
-**Doto**, uppercase, for large text with few words. View titles, the verdict headline, big metric numbers, section labels. It is a dot matrix face: it reads as instrumentation at size and becomes illegible in between. Use it at 26px and up for display, or at exactly 11px for small caps labels where the dot grid resolves cleanly again. Nothing between those two. Never for a sentence and never for body copy. Letterspace it, `0.08em` at display sizes and `0.14em` for labels, because the dot grid needs air.
+Three faces, each with one job. Do not add a fourth.
 
-**Barlow Semi Condensed** for everything a person actually reads. Narrative, findings, table text, controls, buttons, help text. 400 for body, 500 for table headers, 600 for emphasis, 700 only where something must be found at a glance. Its condensed width is doing real work here: the case file is dense and this fits more evidence per column without shrinking the type.
+**Special Elite** for the case title, section headers, stamps and folder tabs. A worn typewriter face. Uppercase, letterspaced `0.06em`. It carries the theme, so it appears on labels and never in a paragraph.
 
-**JetBrains Mono** for machine text that is quoted verbatim: raw log lines, the rule DSL body, saved query names, and hash digests. Not for ids, counts or timestamps, which belong in the condensed face with tabular figures. Evidence must align by column and must look unmistakably like a file rather than like prose. 400 weight, 12.5px, `--text-2` on `--surface-2`.
+**Courier Prime** for everything typed: claims, body, table data, and raw log lines. This is a case file, so everything in it was typed. It is monospace, which means the raw evidence needs no separate face and log columns align for free. 400 for body, 700 for numbers and emphasis.
 
-Scale:
+**Caveat** for handwriting only: margin annotations, the investigator's asides, a checkmark note beside a cleared lead, the number scrawled next to a stat. Set in `--pencil`. Handwriting is how the board says something a typed report would need a sentence for, so use it to remove text, not to add it.
 
-| Role | Face | Size | Weight | Case |
-|---|---|---|---|---|
-| View name | Doto | 34px | 700 | upper |
-| Verdict label | Doto | 26px | 700 | upper |
-| Metric figure | Doto | 40px | 900 | upper |
-| Section label | Doto | 11px | 400 | upper, `0.14em` |
-| Card title | Barlow SC | 17px | 600 | sentence |
-| Body | Barlow SC | 14.5px | 400 | sentence |
-| Table | Barlow SC | 13.5px | 400 | sentence |
-| Metadata | Barlow SC | 12px | 500 | upper, `0.06em` |
-| Evidence | JetBrains Mono | 12.5px | 400 | as written |
+| Role | Face | Size | Notes |
+|---|---|---|---|
+| Case title | Special Elite | 30px | upper, letterspaced |
+| Section header / folder tab | Special Elite | 13px | upper, `0.1em` |
+| Stamp | Special Elite | 11 to 22px | upper, rotated 2 to 6 degrees |
+| Card claim | Courier Prime 700 | 15px | one line, two at most |
+| Body, table | Courier Prime 400 | 13px | |
+| Big stat | Courier Prime 700 | 30px | the number does the talking |
+| Raw log line | Courier Prime 400 | 12px | on white paper, scrolls sideways |
+| Annotation | Caveat 500 | 16px | pencil, slightly rotated |
 
-### One placement rule learned in the build
+## Textures and props, all CSS, no image files
 
-Doto names the **view**, never the content. The topbar reads `CASE FILE` in Doto with the case id and its title underneath in Barlow, because a case title is a sentence and Doto cannot carry a sentence. The verdict block reads `VERDICT` in Doto with the summary paragraph under it. Apply the same split anywhere a heading would otherwise be prose.
+There is no build step and no asset pipeline, so everything is generated. Keep it that way: an inline SVG filter or a gradient, never a downloaded texture.
+
+- **Paper grain:** an inline `feTurbulence` SVG as a data URI at low opacity over `--paper`. One filter, reused.
+- **Cork board:** `--board` with a fine multi-stop radial speckle and a strong inset vignette so the edges fall away.
+- **Tape:** a rotated rectangle in `--tape` at about 0.8 alpha, ragged short edges via `clip-path`, a soft shadow beneath. Two per card at opposing corners, each rotated a different amount.
+- **Push pin:** a small radial-gradient circle with a highlight and a cast shadow. Brass by default, `--stamp` red for the attacker and high severity.
+- **Red string:** inline SVG paths between pinned cards, `--stamp` at 0.7, 1.5px, with a slight sag on the curve. Only between things genuinely linked: attacker to vector to asset to victim. **Never draw a string that does not represent a real relation in the data.**
+- **Stamp:** Special Elite uppercase, 2px border in the stamp colour, rotated, roughened by a mask, at 0.85 alpha so the paper shows through.
+- **Card rotation:** each card rotates between -1.5 and +1.5 degrees, derived from its own id so it is stable across renders rather than jittering on every repaint.
+
+Every card gets a real drop shadow. Things sit on the board, they are not drawn on it.
+
+## The five views
+
+**Case file, the hero.** A cork board. Suspect cards top left as photographs with tape and a pin, monogram in place of a face, name in Special Elite, role stamp, and two or three big numbers. Red string runs from the attacker through the vector to the asset. Findings are index cards pinned in a loose column, each showing one short claim, a stamp for confidence, and a paper-clip affordance that opens the raw log lines as a photocopy slip. Timeline is a strip of small dated cards along the bottom, connected by string. Verdict is a typed report page, slightly larger, with a `CASE CLOSED` stamp across the corner. Cleared leads are a separate pinned cluster, desaturated, each with a `CLEARED` stamp and a pencil note.
+
+**Live monitor.** The board as it assembles. New evidence cards pin themselves on as alerts arrive, string draws between them when the correlator links them, and the incident card grows. This is the one animation worth real effort.
+
+**Judge's panel.** A form as a typed evidence request slip, with a stamp on submit.
+
+**Metrics.** A pinned report page with typed tables. Numbers large. The per-operator table is the artifact, give it room.
+
+**Blue agent.** Two memos side by side, one stamped `ACCEPTED`, one stamped `REJECTED`, with the gate results as a typed checklist and red pencil through the failed line.
 
 ## Motion
 
-Use **Motion** (motion.dev), the vanilla successor to Framer Motion. Framer Motion proper requires React and we do not have React. The vanilla API has the same spring engine and loads from a CDN with no build step:
+Use **Motion** (motion.dev), vanilla, already loaded in `dist/js/motion.js` from `https://cdn.jsdelivr.net/npm/motion@11/+esm`. Framer Motion needs React, which this project does not have.
 
-```js
-import { animate, stagger, inView } from "https://cdn.jsdelivr.net/npm/motion@11/+esm";
-```
+Five things move, and nothing else:
 
-Motion is for conveying change, not for decoration. Four places earn it:
+1. **A card pins onto the board** when an alert arrives: drops in 8px with a slight overshoot and settles at its resting rotation. Spring, roughly `stiffness 220, damping 26`.
+2. **Red string draws** between two cards when the correlator links them: `stroke-dashoffset` over 260ms.
+3. **Evidence opens**: the photocopy slip unfolds, height over 180ms. It happens constantly during the demo, so it must feel instant rather than impressive.
+4. **A stamp lands** once when a verdict or a gate result first renders: scale from 1.15 with a short settle, 200ms, no bounce. Once only, never on hover.
+5. **View change**: a 140ms crossfade.
 
-1. **Incident card growth.** When a correlated alert lands, spring the card height and fade the new narrative beat in. This animation *is* the product's core idea, that twenty warnings become one story, so it is the one place to spend real effort. Spring, roughly `stiffness 220, damping 28`.
-2. **Evidence expand.** Height auto with a 180ms ease. It happens constantly during the demo, so it must feel instant rather than impressive.
-3. **Ticker rows.** New rows enter with a 6px rise and a fade, `stagger(0.02)`. Subtle enough to read as flow.
-4. **View change.** A 140ms crossfade. Nothing sliding.
+No parallax, no page-load choreography, no ambient drift, no animated counters. Hover may lift a card 1px and deepen its shadow, nothing more. Honour `prefers-reduced-motion: reduce` by dropping to opacity or to nothing.
 
-Everything else stays still. Specifically:
+## Legibility, which outranks the theme
 
-- **Hover:** at most a border lightening from `--line` to `--line-2`, or a background step to `--surface-2`. No scale, no lift, no shadow, no glow, no colour change on hover anywhere.
-- No parallax, no entrance animations on page load, no animated counters on the metrics panel, no looping or ambient motion.
-- Honour `prefers-reduced-motion: reduce` by dropping every animation to an opacity change or to nothing. A judge may be on a machine with it set.
+The texture is background, never behind running text at low contrast. Typed ink on paper must stay at 4.5:1 or better. Rotation stays under 2 degrees on anything containing a sentence. Raw log lines sit on the flattest, cleanest paper on the board with no grain behind them, because that block is the proof and it has to be readable without effort.
 
-## Layout
-
-Unchanged from what is built: four internally scrolling columns on the case file, verdict and both suspect cards above the fold at 1280x720. Keep it working at 1280x600.
-
-Hairlines not shadows. Borders are `1px solid var(--line)`. Corner radius 4px, or 0 on evidence blocks so they read as raw output. Generous vertical rhythm, tight horizontal, which is what the condensed face is for.
+It has to work at 1280x720 on a projector, where contrast is worse than a laptop and the back row is far away. If a prop hurts reading, cut the prop.
