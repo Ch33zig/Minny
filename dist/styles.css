@@ -1130,6 +1130,56 @@ select, input[type="text"] {
   .sheaf-nav { padding: 4px 12px 5px; margin-bottom: 8px; }
 }
 
+
+/* Under 660px there is no spare paper anywhere, so the cards close up. Type
+   sizes hold: the brief is explicit that legibility outranks the theme. */
+@media (max-height: 660px) {
+  .sheet .card { padding: 9px 13px 4px; }
+  .sheet .index-top { margin-bottom: 4px; }
+  .sheet .claim { line-height: 1.42; }
+  .sheet .ev { margin-top: 5px; }
+  .sheet .ev-toggle { padding: 5px 0 1px; }
+  .sheet .beat { padding: 9px 11px 6px; }
+  .sheet .memo { padding: 11px 16px 6px; }
+  .sheet .memo-head { padding-bottom: 5px; }
+  .sheet .memo-title { margin: 5px 0 4px; }
+  .sheet .memo-from { margin-bottom: 6px; }
+  .sheet .dsl { padding: 5px 9px 6px; margin-bottom: 6px; }
+  .sheet .gate-row { padding: 0 2px; }
+  .sheet .gate { margin-bottom: 5px; }
+  .sheet .memo-foot { padding-top: 5px; }
+  .sheet .blue-note { padding: 6px 16px 7px; }
+  .sheet .report { padding: 13px 18px 9px; }
+  .metrics-page .stat-row { padding: 6px 0 5px; margin-bottom: 6px; }
+  .metrics-page .big-num b { font-size: 26px; }
+  .metrics-page .report-title { font-size: 18px; }
+  .fpdays { height: 56px; }
+  .ent { padding: 22px 12px 7px; }
+  .mugshot { height: 66px; margin-bottom: 7px; }
+  .monogram { font-size: 30px; }
+  .sheet .findings-col.spread { gap: 4px 15px; }
+  .sheet .claim { line-height: 1.36; }
+  .sheet .leads-sheet { gap: 9px; }
+  .sheet .memo-title { font-size: 15px; }
+  .sheet .dsl code { line-height: 1.4; }
+  .metrics-page { padding: 10px 22px 2px; }
+  .metrics-page .report-head { margin-bottom: 4px; }
+  .metrics-page .mtable td { padding: 0 8px; line-height: 1.35; }
+  .metrics-page .mtable th { padding: 1px 8px 2px; }
+  .metrics-page .m-head { margin-bottom: 1px; }
+  .metrics-page .big-num b { font-size: 23px; }
+  .metrics-page .big-num.good b, .metrics-page .big-num.bad b { font-size: 17px; }
+  .m-side .fp-head { margin-top: 9px; }
+
+  /* The judge's slip is not a sheet, but it has to hold a projector too. */
+  .form-slip { padding: 13px 20px 10px; }
+  .form-note { margin: 7px 0 10px; }
+  .form-body { gap: 10px; }
+  .form-foot { margin-top: 11px; padding-top: 8px; }
+  .filed-stamp { top: 44px; }
+  .variant-slip { padding: 11px 14px 8px; }
+}
+
 /* ---------------------------------------------------------- reduced motion */
 
 /* A judge may be on a machine with reduced motion set. The resting angle of a
