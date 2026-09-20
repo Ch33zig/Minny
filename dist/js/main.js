@@ -65,7 +65,7 @@ async function show(name) {
   current = name;
 
   $('#viewTitle').textContent = VIEWS[name].title;
-  $$('#nav .nav-item').forEach((a) => {
+  $$('#nav .tab').forEach((a) => {
     const on = a.dataset.view === name;
     a.classList.toggle('active', on);
     if (on) a.setAttribute('aria-current', 'page');
@@ -76,15 +76,16 @@ async function show(name) {
   const container = $(`#view-${name}`);
   const view = VIEWS[name].module;
   if (container.dataset.rendered !== '1') {
-    container.innerHTML = '<div class="loading meta">loading…</div>';
+    container.innerHTML = '<div class="loading">opening the file…</div>';
     try {
       await view.render(container);
       container.dataset.rendered = '1';
     } catch (err) {
-      container.innerHTML = `<div class="panel fail">
-        <h2>${esc(VIEWS[name].title)} could not load</h2>
-        <p class="meta">${esc(err.message)}</p>
-        <p>${mode.mock
+      container.innerHTML = `<div class="paper pinned fail-note" style="--rot:-0.6deg">
+        <span class="pin red"></span>
+        <h2 class="fail-head">${esc(VIEWS[name].title)} could not load</h2>
+        <p class="fail-why">${esc(err.message)}</p>
+        <p class="fail-fix">${mode.mock
           ? 'Reading from <code>' + esc(mode.source) + '</code>. Check that the fixtures directory is being served.'
           : 'The API is not answering. The fixture demo needs no backend at all.'}</p>
         ${mode.mock ? '' : `<a class="ctl primary-ctl" href="${esc(mockHref())}">Switch to fixtures</a>`}

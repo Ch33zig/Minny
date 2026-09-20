@@ -3,56 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0B0B0C" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#4A3B2C" />
+    <meta name="color-scheme" content="light" />
     <meta name="description" content="Insider-threat case file and live monitor over web server logs." />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23EDEDEF' d='M32 4 57 15v16c0 15-10 25-25 29C17 56 7 46 7 31V15z'/%3E%3Cpath fill='%230B0B0C' d='m21 31 7 7 15-16 4 4-19 20-11-11z'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='6' fill='%234A3B2C'/%3E%3Cpath fill='%23C9A87C' d='M8 18h18l5 6h25v30H8z'/%3E%3Cpath fill='%23F2E8D5' d='M12 26h44v24H12z'/%3E%3Ccircle cx='44' cy='38' r='9' fill='none' stroke='%23B4342A' stroke-width='3'/%3E%3C/svg%3E" />
     <title>Minny · Case file</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <aside class="rail" aria-label="Primary navigation">
-        <div class="mark" aria-label="Minny">M<span>:</span></div>
-        <nav id="nav">
-          <a class="nav-item" href="#case" data-view="case"><span class="nav-icon">§</span><span>Case file</span><kbd>1</kbd></a>
-          <a class="nav-item" href="#monitor" data-view="monitor"><span class="nav-icon">≋</span><span>Monitor</span><kbd>2</kbd></a>
-          <a class="nav-item" href="#judge" data-view="judge"><span class="nav-icon">◎</span><span>Judge</span><kbd>3</kbd></a>
-          <a class="nav-item" href="#metrics" data-view="metrics"><span class="nav-icon">▦</span><span>Metrics</span><kbd>4</kbd></a>
-          <a class="nav-item" href="#blue" data-view="blue"><span class="nav-icon">⌘</span><span>Blue agent</span><kbd>5</kbd></a>
-        </nav>
-        <div class="rail-foot">
-          <div class="integrations" id="integrations"></div>
-          <div class="src-line"><span>SOURCE</span><b class="meta" id="srcLines"><span class="none">&#183;</span></b></div>
-          <div class="src-line"><span>SHA-256</span><b class="meta" id="srcHash"><span class="none">&#183;</span></b></div>
-        </div>
-      </aside>
-
-      <section class="workspace">
-        <header class="topbar">
-          <div class="topbar-id">
-            <h1 class="view-title" id="viewTitle">Case file</h1>
-            <p class="case-line">
-              <span class="case-id meta" id="caseId">MINNY</span>
-              <span class="case-name" id="caseTitle">Loading case file…</span>
+    <div class="board">
+      <header class="jacket">
+        <div class="jacket-id">
+          <div class="case-no" id="caseId">MINNY</div>
+          <div class="jacket-label">
+            <h1 class="case-name" id="caseTitle">Loading case file…</h1>
+            <p class="jacket-sub">
+              <span class="view-title" id="viewTitle">Case file</span>
+              <span class="jacket-window" id="windowChip" hidden><span class="none">&#183;</span></span>
             </p>
           </div>
-          <div class="top-actions">
-            <span class="chip" id="windowChip" title="Observation window" hidden><span class="none">&#183;</span></span>
-            <span class="chip mode" id="modeChip"><span class="none">&#183;</span></span>
-          </div>
-        </header>
+        </div>
 
+        <div class="jacket-slips">
+          <!-- Pinned status slips live here. -->
+          <div class="slip source-slip">
+            <span class="slip-head">EXHIBIT SOURCE</span>
+            <b class="slip-line" id="srcLines"><span class="none">&#183;</span></b>
+            <b class="slip-line dim" id="srcHash"><span class="none">&#183;</span></b>
+          </div>
+          <div class="slip mode-slip" id="modeChip"><span class="none">&#183;</span></div>
+          <!-- The integrations strip pins here. dist/js/integrations.js writes
+               into #integrations and its rows are themed below as a slip, so
+               nothing in that module has to change. -->
+          <div class="slip int-slip" id="integrations"></div>
+        </div>
+      </header>
+
+      <nav id="nav" aria-label="Primary navigation">
+        <a class="tab" href="#case" data-view="case"><span>Case file</span><kbd>1</kbd></a>
+        <a class="tab" href="#monitor" data-view="monitor"><span>Monitor</span><kbd>2</kbd></a>
+        <a class="tab" href="#judge" data-view="judge"><span>Judge</span><kbd>3</kbd></a>
+        <a class="tab" href="#metrics" data-view="metrics"><span>Metrics</span><kbd>4</kbd></a>
+        <a class="tab" href="#blue" data-view="blue"><span>Blue agent</span><kbd>5</kbd></a>
+      </nav>
+
+      <main class="surface">
         <section class="view" id="view-case" hidden></section>
         <section class="view" id="view-monitor" hidden></section>
         <section class="view" id="view-judge" hidden></section>
         <section class="view" id="view-metrics" hidden></section>
         <section class="view" id="view-blue" hidden></section>
-      </section>
-    </main>
+      </main>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="./js/main.js"></script>
