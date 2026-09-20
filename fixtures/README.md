@@ -17,7 +17,7 @@ Shapes follow [00-CONTRACTS.md](../docs/handoff/00-CONTRACTS.md). Values follow
 | `alerts.json` | 9 alerts over signals S1-S6 and S8, timestamped from the real lines they cite. |
 | `incidents.json` | The real incident with its 9 alerts, plus one synthetic variant carrying `labels.synthetic: true`. |
 | `stream.ndjson` | 62 SSE frames generated from the three files above. Monotonic `seq`, types `event`/`alert`/`incident`/`replay_state`/`heartbeat`. The incident is re-emitted six times, each time larger, which is what makes the monitor card grow. |
-| `metrics.json` | Section 9 verbatim, zeros and all. Carries `"placeholder": true` and the UI prints a warning ribbon over the whole panel until C ships a generated file without that flag. |
+| `metrics.json` | The real output of `python eval.py --seed 42`, copied byte for byte from `data/metrics.json`. The `placeholder` flag is gone, so the UI no longer prints the warning ribbon: every figure on that panel is now a measured one. Refresh it whenever the evaluation is re-run. |
 | `blue_proposals.json` | One accepted rule (R003, slow credential guessing) and one rejected (R004, the `csrf` matcher). Gate numbers are placeholders and flagged as such. |
 | `email_evidence.json` | Six seeded messages. The file says so in `seeded_demo_mailbox` and the UI repeats it on screen. |
 
