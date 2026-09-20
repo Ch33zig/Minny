@@ -1,9 +1,11 @@
-// Blue agent. A rejected rule sits next to an accepted one on purpose: the rule
-// that catches the original perfectly and dies on the held-out set is the more
-// honest story, and it is the one a judge remembers.
+// Blue agent. Two memos face each other: a rejected rule sits next to an
+// accepted one on purpose. The rule that catches the original perfectly and
+// dies on the held-out set is the more honest story, and it is the one a judge
+// remembers.
 
 import { api } from '../api.js';
 import { esc, fmtPct, fmtTs, noneTag } from '../dom.js';
+import { layStamp } from '../motion.js';
 
 const GATE_LABEL = {
   heldout_detection: 'held-out detection',
@@ -18,71 +20,75 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="blue-grid">
-      <section class="panel blue-intro">
-        <p class="section-label">PROPOSED DETECTION RULES</p>
-        <p>The red team finds an evasion, the blue agent writes a rule against it, and the rule only ships if it clears a gate on data it has never seen. Both outcomes are shown, because a rule that passes the gate and a rule that cannot are equally informative.</p>
-        <div class="blue-counts meta">
-          <span class="check pass">${accepted.length} accepted</span>
-          <span class="check fail">${rejected.length} rejected</span>
-        </div>
+      <section class="blue-note">
+        <span class="pin"></span>
+        <h2 class="tw">Proposed detection rules</h2>
+        <p class="blue-lede">A rule ships only if it clears a gate on data it has never seen.</p>
+        <p class="hand aside">both outcomes are pinned up, because a rule that cannot pass is just as informative</p>
       </section>
 
-      <section class="panel col rule-col">
-        <div class="col-head"><p class="section-label">ACCEPTED</p><span class="col-count meta">${accepted.length}</span></div>
-        <div class="col-body">${accepted.map(rule).join('') || '<div class="empty">Nothing has cleared the gate.</div>'}</div>
-      </section>
-
-      <section class="panel col rule-col">
-        <div class="col-head"><p class="section-label">REJECTED</p><span class="col-count meta">${rejected.length}</span></div>
-        <div class="col-body">${rejected.map(rule).join('') || '<div class="empty">Nothing was rejected.</div>'}</div>
-      </section>
+      <div class="memo-row">
+        ${accepted.map((r) => memo(r, true)).join('') || '<div class="empty">Nothing has cleared the gate.</div>'}
+        ${rejected.map((r) => memo(r, false)).join('') || '<div class="empty">Nothing was rejected.</div>'}
+      </div>
     </div>`;
+
+  // The gate result is a verdict, so its stamp lands once.
+  container.querySelectorAll('.memo-stamp').forEach(layStamp);
 }
 
-function rule(r) {
+function memo(r, passed) {
   const gate = r.gate || {};
   const parse = r.parse || {};
-  const passed = gate.accepted;
   const checks = Object.entries(gate)
     .filter(([, v]) => v && typeof v === 'object')
     .map(([key, v]) => gateRow(key, v))
     .join('');
 
   return `
-    <article class="card rule ${passed ? 'rule-pass' : 'rule-fail'}">
-      <div class="card-head">
-        <span class="card-id meta">${esc(r.id || '')}</span>
-        <div class="variant-tags">
-          ${r.placeholder ? '<span class="op-chip meta none">fixture</span>' : ''}
-          <span class="${passed ? 'check pass' : 'check fail'} meta">${passed ? 'ACCEPTED' : 'REJECTED'}</span>
-        </div>
+    <article class="memo ${passed ? 'memo-pass' : 'memo-fail'}" style="--rot:${rot(r.id || r.name)}">
+      <span class="pin ${passed ? '' : 'red'} left"></span><span class="pin ${passed ? '' : 'red'} right"></span>
+      <span class="stamp big memo-stamp ${passed ? 'ink' : ''}">${passed ? 'ACCEPTED' : 'REJECTED'}</span>
+      <div class="memo-head">
+        <span class="tw">Memorandum</span>
+        <span class="card-id">${esc(r.id || '')}</span>
       </div>
-      <p class="claim">${esc(r.name || '')}</p>
-      <div class="rule-meta meta">
-        <span>proposed by ${esc(r.proposed_by || 'blue_agent')}</span>
-        <span>evades ${esc(r.evaded_family || '?')} ${esc(r.evaded_family_name || '')}</span>
+      <h3 class="memo-title">${esc(r.name || '')}</h3>
+      <div class="memo-from">
+        <span class="tw">From</span> ${esc(r.proposed_by || 'blue_agent')}
+        <span class="tw">Re</span> ${esc(r.evaded_family || '?')} ${esc(r.evaded_family_name || '')}
         ${(r.evaded_operators || []).map((o) => `<span class="op-chip">${esc(o)}</span>`).join('')}
       </div>
-      ${r.rationale ? `<p class="method"><span class="method-label meta">WHY THIS RULE</span>${esc(r.rationale)}</p>` : ''}
 
       <div class="dsl">
-        <div class="dsl-head meta"><span>WHEN</span>${parse.ok === false ? '<span class="check fail">parse error</span>' : '<span class="meta dsl-ok">parses · depth ' + esc(parse.depth ?? '?') + ' · ' + esc(parse.nodes ?? '?') + ' nodes</span>'}</div>
+        <div class="dsl-head">
+          <span class="tw">When</span>
+          ${parse.ok === false
+            ? '<span class="tick-mark fail">parse error</span>'
+            : `<span class="dsl-ok">parses, depth ${esc(parse.depth === undefined ? '?' : parse.depth)}, ${esc(parse.nodes === undefined ? '?' : parse.nodes)} nodes</span>`}
+        </div>
         <code>${esc(r.when || '')}</code>
-        ${r.explain ? `<div class="dsl-explain meta">${esc(r.explain)}</div>` : ''}
-        ${parse.error ? `<div class="dsl-error meta">${esc(parse.error)}</div>` : ''}
-        ${parse.grammar_note ? `<div class="dsl-note meta">${esc(parse.grammar_note)}</div>` : ''}
+        ${r.explain ? `<div class="dsl-explain">${esc(r.explain)}</div>` : ''}
+        ${parse.error ? `<div class="dsl-error">${esc(parse.error)}</div>` : ''}
       </div>
 
-      <div class="gate">${checks}</div>
-      ${gate.rejected_reason ? `<p class="reject-reason">${esc(gate.rejected_reason)}</p>` : ''}
+      <div class="gate">
+        <div class="tw gate-title">Gate</div>
+        ${checks}
+      </div>
+      ${rejectReason(gate.rejected_reason)}
       ${beforeAfter(r.before_after)}
-      <div class="inc-foot meta">
+      ${r.rationale ? `<p class="memo-why">${esc(r.rationale)}</p>` : ''}
+      <div class="memo-foot">
         <span>${r.created_ts ? esc(fmtTs(r.created_ts, { withYear: true })) : 'no timestamp'}</span>
         <span>${r.pull_request ? esc(r.pull_request) : 'no pull request opened'}</span>
+        ${r.placeholder ? '<span class="stamp faint">FIXTURE</span>' : ''}
       </div>
     </article>`;
 }
 
+/* A failed check keeps its numbers readable and takes a red pencil through
+   the line, the way a reviewer would strike it on paper. */
 function gateRow(key, v) {
   const target = v.threshold !== undefined ? `threshold ${v.threshold}`
     : v.budget !== undefined ? `budget ${v.budget}`
@@ -92,11 +98,22 @@ function gateRow(key, v) {
     : noneTag;
   return `
     <div class="gate-row ${v.pass ? 'pass' : 'fail'}">
-      <span class="gate-mark meta">${v.pass ? '✓' : '✕'}</span>
+      <span class="gate-mark">${v.pass ? '&#10003;' : '&#10007;'}</span>
       <span class="gate-name">${esc(GATE_LABEL[key] || key)}</span>
-      <span class="gate-target meta">${esc(target)}</span>
-      <span class="gate-measured meta">${measured}</span>
+      <span class="gate-target">${esc(target)}</span>
+      <span class="gate-measured">${measured}</span>
     </div>`;
+}
+
+/* The first line of a rejection is the reviewer's own note in the margin.
+   What follows is technical, so it stays typed and readable. */
+function rejectReason(text) {
+  if (!text) return '';
+  const s = String(text).trim();
+  const m = /^[\s\S]*?[.!?](?=\s|$)/.exec(s);
+  const head = m ? m[0] : s;
+  const rest = s.slice(head.length).trim();
+  return `<p class="hand aside reject-reason">${esc(head)}</p>${rest ? `<p class="memo-note">${esc(rest)}</p>` : ''}`;
 }
 
 function beforeAfter(ba) {
@@ -107,11 +124,18 @@ function beforeAfter(ba) {
     const after = pct ? fmtPct(v.after) : String(v.after);
     const moved = v.after !== v.before;
     return `<div class="ba-row">
-      <span class="ba-name meta">${esc(key.replace(/_/g, ' '))}</span>
-      <span class="ba-val meta">${esc(before)}</span>
-      <span class="ba-arrow meta">→</span>
-      <span class="ba-val meta ${moved ? 'moved' : 'flat'}">${esc(after)}</span>
+      <span class="ba-name">${esc(key.replace(/_/g, ' '))}</span>
+      <span class="ba-val">${esc(before)}</span>
+      <span class="ba-arrow">to</span>
+      <span class="ba-val ${moved ? 'moved' : 'flat'}">${esc(after)}</span>
     </div>`;
   }).join('');
-  return `<div class="ba"><div class="ba-head meta">BEFORE → AFTER</div>${rows}</div>`;
+  return `<div class="ba"><div class="tw">Before and after</div>${rows}</div>`;
+}
+
+function rot(seed, max = 0.7) {
+  let h = 0;
+  const s = String(seed);
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return `${((((h % 997) / 997) * 2 - 1) * max).toFixed(2)}deg`;
 }
