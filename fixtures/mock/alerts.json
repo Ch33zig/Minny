@@ -1,6 +1,6 @@
 [
   {
-    "alert_id": "a_3c81f0",
+    "alert_id": "a_f78c9a",
     "ts": "2026-03-13T23:10:19-04:00",
     "signal": "S1",
     "signal_name": "ip_mismatch",
@@ -14,21 +14,44 @@
       "known_ips": [
         "10.0.5.12"
       ],
+      "observed_ip": "10.0.8.45",
       "months_observed": 7,
-      "baseline_events": 15711
+      "ip_owner": "david_m"
     },
     "evidence_lines": [
-      168311,
-      168312,
-      168313,
-      168314
+      168311
     ],
-    "explanation": "sarah_j's account was used from 10.0.8.45, which belongs to david_m. She has used only 10.0.5.12 in seven months of baseline.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_5d02b7",
-    "ts": "2026-03-14T22:11:26-04:00",
+    "alert_id": "a_252f23",
+    "ts": "2026-03-13T23:10:25-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168312
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_0f0986",
+    "ts": "2026-03-13T23:10:28-04:00",
     "signal": "S3",
     "signal_name": "auth_fail_burst",
     "severity": "high",
@@ -38,176 +61,485 @@
     "template": "/api/auth/login",
     "obj_id": null,
     "value": {
-      "count": 6,
-      "window_s": 13,
-      "min_gap_s": 2,
-      "baseline_min_gap_s": 809
+      "failures": 3,
+      "window_s": 9.0,
+      "threshold": 3,
+      "baseline_max_in_window": 1,
+      "ip_is_known_for_user": false
+    },
+    "evidence_lines": [
+      168311,
+      168312,
+      168313
+    ],
+    "explanation": "sarah_j failed to authenticate 3 times from 10.0.8.45 within 9.0 seconds. The baseline never shows more than 1 failure(s) for that account in any 30-second window.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_e72205",
+    "ts": "2026-03-13T23:10:28-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168313
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_84d9ce",
+    "ts": "2026-03-13T23:10:32-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168314
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_c696a6",
+    "ts": "2026-03-14T22:11:26-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168321
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_78bf75",
+    "ts": "2026-03-14T22:11:30-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168322
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_4fde48",
+    "ts": "2026-03-14T22:11:32-04:00",
+    "signal": "S3",
+    "signal_name": "auth_fail_burst",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "failures": 3,
+      "window_s": 6.0,
+      "threshold": 3,
+      "baseline_max_in_window": 1,
+      "ip_is_known_for_user": false
     },
     "evidence_lines": [
       168321,
       168322,
-      168323,
-      168324,
-      168325,
-      168326
+      168323
     ],
-    "explanation": "sarah_j failed to log in 6 times in 13 seconds from 10.0.8.45. Her tightest gap between failures in the baseline window is 809 seconds.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "sarah_j failed to authenticate 3 times from 10.0.8.45 within 6.0 seconds. The baseline never shows more than 1 failure(s) for that account in any 30-second window.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_91ae44",
+    "alert_id": "a_601292",
+    "ts": "2026-03-14T22:11:32-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168323
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_6645aa",
+    "ts": "2026-03-14T22:11:35-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168324
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_f45ddc",
+    "ts": "2026-03-14T22:11:37-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168325
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_48e255",
+    "ts": "2026-03-14T22:11:39-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/api/auth/login",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168326
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_33015e",
     "ts": "2026-03-15T09:20:20-04:00",
     "signal": "S8",
     "signal_name": "anomalous_status",
-    "severity": "medium",
+    "severity": "high",
     "user": "david_m",
     "ip": "10.0.8.45",
-    "ip_owner": "david_m",
+    "ip_owner": null,
     "template": "/intranet/forum/new",
     "obj_id": null,
     "value": {
       "status": 500,
-      "global_count": 1,
-      "threshold": 5
+      "baseline_count": 0,
+      "threshold": 10,
+      "path": "/intranet/forum/new?topic=lunch_menu&payload=csrf_test"
     },
     "evidence_lines": [
       168330
     ],
-    "explanation": "david_m received a 500 on /intranet/forum/new. Status 500 occurs exactly once in 180,800 lines.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "/intranet/forum/new?topic=lunch_menu&payload=csrf_test returned 500. That status occurs 0 times in the 157818 events of the baseline window, below the threshold of 10.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_91ae45",
-    "ts": "2026-03-15T09:42:35-04:00",
-    "signal": "S8",
-    "signal_name": "anomalous_status",
+    "alert_id": "a_e3877c",
+    "ts": "2026-03-15T09:20:20-04:00",
+    "signal": "S5",
+    "signal_name": "unexpected_params",
     "severity": "medium",
     "user": "david_m",
     "ip": "10.0.8.45",
-    "ip_owner": "david_m",
+    "ip_owner": null,
+    "template": "/intranet/forum/new",
+    "obj_id": null,
+    "value": {
+      "unexpected_params": [
+        "payload"
+      ],
+      "sent_params": [
+        "payload",
+        "topic"
+      ],
+      "baseline_params": [
+        "topic"
+      ],
+      "template": "/intranet/forum/new"
+    },
+    "evidence_lines": [
+      168330
+    ],
+    "explanation": "david_m sent the parameter(s) payload to /intranet/forum/new. The baseline records only topic on that template.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_4347a4",
+    "ts": "2026-03-15T09:42:35-04:00",
+    "signal": "S8",
+    "signal_name": "anomalous_status",
+    "severity": "high",
+    "user": "david_m",
+    "ip": "10.0.8.45",
+    "ip_owner": null,
     "template": "/intranet/forum/new",
     "obj_id": null,
     "value": {
       "status": 400,
-      "global_count": 1,
-      "threshold": 5
+      "baseline_count": 0,
+      "threshold": 10,
+      "path": "/intranet/forum/new?topic=q1_updates&action=csrf_role_update"
     },
     "evidence_lines": [
       168331
     ],
-    "explanation": "david_m received a 400 on /intranet/forum/new. Status 400 occurs exactly once in 180,800 lines.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "/intranet/forum/new?topic=q1_updates&action=csrf_role_update returned 400. That status occurs 0 times in the 157818 events of the baseline window, below the threshold of 10.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_6f72c3",
+    "alert_id": "a_f0c4a9",
+    "ts": "2026-03-15T09:42:35-04:00",
+    "signal": "S5",
+    "signal_name": "unexpected_params",
+    "severity": "medium",
+    "user": "david_m",
+    "ip": "10.0.8.45",
+    "ip_owner": null,
+    "template": "/intranet/forum/new",
+    "obj_id": null,
+    "value": {
+      "unexpected_params": [
+        "action"
+      ],
+      "sent_params": [
+        "action",
+        "topic"
+      ],
+      "baseline_params": [
+        "topic"
+      ],
+      "template": "/intranet/forum/new"
+    },
+    "evidence_lines": [
+      168331
+    ],
+    "explanation": "david_m sent the parameter(s) action to /intranet/forum/new. The baseline records only topic on that template.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_7f0eae",
     "ts": "2026-03-15T10:18:52-04:00",
     "signal": "S5",
     "signal_name": "unexpected_params",
     "severity": "medium",
     "user": "david_m",
     "ip": "10.0.8.45",
-    "ip_owner": "david_m",
+    "ip_owner": null,
     "template": "/intranet/forum/new",
     "obj_id": null,
     "value": {
-      "baseline_keys": [
+      "unexpected_params": [
+        "script"
+      ],
+      "sent_params": [
+        "script",
         "topic"
       ],
-      "observed_keys": [
-        "topic",
-        "payload",
-        "action",
-        "script"
+      "baseline_params": [
+        "topic"
       ],
-      "novel_keys": [
-        "payload",
-        "action",
-        "script"
-      ]
+      "template": "/intranet/forum/new"
     },
     "evidence_lines": [
-      168330,
-      168331,
       168332
     ],
-    "explanation": "david_m sent the parameters payload, action and script to /intranet/forum/new. Only topic appears on that endpoint in the baseline window.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "david_m sent the parameter(s) script to /intranet/forum/new. The baseline records only topic on that template.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_0f3c21",
+    "alert_id": "a_534920",
+    "ts": "2026-03-15T11:07:57-04:00",
+    "signal": "S4",
+    "signal_name": "novel_template",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.5.12",
+    "ip_owner": null,
+    "template": "/api/admin/role_update",
+    "obj_id": null,
+    "value": {
+      "template": "/api/admin/role_update",
+      "user_template_count": 0,
+      "global_baseline_count": 0,
+      "user_templates_known": 25
+    },
+    "evidence_lines": [
+      168336
+    ],
+    "explanation": "sarah_j requested /api/admin/role_update, a template no account used anywhere in the baseline window.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_83a205",
     "ts": "2026-03-15T11:07:57-04:00",
     "signal": "S6",
     "signal_name": "content_triggered_privileged_action",
     "severity": "high",
     "user": "sarah_j",
     "ip": "10.0.5.12",
-    "ip_owner": "sarah_j",
+    "ip_owner": null,
     "template": "/api/admin/role_update",
     "obj_id": 1042,
     "value": {
-      "view_line": 168335,
-      "action_line": 168336,
-      "gap_s": 1,
-      "vector_template": "/intranet/forum/view/{id}"
+      "vector_template": "/intranet/forum/view/{id}",
+      "vector_obj_id": 1042,
+      "vector_line": 168335,
+      "privileged_template": "/api/admin/role_update",
+      "gap_s": 1.0,
+      "window_s": 5,
+      "vector_author": "david_m",
+      "vector_author_lines": [
+        168332,
+        168333
+      ]
     },
     "evidence_lines": [
+      168332,
+      168333,
       168335,
       168336
     ],
-    "explanation": "sarah_j opened forum post 1042 and one second later her session called /api/admin/role_update, a privileged endpoint she has never used.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "sarah_j viewed forum post 1042 and 1.0 second(s) later the same account requested /api/admin/role_update, a privileged endpoint. david_m submitted a post and opened 1042 3.0 second(s) later, which places that account at the vector immediately beforehand. The log does not record which object a submission created, so this is association, not authorship.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_c4d918",
+    "alert_id": "a_894d3d",
     "ts": "2026-03-15T11:07:59-04:00",
     "signal": "S4",
     "signal_name": "novel_template",
     "severity": "high",
     "user": "sarah_j",
     "ip": "10.0.5.12",
-    "ip_owner": "sarah_j",
+    "ip_owner": null,
     "template": "/assets/avatar_{id}.png",
     "obj_id": 1042,
     "value": {
-      "baseline_count": 0,
-      "global_count": 1,
-      "known_templates": 25
+      "template": "/assets/avatar_{id}.png",
+      "user_template_count": 0,
+      "global_baseline_count": 0,
+      "user_templates_known": 25
     },
     "evidence_lines": [
       168337
     ],
-    "explanation": "sarah_j requested /assets/avatar_1042.png. That template does not occur anywhere in the baseline window and appears once in the whole file.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "sarah_j requested /assets/avatar_{id}.png, a template no account used anywhere in the baseline window.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_8b1207",
+    "alert_id": "a_5cf5b2",
     "ts": "2026-03-15T11:26:59-04:00",
     "signal": "S2",
     "signal_name": "first_success_on_denied",
     "severity": "high",
     "user": "david_m",
     "ip": "10.0.8.45",
-    "ip_owner": "david_m",
+    "ip_owner": null,
     "template": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
     "obj_id": null,
     "value": {
-      "prior_denials": 80,
-      "prior_successes": 0,
-      "size": 8459200,
-      "authorized": [
-        "nicole_h",
-        "sarah_j"
-      ]
+      "template": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
+      "baseline_denials": 70,
+      "baseline_successes": 0
     },
     "evidence_lines": [
-      168315,
       168338
     ],
-    "explanation": "david_m downloaded /finance/reports/q1_draft_CONFIDENTIAL.zip after 80 denials and no prior success. He is not in the authorized set for that path.",
-    "incident_id": "inc_7b21e0"
+    "explanation": "david_m received 200 on /finance/reports/q1_draft_CONFIDENTIAL.zip. The baseline window refused that account 70 times on this path and records no successful request.",
+    "incident_id": "inc_e30fc0"
   },
   {
-    "alert_id": "a_3c81f1",
+    "alert_id": "a_eb4724",
     "ts": "2026-03-15T22:29:43-04:00",
     "signal": "S1",
     "signal_name": "ip_mismatch",
@@ -221,97 +553,89 @@
       "known_ips": [
         "10.0.5.12"
       ],
+      "observed_ip": "10.0.8.45",
       "months_observed": 7,
-      "status": 200
+      "ip_owner": "david_m"
     },
     "evidence_lines": [
-      168343,
-      168344,
-      168345,
+      168343
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_fc9f7f",
+    "ts": "2026-03-15T22:29:45-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/dashboard",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168344
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_191795",
+    "ts": "2026-03-15T22:30:40-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
+      168345
+    ],
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
+  },
+  {
+    "alert_id": "a_16ae18",
+    "ts": "2026-03-15T22:33:40-04:00",
+    "signal": "S1",
+    "signal_name": "ip_mismatch",
+    "severity": "high",
+    "user": "sarah_j",
+    "ip": "10.0.8.45",
+    "ip_owner": "david_m",
+    "template": "/logout",
+    "obj_id": null,
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "observed_ip": "10.0.8.45",
+      "months_observed": 7,
+      "ip_owner": "david_m"
+    },
+    "evidence_lines": [
       168346
     ],
-    "explanation": "A login for sarah_j succeeded from 10.0.8.45, david_m's workstation, and the session downloaded the Q1 confidential draft three minutes later.",
-    "incident_id": "inc_7b21e0"
-  },
-  {
-    "alert_id": "a_v42_01",
-    "ts": "2026-03-18T10:42:11-04:00",
-    "signal": "S5",
-    "signal_name": "unexpected_params",
-    "severity": "medium",
-    "user": "joshua_c",
-    "ip": "10.0.8.50",
-    "ip_owner": "joshua_c",
-    "template": "/intranet/forum/new",
-    "obj_id": null,
-    "value": {
-      "baseline_keys": [
-        "topic"
-      ],
-      "observed_keys": [
-        "topic",
-        "tracking_ref"
-      ],
-      "novel_keys": [
-        "tracking_ref"
-      ]
-    },
-    "evidence_lines": [
-      180801
-    ],
-    "explanation": "joshua_c sent the parameter tracking_ref to /intranet/forum/new. Only topic appears on that endpoint in the baseline window.",
-    "incident_id": "inc_9a04c2",
-    "synthetic": true
-  },
-  {
-    "alert_id": "a_v42_02",
-    "ts": "2026-03-18T13:55:02-04:00",
-    "signal": "S6",
-    "signal_name": "content_triggered_privileged_action",
-    "severity": "high",
-    "user": "michael_t",
-    "ip": "10.0.5.88",
-    "ip_owner": "michael_t",
-    "template": "/api/admin/role_update",
-    "obj_id": 1188,
-    "value": {
-      "view_line": 180803,
-      "action_line": 180804,
-      "gap_s": 2,
-      "vector_template": "/intranet/forum/view/{id}"
-    },
-    "evidence_lines": [
-      180803,
-      180804
-    ],
-    "explanation": "michael_t opened forum post 1188 and two seconds later his session called /api/admin/role_update.",
-    "incident_id": "inc_9a04c2",
-    "synthetic": true
-  },
-  {
-    "alert_id": "a_v42_03",
-    "ts": "2026-03-18T14:06:30-04:00",
-    "signal": "S2",
-    "signal_name": "first_success_on_denied",
-    "severity": "high",
-    "user": "joshua_c",
-    "ip": "10.0.8.50",
-    "ip_owner": "joshua_c",
-    "template": "/hr/directory_full_CONFIDENTIAL.csv",
-    "obj_id": null,
-    "value": {
-      "prior_denials": 31,
-      "prior_successes": 0,
-      "size": 4812,
-      "authorized": [
-        "michael_t"
-      ]
-    },
-    "evidence_lines": [
-      180806
-    ],
-    "explanation": "joshua_c downloaded /hr/directory_full_CONFIDENTIAL.csv with no prior success on that path. He is not in the authorized set.",
-    "incident_id": "inc_9a04c2",
-    "synthetic": true
+    "explanation": "sarah_j used 10.0.8.45, which belongs to david_m. That account has used only 10.0.5.12 across 7 months of baseline traffic.",
+    "incident_id": "inc_e30fc0"
   }
 ]

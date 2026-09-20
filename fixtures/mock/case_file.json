@@ -429,7 +429,7 @@
     }
   ],
   "provenance": {
-    "generated_at": "2026-09-19T21:36:27.249967-04:00",
+    "generated_at": "2026-09-19T21:51:11.142370-04:00",
     "events": "events.parquet",
     "event_count": 180800,
     "command": "python -m minny.casefile.build",
