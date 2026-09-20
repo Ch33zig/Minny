@@ -115,3 +115,29 @@ Accepted rules append to `detection-rules/rules.yaml` and B's detector hot-reloa
 `POST /api/redteam/generate` in `minny/api/routes_redteam.py`: takes `{attacker, victim, target, operators[], persona}`, generates a variant, injects it into B's live replay queue, and returns the variant label. D calls it, the incident appears on screen in seconds.
 
 **Cache LLM responses for the common combinations before 05:00, with a live call as the fallback.** A judge will click it during a three-minute demo on conference wifi. Do not let a cold API call be the thing that ends the run.
+
+---
+
+## M4 as built
+
+`python -m minny.redteam.generate --seed 42 --count 200` — 2 seconds, no API key, writes `data/variants.json` (200 accepted labels with their rendered lines, IDs 180801-182612) and `data/variants_rejected.json`.
+
+Module layout, in the order the pipeline runs:
+
+| Module | Does |
+|---|---|
+| `catalog.py` | Users, IPs, forum post IDs, topics, targets and the pool of real lines to clone, all read from `events.parquet` and `access_matrix.json` |
+| `plan.py` | Parameters for one variant. Seeded by default; `--planner auto` uses Claude when `ANTHROPIC_API_KEY` is set, for parameters only |
+| `families.py` | A plan becomes an ordered list of steps, each with a gap rather than a timestamp |
+| `render.py` | Steps become log lines: size from `size_table.json`, skeleton cloned from a real line |
+| `operators.py` | The nine evasions, and a verifier per operator that reads the rendered lines back |
+| `critic.py` | Six checks; the first failure is the reported one |
+| `generate.py` | The CLI, plus `--blind-check` |
+
+Three decisions worth knowing about downstream.
+
+**Declared operators are derived from the finished plan, not from what was requested.** Asking for `target_swap` and landing on the canonical target used to produce a label the lines did not support. `--declare-requested` turns the reconciliation off and runs the generator deliberately faulty: at seed 42 that yields 180 rejections out of 380 attempts, every one of them `operators_present`, which is the check doing exactly the job it exists for.
+
+**The log is `-0400` everywhere.** All 180,800 real lines carry it, including August and December ones, so the DST split the brief predicted does not exist in the data and the renderer uses a constant offset. `events.parquet` stores `ts` in `America/New_York`, which for any date before 8 March renders an hour earlier than the text of the same line — worth knowing before quoting a `ts` column value next to a raw evidence line.
+
+**Blind realism check, run twice at 40 real March lines against 10 synthetic.** First pass: 7 of 10 picked, and two of them only because `own_ip_takeover` was using 10.0.10.x and 10.0.12.x, subnets that appear nowhere in the corpus. That is a rendering tell rather than an attack signal, so the unseen-host pool moved onto the real 10.0.5-10.0.9 subnets with host octets that never occur. Second pass, fresh seed: 8 of 10 picked, every one of them by attack semantics — a user on someone else's host, a 200 on a file that account is denied, or the literal `script=success` payload string. Nothing was pickable by size, timestamp spelling, path shape or byte layout, and the two lines carrying no attack signal (a forum view, a logout) were indistinguishable. Synthetic sizes match the real distributions: `/dashboard` 2048.4 ± 27.8 against 2049.5 ± 29.0, forum views 2972 ± 585 against 3000 ± 577.
