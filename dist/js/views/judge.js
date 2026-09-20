@@ -50,19 +50,19 @@ export async function render(container) {
           <div class="field">
             <span>OPERATORS: at most ${MAX_OPERATORS}</span>
             <div class="ops" id="jOps">
-              ${OPERATORS.map((o) => `<label class="op"><input type="checkbox" value="${esc(o)}"><span class="mono">${esc(o)}</span></label>`).join('')}
+              ${OPERATORS.map((o) => `<label class="op"><input type="checkbox" value="${esc(o)}"><span class="meta">${esc(o)}</span></label>`).join('')}
             </div>
           </div>
 
           <div class="judge-actions">
             <button class="ctl primary-ctl" id="jRun" type="button">Generate and inject</button>
-            <span class="mono judge-note" id="jNote"></span>
+            <span class="meta judge-note" id="jNote"></span>
           </div>
         </div>
       </section>
 
       <section class="panel col judge-out">
-        <div class="col-head"><p class="section-label">VARIANT LABEL</p><span class="col-count mono" id="jCount">0</span></div>
+        <div class="col-head"><p class="section-label">VARIANT LABEL</p><span class="col-count meta" id="jCount">0</span></div>
         <div class="col-body" id="jResults"><div class="empty">Nothing generated yet.</div></div>
       </section>
     </div>`;
@@ -152,26 +152,26 @@ async function generate(container) {
 
 function variantCard(v, request) {
   const critic = v.critic || {};
-  const checks = (critic.checks_passed || []).map((c) => `<span class="check pass mono">${esc(c)}</span>`).join('');
-  const ops = (v.operators || request.operators || []).map((o) => `<span class="op-chip mono">${esc(o)}</span>`).join('')
-    || '<span class="op-chip mono none">no operators</span>';
+  const checks = (critic.checks_passed || []).map((c) => `<span class="check pass meta">${esc(c)}</span>`).join('');
+  const ops = (v.operators || request.operators || []).map((o) => `<span class="op-chip meta">${esc(o)}</span>`).join('')
+    || '<span class="op-chip meta none">no operators</span>';
   return `
     <article class="card variant">
       <div class="card-head">
-        <span class="card-id mono">${esc(v.variant_id || 'variant')}</span>
+        <span class="card-id meta">${esc(v.variant_id || 'variant')}</span>
         <div class="variant-tags">
-          ${v.mock ? '<span class="synth-badge">LABEL ONLY · NO BACKEND</span>' : '<span class="synth-badge">INJECTED</span>'}
-          <span class="${critic.accepted ? 'check pass' : 'check fail'} mono">${critic.accepted ? 'critic accepted' : 'critic rejected'}</span>
+          ${v.mock ? '<span class="synth-badge hatch">LABEL ONLY · NO BACKEND</span>' : '<span class="synth-badge hatch">INJECTED</span>'}
+          <span class="${critic.accepted ? 'check pass' : 'check fail'} meta">${critic.accepted ? 'critic accepted' : 'critic rejected'}</span>
         </div>
       </div>
       <p class="claim">${esc(v.attacker || request.attacker)} → ${esc(v.victim || request.victim)}</p>
-      <div class="query mono">${esc(v.target || request.target)}</div>
-      <div class="variant-row mono"><span>FAMILY</span><b>${esc(v.family || request.family)} · ${esc(v.family_name || '')}</b></div>
-      <div class="variant-row mono"><span>OPERATORS</span><div class="ops-row">${ops}</div></div>
+      <div class="query meta">${esc(v.target || request.target)}</div>
+      <div class="variant-row meta"><span>FAMILY</span><b>${esc(v.family || request.family)} · ${esc(v.family_name || '')}</b></div>
+      <div class="variant-row meta"><span>OPERATORS</span><div class="ops-row">${ops}</div></div>
       ${v.injected_lines && v.injected_lines.length
-        ? `<div class="variant-row mono"><span>INJECTED LINES</span><b>${esc(v.injected_lines.join(', '))}</b></div>`
+        ? `<div class="variant-row meta"><span>INJECTED LINES</span><b>${esc(v.injected_lines.join(', '))}</b></div>`
         : ''}
-      ${checks ? `<div class="variant-row mono"><span>CRITIC</span><div class="ops-row">${checks}</div></div>` : ''}
+      ${checks ? `<div class="variant-row meta"><span>CRITIC</span><div class="ops-row">${checks}</div></div>` : ''}
       ${critic.rejected_reason ? `<p class="method">${esc(critic.rejected_reason)}</p>` : ''}
       ${v.mock ? '<p class="mail-only">Fixture mode builds the label and checks coherence against the baseline. Injecting it into the replay and watching the detector respond needs the live API.</p>' : ''}
     </article>`;
