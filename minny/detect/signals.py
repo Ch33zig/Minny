@@ -125,6 +125,7 @@ class RollingState:
     """
 
     auth_fails: dict = field(default_factory=lambda: defaultdict(deque))
+    unbaselined: set = field(default_factory=set)
     last_view: dict = field(default_factory=dict)
     last_post: dict = field(default_factory=dict)
     post_author: dict = field(default_factory=dict)
@@ -192,7 +193,31 @@ def s1_ip_mismatch(event, baselines, state) -> list:
     if event.user is None:
         return []
     known = baselines.user(event.user).ips
-    if not known or event.ip in known:
+
+    if not known:
+        # An account the fitted window never saw has no binding to violate, so
+        # the finding is the account itself. Reported once rather than on every
+        # request, because the alternative is one alert per page load for a new
+        # joiner and a stream nobody reads.
+        if event.user in state.unbaselined:
+            return []
+        state.unbaselined.add(event.user)
+        value = {
+            "known_ips": [],
+            "observed_ip": event.ip,
+            "months_observed": 0,
+            "ip_owner": baselines.owner_of(event.ip),
+        }
+        explanation = (
+            f"{event.user} used {event.ip}. The baseline window contains no "
+            f"activity for that account at all."
+        )
+        return [
+            _alert("S1", event, "medium", value, explanation,
+                   ip_owner=value["ip_owner"])
+        ]
+
+    if event.ip in known:
         return []
 
     owner = baselines.owner_of(event.ip)

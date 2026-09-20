@@ -197,7 +197,10 @@ def _resolve_attacker(alerts: list) -> dict:
         "user": user,
         "ip": ip,
         "confidence": confidence,
-        "basis": sorted(set(basis)) or ["S1"],
+        # Empty rather than a default signal id: the basis is what the roles
+        # were read from, and claiming a signal that did not contribute is the
+        # same kind of invented fact the explanations are banned from.
+        "basis": sorted(set(basis)),
     }
 
 
@@ -252,7 +255,7 @@ def _resolve_victim(alerts: list, attacker: str | None) -> dict:
     # an invented fact.
     if user is not None and user == attacker:
         return {"user": None, "confidence": "low", "basis": sorted(set(basis))}
-    return {"user": user, "confidence": confidence, "basis": sorted(set(basis)) or ["S1"]}
+    return {"user": user, "confidence": confidence, "basis": sorted(set(basis))}
 
 
 def _asset(alerts: list) -> str | None:

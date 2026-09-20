@@ -142,6 +142,17 @@ def test_s1_is_silent_on_the_account_own_address(detector):
     assert detector.feed(event(1)) == []
 
 
+def test_s1_reports_an_account_the_baseline_has_never_seen_once(detector):
+    """A new name in the held-out window has no binding to violate, so the
+    account itself is the finding. Once, not once per page load."""
+    first = detector.feed(event(1, user="karen_p", ip="10.0.4.4"))
+    again = detector.feed(event(2, user="karen_p", ip="10.0.4.4", offset=1))
+    assert [a["signal"] for a in first] == ["S1"]
+    assert first[0]["severity"] == "medium"
+    assert first[0]["value"]["known_ips"] == []
+    assert again == []
+
+
 def test_s2_fires_on_a_success_the_baseline_only_ever_refused(detector):
     alerts = detector.feed(
         event(168338, user="david_m", ip="10.0.8.45",
@@ -405,6 +416,7 @@ def test_a_null_ip_owner_leaves_the_attacker_unnamed_rather_than_guessed():
     assert attacker["user"] is None
     assert attacker["confidence"] == "low"
     assert attacker["ip"] == "10.0.9.99", "the address is still the lead"
+    assert attacker["basis"] == [], "no signal supports a name, so none is cited"
     assert incidents[0]["victim"]["user"] == "sarah_j"
 
 
