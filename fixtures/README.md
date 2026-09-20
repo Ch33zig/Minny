@@ -19,7 +19,8 @@ Shapes follow [00-CONTRACTS.md](../docs/handoff/00-CONTRACTS.md). Values follow
 | `stream.ndjson` | 62 SSE frames generated from the three files above. Monotonic `seq`, types `event`/`alert`/`incident`/`replay_state`/`heartbeat`. The incident is re-emitted six times, each time larger, which is what makes the monitor card grow. |
 | `metrics.json` | The real output of `python eval.py --seed 42`, copied byte for byte from `data/metrics.json`. The `placeholder` flag is gone, so the UI no longer prints the warning ribbon: every figure on that panel is now a measured one. Refresh it whenever the evaluation is re-run. |
 | `blue_proposals.json` | One accepted rule (R003, slow credential guessing) and one rejected (R004, the `csrf` matcher). Gate numbers are placeholders and flagged as such. |
-| `email_evidence.json` | Six seeded messages. The file says so in `seeded_demo_mailbox` and the UI repeats it on screen. |
+| `email_evidence.json` | The real output of `python -m minny.integrations.gmail_evidence`, which runs the three bounded queries against the seeded demonstration mailbox in `fixtures/integrations/gmail_mailbox.json`. The mailbox holds six messages; the queries fetch five, because the parking notice is from a sender nobody allowlisted. The file says `seeded_demo_mailbox` and the UI repeats it on screen. |
+| `integrations_status.json` | The real output of `GET /api/integrations/status` with no credentials present, which is the state the demo runs in: four capabilities, all of them on recorded responses. |
 
 ## Verified facts these fixtures rest on
 

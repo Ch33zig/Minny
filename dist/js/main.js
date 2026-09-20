@@ -2,6 +2,7 @@ import { api, mode } from './api.js';
 import { $, $$, esc, fmtDate, fmtNum, NONE, toast } from './dom.js';
 import { toggleAll } from './evidence.js';
 import { crossfadeView } from './motion.js';
+import { mount as mountIntegrations } from './integrations.js';
 import * as caseView from './views/casefile.js';
 import * as monitorView from './views/monitor.js';
 import * as judgeView from './views/judge.js';
@@ -123,4 +124,7 @@ window.addEventListener('keydown', (event) => {
 
 setMode();
 setHeader();
+// Display only, and it never blocks a view: the strip filling in late is
+// correct, a case file waiting on a vendor status call is not.
+mountIntegrations();
 route();

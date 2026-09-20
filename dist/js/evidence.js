@@ -55,6 +55,10 @@ async function toggle(button) {
   if (body.dataset.loaded === '1') return expandEvidence(body);
   body.innerHTML = '<div class="ev-loading meta">resolving line numbers…</div>';
   expandEvidence(body);
+  await load(button, body);
+}
+
+async function load(button, body) {
   const fromHeight = body.getBoundingClientRect().height;
   const lines = (button.dataset.lines || '').split(',').filter(Boolean).map(Number);
   const emailIds = (button.dataset.emails || '').split(',').filter(Boolean);
@@ -69,6 +73,19 @@ async function toggle(button) {
   } catch (err) {
     body.innerHTML = `<div class="ev-error meta">could not resolve evidence: ${esc(err.message)}</div>`;
   }
+}
+
+/**
+ * Mailbox corroboration arrives after the claim it sits under, because the
+ * claim never waits on it. When a block is already open, reload it in place;
+ * when it is closed, drop the cache so the next open picks the mail up.
+ */
+export function invalidate(button) {
+  const wrap = button.closest('.ev');
+  const body = wrap && wrap.querySelector('.ev-body');
+  if (!body) return;
+  body.dataset.loaded = '';
+  if (button.getAttribute('aria-expanded') === 'true') load(button, body);
 }
 
 function renderRows(rows) {
@@ -91,7 +108,9 @@ function renderRows(rows) {
 
 function renderMail(mail) {
   if (!mail || !mail.length) return '';
-  const seeded = mail.seeded !== false;
+  // Every record from the demonstration account carries the flag, so the
+  // label survives whichever path resolved it.
+  const seeded = mail.seeded === true || mail.some((m) => m.seeded_demo_mailbox === true);
   const items = mail.map((m) => `
     <div class="mail-row">
       <div class="mail-top">
