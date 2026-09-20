@@ -6,6 +6,7 @@
 
 import { api } from '../api.js';
 import { esc, fmtNum, fmtPct, fmtTs, NONE, noneTag } from '../dom.js';
+import { evidenceToggle, mountEvidence } from '../evidence.js';
 
 export async function render(container) {
   const m = await api.metrics();
@@ -17,7 +18,10 @@ export async function render(container) {
   const days = Object.entries(fp.by_day || {});
   const maxDay = Math.max(1, ...days.map(([, n]) => Number(n) || 0));
 
+  // One sheet, so the page cannot scroll and the provenance line opens on
+  // request rather than taking a strip of the report at rest.
   container.innerHTML = `
+    <div class="sheet">
     <article class="report metrics-page" style="--rot:-0.25deg">
       <span class="pin left"></span><span class="pin right"></span>
       ${m.placeholder ? placeholderNote(m) : ''}
@@ -62,13 +66,19 @@ export async function render(container) {
         </aside>
       </div>
 
-      <footer class="provenance">
-        <span><b class="tw">Command</b> ${esc(m.command) || noneTag}</span>
-        <span><b class="tw">Seed</b> ${m.seed === null || m.seed === undefined ? noneTag : esc(m.seed)}</span>
-        <span><b class="tw">Rules</b> ${esc(m.rule_revision) || noneTag}</span>
-        <span><b class="tw">Generated</b> ${m.generated_at ? esc(fmtTs(m.generated_at, { withYear: true, withOffset: true })) : 'never run'}</span>
-      </footer>
-    </article>`;
+      ${evidenceToggle({
+        label: 'Where these numbers came from',
+        detail: `<div class="provenance">
+          <span><b class="tw">Command</b> ${esc(m.command) || noneTag}</span>
+          <span><b class="tw">Seed</b> ${m.seed === null || m.seed === undefined ? noneTag : esc(m.seed)}</span>
+          <span><b class="tw">Rules</b> ${esc(m.rule_revision) || noneTag}</span>
+          <span><b class="tw">Generated</b> ${m.generated_at ? esc(fmtTs(m.generated_at, { withYear: true, withOffset: true })) : 'never run'}</span>
+        </div>`,
+      })}
+    </article>
+    </div>`;
+
+  mountEvidence(container);
 }
 
 function placeholderNote(m) {
