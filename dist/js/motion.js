@@ -2,16 +2,20 @@
 // proper needs React, and this project deliberately has neither React nor a
 // build step, so the library is pulled in as an ES module from a CDN.
 //
-// Four things move on this front end and nothing else does:
+// Five things move on this board and nothing else does:
 //
-//   growIncident    a correlated alert lands and the card springs taller. This
-//                   one is the product's whole argument, that twenty warnings
-//                   are one story, so it is the only place worth real effort.
+//   pinCard         a card drops 10px onto the cork and settles at its resting
+//                   angle. Spring, because a pin is a physical event.
+//   drawStrings     red string draws itself between two cards the moment the
+//                   data links them. 260ms of stroke-dashoffset.
 //   expandEvidence  a claim opens onto its raw bytes. 180ms, because it happens
 //                   on nearly every click and has to feel instant, not clever.
-//   enterRows       ticker rows rise 6px and fade, staggered, so a burst of
-//                   events reads as flow rather than as a redraw.
+//   layStamp        a stamp lands once, on a verdict or a gate result. 200ms
+//                   from 1.15 with no bounce, and never on hover.
 //   crossfadeView   140ms between views. Nothing slides.
+//
+// growIncident is the same pin, applied to a card that is getting taller: the
+// product's whole argument is that twenty warnings are one story.
 //
 // The import is deliberately not awaited at the top level. The fixture demo is
 // the parachute when the backend dies and it has to survive a dead network too,
@@ -140,4 +144,60 @@ export function bornIncident(node) {
   animate(node, { opacity: [0, 1] }, { duration: 0.2, ease: 'easeOut' });
   done(animate(node, { height: ['0px', `${to}px`] }, { type: 'spring', stiffness: 220, damping: 28 }))
     .then(() => { node.style.height = ''; node.style.overflow = ''; });
+}
+
+/* ------------------------------------------------------------ board props */
+
+/** The angle a node is already resting at, read off its computed matrix. */
+function currentRotation(node) {
+  const t = getComputedStyle(node).transform;
+  const m = t && t !== 'none' && t.match(/matrix\(([^)]+)\)/);
+  if (!m) return 0;
+  const [a, b] = m[1].split(',').map(Number);
+  return (Math.atan2(b, a) * 180) / Math.PI;
+}
+
+/**
+ * A card pins onto the board: drops in with a little overshoot and settles at
+ * the resting rotation its id gave it. Called when a card arrives, never on a
+ * view that was already there.
+ */
+export function pinCard(node) {
+  if (!node || !animate) return;
+  const rest = currentRotation(node);
+  if (reduced.matches) {
+    animate(node, { opacity: [0, 1] }, { duration: 0.14 });
+    return;
+  }
+  animate(node, { opacity: [0, 1] }, { duration: 0.16, ease: 'easeOut' });
+  animate(
+    node,
+    { y: [-10, 0], rotate: [rest * 0.25, rest] },
+    { type: 'spring', stiffness: 220, damping: 26 },
+  );
+}
+
+/** Red string draws between two cards the data has linked. */
+export function drawStrings(paths) {
+  const list = Array.from(paths || []);
+  if (!list.length || !animate || reduced.matches) return;
+  for (const path of list) {
+    const len = typeof path.getTotalLength === 'function' ? path.getTotalLength() : 0;
+    if (!len) continue;
+    path.style.strokeDasharray = String(len);
+    done(animate(path, { strokeDashoffset: [len, 0] }, { duration: 0.26, ease: 'easeOut' }))
+      .then(() => { path.style.strokeDasharray = ''; path.style.strokeDashoffset = ''; });
+  }
+}
+
+/** A stamp lands. Once, on first render, with no bounce. */
+export function layStamp(node) {
+  if (!node || !animate) return;
+  if (reduced.matches) {
+    animate(node, { opacity: [0, 1] }, { duration: 0.14 });
+    return;
+  }
+  const rest = currentRotation(node);
+  animate(node, { opacity: [0, 1] }, { duration: 0.12 });
+  animate(node, { scale: [1.15, 1], rotate: [rest, rest] }, { duration: 0.2, ease: [0.3, 0.9, 0.4, 1] });
 }
