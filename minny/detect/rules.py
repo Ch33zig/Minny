@@ -460,3 +460,523 @@ def parse_expression(source: str) -> Parsed:
     if nodes > MAX_NODES:
         return Parsed(None, depth, nodes, f"{nodes} nodes exceeds the cap of {MAX_NODES}")
     return Parsed(ast, depth, nodes, None)
+
+
+# --------------------------------------------------------------- evaluation
+
+
+def features(event, baselines, fired_signals=()) -> dict:
+    """The feature dictionary a rule sees.
+
+    Exactly the fields the built-in signals read, so a rule and a signal are
+    looking at the same event through the same window. `signal` carries the
+    ids that fired on this event, which is what lets a rule refine the
+    shipped detector rather than duplicate it.
+    """
+    query = event.query or {}
+    return {
+        "user": event.user,
+        "ip": event.ip,
+        "ip_owner": baselines.owner_of(event.ip) if baselines else None,
+        "template": event.template,
+        "obj_id": event.obj_id,
+        "status": event.status,
+        "signal": frozenset(fired_signals),
+        "query": tuple(
+            str(part) for pair in query.items() for part in pair if part is not None
+        ),
+        "ts": event.ts,
+        "line": event.line,
+        "method": event.method,
+        "path": event.path,
+    }
+
+
+def _resolve(value, subject: dict):
+    if isinstance(value, Var):
+        return subject.get(value.field)
+    if isinstance(value, Literal):
+        return value.value
+    return value
+
+
+def _compare(field_name: str, op: str, wanted, subject: dict) -> bool:
+    """One field against one value. The only place a rule touches an event."""
+    actual = subject.get(field_name)
+
+    if field_name in ("signal", "query"):
+        # Both are collections on the event, so equality means membership and
+        # contains means a substring of any member.
+        members = actual or ()
+        if op == "contains":
+            needle = str(wanted)
+            return any(needle in str(member) for member in members)
+        hit = any(str(member) == str(wanted) for member in members)
+        return hit if op == "==" else not hit
+
+    if op == "contains":
+        return actual is not None and str(wanted) in str(actual)
+
+    if actual is None:
+        # Unknown is not equal to anything, and is not ordered against
+        # anything either. `ip_owner != $u` on an address the baseline cannot
+        # attribute is true, which is the answer own_ip_takeover deserves.
+        return op == "!="
+
+    if op in ORDERING:
+        try:
+            left, right = float(actual), float(wanted)
+        except (TypeError, ValueError):
+            return False
+        return {
+            ">=": left >= right,
+            "<=": left <= right,
+            ">": left > right,
+            "<": left < right,
+        }[op]
+
+    same = str(actual) == str(wanted)
+    return same if op == "==" else not same
+
+
+class EvalContext:
+    """One rule evaluation against one event.
+
+    Holds the counts a `count(...)` predicate computed so the explanation can
+    quote the number the rule actually fired on rather than recomputing it.
+    """
+
+    def __init__(self, subject: dict, history):
+        self.subject = subject
+        self.history = history
+        self.counts: list = []
+
+    @property
+    def count(self):
+        return self.counts[0] if self.counts else None
+
+
+def evaluate_node(node, ctx: EvalContext) -> bool:
+    if isinstance(node, BoolOp):
+        if node.op == "AND":
+            return evaluate_node(node.left, ctx) and evaluate_node(node.right, ctx)
+        return evaluate_node(node.left, ctx) or evaluate_node(node.right, ctx)
+    if isinstance(node, Not):
+        return not evaluate_node(node.child, ctx)
+    if isinstance(node, Compare):
+        return _compare(
+            node.field, node.op, _resolve(node.value, ctx.subject), ctx.subject
+        )
+    if isinstance(node, Count):
+        total = _count_matches(node, ctx)
+        ctx.counts.append(total)
+        return _compare_number(total, node.op, node.threshold)
+    raise RuleParseError(f"cannot evaluate {type(node).__name__}")
+
+
+def _compare_number(actual, op: str, wanted) -> bool:
+    return {
+        "==": actual == wanted,
+        "!=": actual != wanted,
+        ">=": actual >= wanted,
+        "<=": actual <= wanted,
+        ">": actual > wanted,
+        "<": actual < wanted,
+    }[op]
+
+
+def _count_matches(node: Count, ctx: EvalContext) -> int:
+    """How many recent events satisfy every constraint.
+
+    The event under evaluation is already in the history, so the fifth failed
+    login is counted by the rule that fires on it. Walking backwards and
+    stopping at the window edge keeps this proportional to the window rather
+    than to the length of the replay.
+    """
+    cutoff = ctx.subject["ts"].timestamp() - node.window_s
+    total = 0
+    for stamp, past in reversed(ctx.history):
+        if stamp < cutoff:
+            break
+        if all(
+            _compare(name, "==", _resolve(value, ctx.subject), past)
+            for name, value in node.constraints
+        ):
+            total += 1
+    return total
+
+
+# --------------------------------------------------------------- the ruleset
+
+
+@dataclass
+class Rule:
+    """One entry of rules.yaml after parsing."""
+
+    id: str
+    name: str
+    severity: str
+    when: str
+    explain: str
+    parsed: Parsed
+    document: dict = field(default_factory=dict)
+    disabled_reason: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        return self.parsed.ok and self.disabled_reason is None
+
+    def describe(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "severity": self.severity,
+            "when": self.when,
+            "explain": self.explain,
+            "enabled": self.ok,
+            "parse": self.parsed.as_dict(),
+            "disabled_reason": self.disabled_reason,
+            "proposed_by": self.document.get("proposed_by"),
+            "created_ts": self.document.get("created_ts"),
+            "gate": self.document.get("gate"),
+        }
+
+
+# A rule the gate never saw can be as broad as `status == 200`, which would
+# bury the stream and the incident with it. The cap is a circuit breaker, not
+# a threshold: hitting it disables the rule and says so, rather than silently
+# thinning its output.
+MAX_ALERTS_PER_RULE = 500
+
+REQUIRED_KEYS = ("id", "when")
+
+
+class _SafeMap(dict):
+    """Explanation placeholders that were never computed read as unknown.
+
+    An explanation is a template filled from fields. A rule author who asks
+    for a field the event does not carry gets the word unknown in the
+    sentence, which is honest, rather than a KeyError that would take the
+    replay down.
+    """
+
+    def __missing__(self, key):
+        return "unknown"
+
+
+@dataclass
+class RuleSet:
+    """The rules on disk, reloaded when the file changes underneath us."""
+
+    path: Any = None
+    rules: list = field(default_factory=list)
+    errors: list = field(default_factory=list)
+    stamp: Any = None
+    loaded_ts: str | None = None
+    history: Any = None
+    emitted: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        if self.history is None:
+            self.history = []
+
+    # ------------------------------------------------------------ loading
+
+    @classmethod
+    def load(cls, path=None) -> "RuleSet":
+        from minny import paths
+
+        target = paths.rules_path() if path is None else path
+        ruleset = cls(path=target)
+        ruleset.reload()
+        return ruleset
+
+    @classmethod
+    def from_documents(cls, documents) -> "RuleSet":
+        """Build from parsed YAML, for tests and for an in-memory proposal."""
+        ruleset = cls(path=None)
+        ruleset.rules, ruleset.errors = _compile(documents)
+        return ruleset
+
+    def _current_stamp(self):
+        try:
+            info = self.path.stat()
+        except (OSError, AttributeError):
+            return None
+        return (info.st_mtime_ns, info.st_size)
+
+    def maybe_reload(self) -> bool:
+        """Re-read when the file changed. One stat call, cheap enough to poll.
+
+        The blue agent appends to this file while a replay is running, so the
+        detector has to notice without a restart. Nothing else about the
+        replay is disturbed: the rolling history and the alert counters
+        survive, because a reload is a change of rules, not of evidence.
+        """
+        if self.path is None:
+            return False
+        stamp = self._current_stamp()
+        if stamp == self.stamp:
+            return False
+        self.reload()
+        return True
+
+    def reload(self) -> None:
+        import datetime as _dt
+
+        import yaml
+
+        if self.path is None:
+            return
+        stamp = self._current_stamp()
+        if stamp is None:
+            # No file is a normal state: the blue agent has proposed nothing
+            # yet. It is not an error and it is not a reason to keep stale
+            # rules in memory.
+            self.rules, self.errors, self.stamp = [], [], None
+            return
+        try:
+            with open(self.path, "r", encoding="utf-8") as handle:
+                document = yaml.safe_load(handle)
+        except Exception as exc:  # noqa: BLE001 - a broken file is never fatal
+            # The previously loaded rules stay live. A half-written file
+            # caught mid-append must not disarm the detector.
+            self.errors = [
+                {
+                    "id": None,
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "scope": "file",
+                }
+            ]
+            self.stamp = stamp
+            return
+
+        self.rules, self.errors = _compile(document)
+        self.stamp = stamp
+        self.loaded_ts = _dt.datetime.now().astimezone().isoformat(timespec="seconds")
+
+    # --------------------------------------------------------- evaluation
+
+    @property
+    def window_s(self) -> int:
+        """The longest count window any live rule asks for."""
+        windows = [
+            node.window_s
+            for rule in self.rules
+            if rule.ok
+            for node in _walk(rule.parsed.ast)
+            if isinstance(node, Count)
+        ]
+        return max(windows) if windows else 0
+
+    def reset(self) -> None:
+        """Forget the rolling history. A replay reset starts from empty."""
+        self.history = []
+        self.emitted = {}
+
+    def observe(self, subject: dict) -> None:
+        self.history.append((subject["ts"].timestamp(), subject))
+        window = self.window_s
+        if not window:
+            # No rule counts anything, so no history is worth keeping.
+            del self.history[:-1]
+            return
+        cutoff = subject["ts"].timestamp() - window
+        trimmed = 0
+        for stamp, _ in self.history:
+            if stamp >= cutoff:
+                break
+            trimmed += 1
+        if trimmed:
+            del self.history[:trimmed]
+
+    def evaluate(self, event, baselines, fired_signals=()) -> list:
+        """Run every live rule against one event and return its alerts.
+
+        Called after the built-in signals so `signal` carries what they found.
+        Alerts come out of the same builder the signals use, which is what
+        makes a rule finding indistinguishable from a shipped one downstream.
+        """
+        from minny.detect.signals import build_alert
+
+        subject = features(event, baselines, fired_signals)
+        self.observe(subject)
+        if not self.rules:
+            return []
+
+        alerts = []
+        for rule in self.rules:
+            if not rule.ok:
+                continue
+            ctx = EvalContext(subject, self.history)
+            try:
+                matched = evaluate_node(rule.parsed.ast, ctx)
+            except Exception as exc:  # noqa: BLE001 - one bad rule, not a crash
+                rule.disabled_reason = f"evaluation failed: {exc}"
+                self.errors.append(
+                    {"id": rule.id, "error": rule.disabled_reason, "scope": "rule"}
+                )
+                continue
+            if not matched:
+                continue
+
+            seen = self.emitted.get(rule.id, 0) + 1
+            self.emitted[rule.id] = seen
+            if seen > MAX_ALERTS_PER_RULE:
+                rule.disabled_reason = (
+                    f"stopped after {MAX_ALERTS_PER_RULE} alerts in one replay; "
+                    f"the rule matches too much to be a finding"
+                )
+                self.errors.append(
+                    {"id": rule.id, "error": rule.disabled_reason, "scope": "rule"}
+                )
+                continue
+
+            alerts.append(_rule_alert(build_alert, rule, event, subject, ctx))
+        return alerts
+
+    def describe(self) -> dict:
+        return {
+            "path": str(self.path) if self.path else None,
+            "loaded_ts": self.loaded_ts,
+            "rules": [rule.describe() for rule in self.rules],
+            "errors": list(self.errors),
+            "counts": {
+                "loaded": len(self.rules),
+                "enabled": sum(1 for rule in self.rules if rule.ok),
+                "errors": len(self.errors),
+            },
+        }
+
+
+def _walk(node):
+    if node is None:
+        return
+    yield node
+    if isinstance(node, BoolOp):
+        yield from _walk(node.left)
+        yield from _walk(node.right)
+    elif isinstance(node, Not):
+        yield from _walk(node.child)
+
+
+def _rule_alert(build_alert, rule: Rule, event, subject: dict, ctx: EvalContext) -> dict:
+    fields = {
+        "user": subject.get("user"),
+        "ip": subject.get("ip"),
+        "ip_owner": subject.get("ip_owner"),
+        "template": subject.get("template"),
+        "status": subject.get("status"),
+        "obj_id": subject.get("obj_id"),
+        "line": subject.get("line"),
+        "path": subject.get("path"),
+        "query": ", ".join(subject.get("query") or ()),
+        "count": ctx.count,
+        "rule": rule.id,
+    }
+    explanation = rule.explain or f"Rule {rule.id} ({rule.name}) matched."
+    try:
+        explanation = explanation.format_map(_SafeMap(fields))
+    except (IndexError, ValueError):
+        explanation = f"Rule {rule.id} ({rule.name}) matched on line {event.line}."
+
+    value = {
+        "rule_id": rule.id,
+        "rule_name": rule.name,
+        "when": rule.when,
+        "counts": list(ctx.counts),
+        "matched": {
+            key: fields[key]
+            for key in ("user", "ip", "ip_owner", "template", "status", "query")
+            if fields[key] not in (None, "")
+        },
+    }
+    return build_alert(
+        rule.id,
+        event,
+        rule.severity,
+        value,
+        explanation,
+        ip_owner=subject.get("ip_owner"),
+        signal_name=rule.name,
+    )
+
+
+def _compile(document) -> tuple:
+    """Turn a parsed YAML document into rules and errors.
+
+    Every failure is local. A rule with no id, a duplicate id, a `when` that
+    does not parse or an expression past the caps is dropped and described;
+    the rules around it load normally.
+    """
+    rules: list = []
+    errors: list = []
+
+    if document is None:
+        return rules, errors
+    if not isinstance(document, list):
+        return rules, [
+            {
+                "id": None,
+                "error": "rules.yaml must be a list of rules",
+                "scope": "file",
+            }
+        ]
+
+    seen = set()
+    for index, entry in enumerate(document):
+        if not isinstance(entry, dict):
+            errors.append(
+                {
+                    "id": None,
+                    "error": f"entry {index} is not a mapping",
+                    "scope": "rule",
+                }
+            )
+            continue
+        missing = [key for key in REQUIRED_KEYS if not entry.get(key)]
+        if missing:
+            errors.append(
+                {
+                    "id": entry.get("id"),
+                    "error": f"missing required key(s): {', '.join(missing)}",
+                    "scope": "rule",
+                }
+            )
+            continue
+
+        rule_id = str(entry["id"])
+        if rule_id in seen:
+            errors.append(
+                {"id": rule_id, "error": "duplicate rule id", "scope": "rule"}
+            )
+            continue
+        seen.add(rule_id)
+
+        severity = str(entry.get("severity", "medium")).lower()
+        if severity not in ("low", "medium", "high"):
+            errors.append(
+                {
+                    "id": rule_id,
+                    "error": f"severity {severity!r} is not low, medium or high",
+                    "scope": "rule",
+                }
+            )
+            continue
+
+        parsed = parse_expression(entry["when"])
+        rule = Rule(
+            id=rule_id,
+            name=str(entry.get("name") or rule_id),
+            severity=severity,
+            when=str(entry["when"]),
+            explain=str(entry.get("explain") or ""),
+            parsed=parsed,
+            document=entry,
+        )
+        rules.append(rule)
+        if not parsed.ok:
+            # Kept in `rules` so the UI can render a broken rule next to the
+            # working ones. `ok` is false, so it is never evaluated.
+            errors.append({"id": rule_id, "error": parsed.error, "scope": "rule"})
+    return rules, errors

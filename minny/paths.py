@@ -60,6 +60,20 @@ def email_evidence_path() -> Path:
     return data_dir() / "email_evidence.json"
 
 
+def rules_path() -> Path:
+    """Detection rules written by the blue agent.
+
+    These are source, not data: they are committed, reviewed in a pull
+    request and follow a worktree, so they resolve against the repository
+    rather than MINNY_DATA_DIR. MINNY_RULES_PATH overrides the location for a
+    test that needs its own file.
+    """
+    override = os.environ.get("MINNY_RULES_PATH")
+    if override:
+        return Path(override)
+    return _REPO_ROOT / "detection-rules" / "rules.yaml"
+
+
 def require(path: Path) -> Path:
     """Fail with the command that produces the missing artifact."""
     if not path.exists():
