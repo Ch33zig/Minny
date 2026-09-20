@@ -90,9 +90,11 @@ Everything below was re-derived from `data/events.parquet`. Rebuild and re-check
 
 ```bash
 export MINNY_DATA_DIR=/path/to/main/checkout/data
-python -m minny.casefile.queries   # every saved query, with its lines and counts
-python -m minny.casefile.build     # writes data/case_file.json
+python -m minny.casefile.queries              # every saved query, with its lines and counts
+python -m minny.casefile.build                # writes data/case_file.json
+python -m minny.casefile.build --emit-fixture # and copies it into fixtures/mock/
 python -m pytest tests/test_casefile.py -q
+python web/verify_fixtures.py
 ```
 
 ### The findings, with the lines they actually returned
@@ -107,7 +109,7 @@ python -m pytest tests/test_casefile.py -q
 | F6 | `anomalous_status` | 168330, 168331 | the only 400 and the only 500 in the file, both david_m's failed payloads |
 | F7 | `post_attribution` | 168332, 168333 (+168335, 168336, 168339 as chain evidence) | 1 of 9,081 accepted posts is followed within 10s by its author opening a post |
 
-Supporting queries the timeline cites: `denials_before_exfil` (168315), `content_triggered_privileged_action` (168335, 168336), `vector_object_edits` (168339), `cover_download` (168340), `credential_mechanism_gap` (168326, 168343).
+Supporting queries the timeline cites: `denials_before_exfil` (168315 and 178028, the last denial before the download and the first one after it), `content_triggered_privileged_action` (168335, 168336), `vector_object_edits` (168339), `cover_download` (168340), `credential_mechanism_gap` (168326, 168343).
 
 Dismissed leads: `offhours_confidential_access` (9 legitimate off-hours reads, lines 42768 to 162048), `scattered_auth_failures` (889 isolated 401s), `routine_denials` (5,324 denials).
 
@@ -115,8 +117,24 @@ Dismissed leads: `offhours_confidential_access` (9 legitimate off-hours reads, l
 
 1. **F5 needs a threshold, and the case file says so.** "First 200 where every earlier attempt was a 403" returns **two** rows, not one. The second is sarah_j at line 370 on day one of the dataset: one denial, then 1,528 successes on the same file. That is an access grant landing, not a breach. The query takes `min_prior_denials` (default 5), keeps the rejected row in `stats.flips_below_threshold`, and the finding's `method` names it.
 2. **david_m did not create post 1042.** Object 1042 first appears at **line 331 on 2025-08-01**, seven months before the incident, and carries 353 events. The brief and the contract example both say "created", and that is not in the data. What is in the data: he posts with a tampered parameter at 168332 and opens 1042 three seconds later at 168333, uniquely among 9,081 posts, and edits the same object 21 minutes after the download. F7 stays `confidence: medium` and says all of this in `method`.
-3. **The off-hours example in the contract is fixture prose.** Line 161204 is `ashley_k GET /assets/app.js`. The real thing is **line 162048**: sarah_j pulling the same Q1 zip at 23:19 on 5 March from her own IP. Eight more like it exist. Note that a 20:00-06:00 rule would fire on 10 confidential reads, 9 of them legitimate, and the tenth is already F1's.
-4. **77, not 80, precede the theft.** david_m collects 80 denials on the zip in total: 77 before line 168338, then 3 more from 27 March once the access closed again. Both numbers are true; the case file uses each where it belongs, and the reopened denials are the evidence behind U3.
+3. **Off-hours access here is rare, not routine, and the lead dies on ownership instead.** The brief and the first case file both called it routine. The file says otherwise: **10 of 6,115** successful confidential reads fall in the 20:00-06:00 window, 0.16% of them. What clears the lead is whose they are. Nine are authorized readers on their own baseline machines and the tenth is the incident itself, line 168345, which the IP binding already names. Five are strictly after midnight and **exactly one of those touches the Q1 zip**: line 162048, sarah_j at 00:19 on 6 March from 10.0.5.12, a file she reads 1,528 times in this log. The contract's example line 161204 is `ashley_k GET /assets/app.js` and is not an off-hours confidential read at all. One window, 20:00-06:00, is stated in the lead and used everywhere; a rule built on it buys nine false positives and no new true one.
+4. **77, not 80, precede the theft.** david_m collects 80 denials on the zip in total: 77 before line 168338, then 3 more from 27 March once the access closed again, first at line 178028. "Denied 80 times, then succeeded once" is the one phrasing to avoid, because it puts all 80 before the download. Both numbers are true; the case file uses each where it belongs, says which side of the download each falls on, and names the 3 reopened denials as the evidence behind U3. The timeline carries line 178028 as its last beat for the same reason.
+
+### The additive fields, and why the fixture is generated now
+
+`fixtures/mock/case_file.json` was written by hand from the same dataset and the two documents drifted: a differently worded verdict, 9 findings against 7, 14 timeline beats against 16, and an off-hours lead using 08:00-18:59 in one and 20:00-06:00 in the other. The demo runs on the fixture and live mode runs on the generated file, so the drift was invisible until someone flipped the switch.
+
+`python -m minny.casefile.build --emit-fixture` now writes both. The fixture is a byte-for-byte copy of `data/case_file.json` and `fixtures/mock/events.json` is rewritten with the raw bytes of every line the document cites, read out of `data/logs.txt` and checked against the parsed `raw` column before it is written. Lines past the end of the real log are the red team's injected variant; they are carried across from the existing fixture untouched. **Do not hand edit the fixture.** If the UI needs a field it does not carry, add it to the generated file and re-emit.
+
+The document carries these optional fields for the UI. All of them degrade to nothing if absent:
+
+| Field | What it holds |
+|---|---|
+| `source` | `{file, lines, sha256}` for the provenance rail. Dropped entirely when `logs.txt` is not on the machine. |
+| `verdict.basis` | One sentence on why the verdict should be believed, built from the same counts as F1, F4 and F6. |
+| `timeline[].confidence` | `high` except the three beats that rest on a reading rather than a record: 168333, 168339, 168340. |
+| `dismissed[].id`, `dismissed[].confidence` | D1 to D3, each `high`. |
+| `actors.attacker`, `actors.victim` | `confidence`, `summary`, `stats` as `[{label, value}]` and `evidence_lines`. Every figure is read out of a saved query, including the denial counts, which the attacker card states in the order they happened. |
 
 ### For B and C
 

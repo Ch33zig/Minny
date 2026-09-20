@@ -7,6 +7,8 @@ citing evidence that no longer supports it.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from minny import paths
@@ -153,6 +155,10 @@ def test_supporting_queries_frame_the_download(results):
     # Access closed again afterwards, with no log line for either change.
     assert denials.stats["denials_after_success"] == 3
     assert denials.stats["first_denial_after_success_line"] == 178028
+    # 80 in total, but never 80 before the download. The query ships both
+    # sides of the success so no sentence can imply the wrong order.
+    assert denials.stats["total_denials"] == 80
+    assert denials.lines == [168315, 178028]
 
     assert results["vector_object_edits"].lines == [168339]
     assert results["cover_download"].lines == [168340]
@@ -162,14 +168,48 @@ def test_supporting_queries_frame_the_download(results):
 # --- the dismissed leads ---------------------------------------------------
 
 
-def test_offhours_access_is_routine_and_mostly_legitimate(results):
+def test_offhours_access_is_rare_and_every_instance_is_accounted_for(results):
     result = results["offhours_confidential_access"]
+    # Rare, not routine: 10 of 6,115 confidential reads fall in the window.
+    assert result.stats["window"] == "20:00-06:00"
+    assert result.stats["confidential_successes"] == 6115
+    assert result.stats["off_hours_successes"] == 10
+    assert result.stats["off_hours_share_pct"] < 1
     assert result.stats["from_own_baseline_ip"] == 9
     assert result.stats["from_a_foreign_ip"] == 1
     # The single off-hours read belonging to the incident is already F1's.
     assert result.stats["foreign_lines"] == [168345]
     assert 162048 in result.lines
     assert "sarah_j" in result.stats["users"]
+
+
+def test_exactly_one_after_midnight_read_touches_the_stolen_file(results):
+    result = results["offhours_confidential_access"]
+    # The claim a judge checks first. Five after-midnight reads exist, and
+    # exactly one of them is the Q1 zip.
+    assert result.stats["after_midnight_by_path"][CONFIDENTIAL_ZIP] == 1
+    on_asset = [
+        entry
+        for entry in result.stats["after_midnight_examples"]
+        if entry["path"] == CONFIDENTIAL_ZIP
+    ]
+    assert [entry["line"] for entry in on_asset] == [162048]
+    assert on_asset[0]["user"] == "sarah_j"
+    assert on_asset[0]["ip"] == "10.0.5.12"
+    assert on_asset[0]["ts"].startswith("2026-03-06T00:19")
+
+
+def test_the_offhours_lead_states_its_window_and_never_calls_it_routine(case_file):
+    lead = next(
+        entry
+        for entry in case_file["dismissed"]
+        if entry["query"].endswith("offhours_confidential_access")
+    )
+    assert "20:00-06:00" in lead["why"]
+    assert "is routine" not in lead["why"]
+    # One after-midnight read of the asset, named with its line.
+    assert f"exactly 1 of those touches {CONFIDENTIAL_ZIP}" in lead["why"]
+    assert "line 162048" in lead["why"]
 
 
 def test_the_other_failed_logins_have_no_structure(results):
@@ -211,12 +251,68 @@ def test_case_file_matches_the_contract_shape(case_file):
         "dismissed",
     }
     assert case_file["verdict"]["confidence"] in build.CONFIDENCE_VALUES
-    assert case_file["actors"]["attacker"] == {"user": "david_m", "ip": "10.0.8.45"}
-    assert case_file["actors"]["victim"] == {"user": "sarah_j", "ip": "10.0.5.12"}
+    # The contract's two required keys, now beside the optional card fields.
+    attacker = case_file["actors"]["attacker"]
+    victim = case_file["actors"]["victim"]
+    assert (attacker["user"], attacker["ip"]) == ("david_m", "10.0.8.45")
+    assert (victim["user"], victim["ip"]) == ("sarah_j", "10.0.5.12")
     assert case_file["actors"]["asset"] == CONFIDENTIAL_ZIP
     assert case_file["actors"]["vector"]["obj_id"] == 1042
     # Timestamps carry an offset everywhere, never a naive datetime.
     assert case_file["window"]["start"].endswith("-04:00")
+
+
+def test_the_suspect_cards_quote_only_measured_figures(case_file, results):
+    attacker = case_file["actors"]["attacker"]
+    victim = case_file["actors"]["victim"]
+    denials = results["denials_before_exfil"].stats
+    mismatch = results["ip_user_mismatch"].stats
+
+    assert attacker["confidence"] in build.CONFIDENCE_VALUES
+    assert victim["confidence"] in build.CONFIDENCE_VALUES
+    assert [stat["value"] for stat in attacker["stats"]] == [
+        str(denials["denials_before_success"]),
+        str(denials["denials_after_success"]),
+        "1",
+        "400, 500",
+    ]
+    assert [stat["value"] for stat in victim["stats"]] == ["1,528", "1", "2", "10"]
+    assert mismatch["ips_per_user"]["sarah_j"] == 2
+    assert mismatch["baseline_ips_per_user"]["sarah_j"] == 1
+    # The card states the order too, because the total on its own misleads.
+    assert "77 times before the download" in attacker["summary"]
+    assert "never 80 before the download" in attacker["summary"]
+
+
+def test_the_suspect_cards_resolve_to_lines_the_queries_returned(case_file, results):
+    returned = {line for result in results.values() for line in result.lines}
+    for role in ("attacker", "victim"):
+        lines = case_file["actors"][role]["evidence_lines"]
+        assert lines
+        assert set(lines) <= returned, role
+
+
+def test_the_source_rail_names_the_file_it_read(case_file):
+    source = case_file.get("source")
+    if source is None:
+        pytest.skip("data/logs.txt is shared out of band")
+    assert source["file"].endswith("logs.txt")
+    assert source["lines"] == 180800
+    assert len(source["sha256"]) == 64
+    assert source["sha256"] == build.sha256_of(paths.logs_path())
+
+
+def test_a_missing_log_drops_the_source_rail_and_nothing_else(monkeypatch, tmp_path):
+    monkeypatch.setattr(build.paths, "logs_path", lambda: tmp_path / "absent.txt")
+    assert build.build_source() is None
+
+
+def test_the_verdict_carries_a_basis_a_judge_can_check(case_file):
+    basis = case_file["verdict"]["basis"]
+    # Counts over the whole file, and the single inference named as one.
+    assert "180,800" in basis
+    assert "not scores" in basis
+    assert "F7" in basis
 
 
 def test_every_finding_is_backed_by_a_re_runnable_query(case_file, events):
@@ -250,6 +346,35 @@ def test_timeline_is_ordered_and_every_entry_resolves(case_file, events):
         row = by_line.loc[entry["line"]]
         assert entry["actor"] == row["user"]
         assert entry["ts"] == queries._iso(row["ts"])
+        assert entry["confidence"] in build.CONFIDENCE_VALUES
+
+    # The three beats that rest on a reading rather than a record.
+    inferred = {
+        entry["line"] for entry in timeline if entry["confidence"] != "high"
+    }
+    assert inferred == {168333, 168339, 168340}
+
+
+def test_u3_says_which_denials_fall_on_which_side_of_the_download(case_file):
+    u3 = next(u for u in case_file["unknowns"] if u["id"] == "U3")
+    assert "77 denials come before the download" in u3["text"]
+    assert "3 further denials follow from line 178028" in u3["text"]
+    assert "80 in all" in u3["text"]
+    # The reopened denials are the reason this unknown exists at all.
+    assert "the access closed again" in u3["text"]
+    assert 178028 in u3["evidence_lines"]
+
+
+def test_the_timeline_never_quotes_a_denial_count_it_did_not_measure(case_file):
+    beats = {entry["line"]: entry for entry in case_file["timeline"]}
+    assert "denied 77 times" in beats[168338]["action"]
+    assert "The last of 77 denials before the download" in beats[168315]["note"]
+    # The reopened denial closes the story the other three beats open.
+    assert beats[178028]["actor"] == "david_m"
+    assert "The first of the 3 denials after the download" in beats[178028]["note"]
+    for entry in case_file["timeline"]:
+        assert "{" not in entry["action"]
+        assert "{" not in (entry["note"] or "")
 
 
 def test_unknowns_and_dismissed_leads_ship_with_their_queries(case_file):
@@ -260,9 +385,10 @@ def test_unknowns_and_dismissed_leads_ship_with_their_queries(case_file):
             -1
         ] in queries.QUERIES
 
-    assert len(case_file["dismissed"]) == 3
+    assert [lead["id"] for lead in case_file["dismissed"]] == ["D1", "D2", "D3"]
     for lead in case_file["dismissed"]:
         assert lead["evidence_lines"], lead["lead"]
+        assert lead["confidence"] in build.CONFIDENCE_VALUES
         assert lead["query"].split(".")[-1] in queries.QUERIES
 
 
@@ -270,6 +396,76 @@ def test_a_finding_without_evidence_cannot_be_built(results):
     empty = queries.QueryResult(name="nothing", question="?", lines=[])
     with pytest.raises(AssertionError):
         build._finding("FX", "claim", "high", "method", empty)
+
+
+# --- the UI fixture --------------------------------------------------------
+
+
+def test_the_fixture_is_a_copy_of_the_generated_case_file():
+    """The drift this module exists to prevent, caught as a failing test."""
+    fixture = build.FIXTURE_DIR / "case_file.json"
+    generated = paths.case_file_path()
+    if not fixture.exists() or not generated.exists():
+        pytest.skip("run python -m minny.casefile.build --emit-fixture")
+
+    mock = json.loads(fixture.read_text(encoding="utf-8"))
+    live = json.loads(generated.read_text(encoding="utf-8"))
+    # A rebuild moves the timestamp and nothing else. Every word the UI shows
+    # has to be the same in both documents.
+    for document in (mock, live):
+        document.get("provenance", {}).pop("generated_at", None)
+    assert mock == live, "re-run python -m minny.casefile.build --emit-fixture"
+
+
+def test_every_line_the_fixture_cites_resolves_to_raw_bytes():
+    fixture = build.FIXTURE_DIR / "case_file.json"
+    events = build.FIXTURE_DIR / "events.json"
+    if not fixture.exists() or not events.exists():
+        pytest.skip("run python -m minny.casefile.build --emit-fixture")
+
+    rows = json.loads(events.read_text(encoding="utf-8"))
+    cited = build.cited_lines(json.loads(fixture.read_text(encoding="utf-8")))
+    assert cited
+    assert cited <= {row["line"] for row in rows}
+    for row in rows:
+        assert row["raw"]
+        assert str(row["status"]) in row["raw"]
+
+
+def test_emit_fixture_derives_both_documents(tmp_path, monkeypatch, case_file):
+    if not paths.logs_path().exists():
+        pytest.skip("data/logs.txt is shared out of band")
+    monkeypatch.setattr(build, "FIXTURE_DIR", tmp_path)
+
+    source = tmp_path / "generated.json"
+    source.write_text(json.dumps(case_file, indent=2), encoding="utf-8")
+    fixture_path, events_path, count = build.emit_fixture(source)
+
+    # Byte for byte, so no hand edit can survive the next emit.
+    assert fixture_path.read_text(encoding="utf-8") == source.read_text(
+        encoding="utf-8"
+    )
+    rows = json.loads(events_path.read_text(encoding="utf-8"))
+    assert len(rows) == count
+    assert build.cited_lines(case_file) <= {row["line"] for row in rows}
+
+    # And the bytes are the log's own, not a line rebuilt from the fields.
+    raw = {row["line"]: row["raw"] for row in rows}
+    with open(paths.logs_path(), "rb") as handle:
+        for number, line in enumerate(handle, 1):
+            if number in raw:
+                assert raw[number] == line.decode("utf-8").rstrip()
+
+
+def test_an_injected_line_is_carried_over_rather_than_invented(tmp_path, monkeypatch):
+    monkeypatch.setattr(build, "FIXTURE_DIR", tmp_path)
+    injected = {"line": 999999, "raw": "synthetic", "status": 200, "synthetic": True}
+    rows = build.build_events_fixture({168338, 999999}, [injected])
+    assert rows[-1] == injected
+
+    # With nothing to carry over, the build refuses instead of guessing.
+    with pytest.raises(AssertionError):
+        build.build_events_fixture({999999}, [])
 
 
 # --- the endpoints ---------------------------------------------------------
