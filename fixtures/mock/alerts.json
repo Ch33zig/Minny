@@ -10,8 +10,19 @@
     "ip_owner": "david_m",
     "template": "/api/auth/login",
     "obj_id": null,
-    "value": { "known_ips": ["10.0.5.12"], "months_observed": 7, "baseline_events": 15711 },
-    "evidence_lines": [168311, 168312, 168313, 168314],
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "months_observed": 7,
+      "baseline_events": 15711
+    },
+    "evidence_lines": [
+      168311,
+      168312,
+      168313,
+      168314
+    ],
     "explanation": "sarah_j's account was used from 10.0.8.45, which belongs to david_m. She has used only 10.0.5.12 in seven months of baseline.",
     "incident_id": "inc_7b21e0"
   },
@@ -26,8 +37,20 @@
     "ip_owner": "david_m",
     "template": "/api/auth/login",
     "obj_id": null,
-    "value": { "count": 6, "window_s": 13, "min_gap_s": 2, "baseline_min_gap_s": 809 },
-    "evidence_lines": [168321, 168322, 168323, 168324, 168325, 168326],
+    "value": {
+      "count": 6,
+      "window_s": 13,
+      "min_gap_s": 2,
+      "baseline_min_gap_s": 809
+    },
+    "evidence_lines": [
+      168321,
+      168322,
+      168323,
+      168324,
+      168325,
+      168326
+    ],
     "explanation": "sarah_j failed to log in 6 times in 13 seconds from 10.0.8.45. Her tightest gap between failures in the baseline window is 809 seconds.",
     "incident_id": "inc_7b21e0"
   },
@@ -42,8 +65,14 @@
     "ip_owner": "david_m",
     "template": "/intranet/forum/new",
     "obj_id": null,
-    "value": { "status": 500, "global_count": 1, "threshold": 5 },
-    "evidence_lines": [168330],
+    "value": {
+      "status": 500,
+      "global_count": 1,
+      "threshold": 5
+    },
+    "evidence_lines": [
+      168330
+    ],
     "explanation": "david_m received a 500 on /intranet/forum/new. Status 500 occurs exactly once in 180,800 lines.",
     "incident_id": "inc_7b21e0"
   },
@@ -58,8 +87,14 @@
     "ip_owner": "david_m",
     "template": "/intranet/forum/new",
     "obj_id": null,
-    "value": { "status": 400, "global_count": 1, "threshold": 5 },
-    "evidence_lines": [168331],
+    "value": {
+      "status": 400,
+      "global_count": 1,
+      "threshold": 5
+    },
+    "evidence_lines": [
+      168331
+    ],
     "explanation": "david_m received a 400 on /intranet/forum/new. Status 400 occurs exactly once in 180,800 lines.",
     "incident_id": "inc_7b21e0"
   },
@@ -74,8 +109,27 @@
     "ip_owner": "david_m",
     "template": "/intranet/forum/new",
     "obj_id": null,
-    "value": { "baseline_keys": ["topic"], "observed_keys": ["topic", "payload", "action", "script"], "novel_keys": ["payload", "action", "script"] },
-    "evidence_lines": [168330, 168331, 168332],
+    "value": {
+      "baseline_keys": [
+        "topic"
+      ],
+      "observed_keys": [
+        "topic",
+        "payload",
+        "action",
+        "script"
+      ],
+      "novel_keys": [
+        "payload",
+        "action",
+        "script"
+      ]
+    },
+    "evidence_lines": [
+      168330,
+      168331,
+      168332
+    ],
     "explanation": "david_m sent the parameters payload, action and script to /intranet/forum/new. Only topic appears on that endpoint in the baseline window.",
     "incident_id": "inc_7b21e0"
   },
@@ -90,8 +144,16 @@
     "ip_owner": "sarah_j",
     "template": "/api/admin/role_update",
     "obj_id": 1042,
-    "value": { "view_line": 168335, "action_line": 168336, "gap_s": 1, "vector_template": "/intranet/forum/view/{id}" },
-    "evidence_lines": [168335, 168336],
+    "value": {
+      "view_line": 168335,
+      "action_line": 168336,
+      "gap_s": 1,
+      "vector_template": "/intranet/forum/view/{id}"
+    },
+    "evidence_lines": [
+      168335,
+      168336
+    ],
     "explanation": "sarah_j opened forum post 1042 and one second later her session called /api/admin/role_update, a privileged endpoint she has never used.",
     "incident_id": "inc_7b21e0"
   },
@@ -106,8 +168,14 @@
     "ip_owner": "sarah_j",
     "template": "/assets/avatar_{id}.png",
     "obj_id": 1042,
-    "value": { "baseline_count": 0, "global_count": 1, "known_templates": 25 },
-    "evidence_lines": [168337],
+    "value": {
+      "baseline_count": 0,
+      "global_count": 1,
+      "known_templates": 25
+    },
+    "evidence_lines": [
+      168337
+    ],
     "explanation": "sarah_j requested /assets/avatar_1042.png. That template does not occur anywhere in the baseline window and appears once in the whole file.",
     "incident_id": "inc_7b21e0"
   },
@@ -122,8 +190,19 @@
     "ip_owner": "david_m",
     "template": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
     "obj_id": null,
-    "value": { "prior_denials": 80, "prior_successes": 0, "size": 8459200, "authorized": ["nicole_h", "sarah_j"] },
-    "evidence_lines": [168315, 168338],
+    "value": {
+      "prior_denials": 80,
+      "prior_successes": 0,
+      "size": 8459200,
+      "authorized": [
+        "nicole_h",
+        "sarah_j"
+      ]
+    },
+    "evidence_lines": [
+      168315,
+      168338
+    ],
     "explanation": "david_m downloaded /finance/reports/q1_draft_CONFIDENTIAL.zip after 80 denials and no prior success. He is not in the authorized set for that path.",
     "incident_id": "inc_7b21e0"
   },
@@ -138,9 +217,101 @@
     "ip_owner": "david_m",
     "template": "/api/auth/login",
     "obj_id": null,
-    "value": { "known_ips": ["10.0.5.12"], "months_observed": 7, "status": 200 },
-    "evidence_lines": [168343, 168344, 168345, 168346],
+    "value": {
+      "known_ips": [
+        "10.0.5.12"
+      ],
+      "months_observed": 7,
+      "status": 200
+    },
+    "evidence_lines": [
+      168343,
+      168344,
+      168345,
+      168346
+    ],
     "explanation": "A login for sarah_j succeeded from 10.0.8.45, david_m's workstation, and the session downloaded the Q1 confidential draft three minutes later.",
     "incident_id": "inc_7b21e0"
+  },
+  {
+    "alert_id": "a_v42_01",
+    "ts": "2026-03-18T10:42:11-04:00",
+    "signal": "S5",
+    "signal_name": "unexpected_params",
+    "severity": "medium",
+    "user": "joshua_c",
+    "ip": "10.0.8.50",
+    "ip_owner": "joshua_c",
+    "template": "/intranet/forum/new",
+    "obj_id": null,
+    "value": {
+      "baseline_keys": [
+        "topic"
+      ],
+      "observed_keys": [
+        "topic",
+        "tracking_ref"
+      ],
+      "novel_keys": [
+        "tracking_ref"
+      ]
+    },
+    "evidence_lines": [
+      180801
+    ],
+    "explanation": "joshua_c sent the parameter tracking_ref to /intranet/forum/new. Only topic appears on that endpoint in the baseline window.",
+    "incident_id": "inc_9a04c2",
+    "synthetic": true
+  },
+  {
+    "alert_id": "a_v42_02",
+    "ts": "2026-03-18T13:55:02-04:00",
+    "signal": "S6",
+    "signal_name": "content_triggered_privileged_action",
+    "severity": "high",
+    "user": "michael_t",
+    "ip": "10.0.5.88",
+    "ip_owner": "michael_t",
+    "template": "/api/admin/role_update",
+    "obj_id": 1188,
+    "value": {
+      "view_line": 180803,
+      "action_line": 180804,
+      "gap_s": 2,
+      "vector_template": "/intranet/forum/view/{id}"
+    },
+    "evidence_lines": [
+      180803,
+      180804
+    ],
+    "explanation": "michael_t opened forum post 1188 and two seconds later his session called /api/admin/role_update.",
+    "incident_id": "inc_9a04c2",
+    "synthetic": true
+  },
+  {
+    "alert_id": "a_v42_03",
+    "ts": "2026-03-18T14:06:30-04:00",
+    "signal": "S2",
+    "signal_name": "first_success_on_denied",
+    "severity": "high",
+    "user": "joshua_c",
+    "ip": "10.0.8.50",
+    "ip_owner": "joshua_c",
+    "template": "/hr/directory_full_CONFIDENTIAL.csv",
+    "obj_id": null,
+    "value": {
+      "prior_denials": 31,
+      "prior_successes": 0,
+      "size": 4812,
+      "authorized": [
+        "michael_t"
+      ]
+    },
+    "evidence_lines": [
+      180806
+    ],
+    "explanation": "joshua_c downloaded /hr/directory_full_CONFIDENTIAL.csv with no prior success on that path. He is not in the authorized set.",
+    "incident_id": "inc_9a04c2",
+    "synthetic": true
   }
 ]

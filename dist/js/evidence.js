@@ -72,10 +72,15 @@ function renderRows(rows) {
     if (row.missing) {
       return `<div class="raw-row missing"><span class="raw-ln">${row.line}</span><span class="raw-bytes">not available in this data source</span></div>`;
     }
-    return `<div class="raw-row"><span class="raw-ln">${row.line}</span><span class="raw-bytes">${esc(row.raw)}</span></div>`;
+    const synth = row.synthetic ? ' synthetic' : '';
+    return `<div class="raw-row${synth}"><span class="raw-ln">${row.line}</span><span class="raw-bytes">${esc(row.raw)}</span>${row.synthetic ? '<span class="raw-synth mono">INJECTED</span>' : ''}</div>`;
   }).join('');
+  const anySynthetic = rows.some((r) => r.synthetic);
   return `
-    <div class="raw-head mono"><span>PRIMARY EVIDENCE</span><span>data/logs.txt, verbatim</span></div>
+    <div class="raw-head mono">
+      <span>PRIMARY EVIDENCE</span>
+      <span>${anySynthetic ? 'injected by the red team, not in logs.txt' : 'data/logs.txt, verbatim'}</span>
+    </div>
     <pre class="raw">${body}</pre>`;
 }
 

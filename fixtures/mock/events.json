@@ -526,5 +526,77 @@
     "path": "/logout",
     "status": 302,
     "size": 0
+  },
+  {
+    "line": 180801,
+    "raw": "10.0.8.50 - joshua_c [18/Mar/2026:10:42:11 -0400] \"POST /intranet/forum/new?topic=onboarding&tracking_ref=role_sync HTTP/1.1\" 302 112",
+    "ts": "2026-03-18T10:42:11-04:00",
+    "user": "joshua_c",
+    "ip": "10.0.8.50",
+    "method": "POST",
+    "path": "/intranet/forum/new?topic=onboarding&tracking_ref=role_sync",
+    "status": 302,
+    "size": 112,
+    "synthetic": true
+  },
+  {
+    "line": 180802,
+    "raw": "10.0.8.50 - joshua_c [18/Mar/2026:10:42:14 -0400] \"GET /intranet/forum/view/1188 HTTP/1.1\" 200 3105",
+    "ts": "2026-03-18T10:42:14-04:00",
+    "user": "joshua_c",
+    "ip": "10.0.8.50",
+    "method": "GET",
+    "path": "/intranet/forum/view/1188",
+    "status": 200,
+    "size": 3105,
+    "synthetic": true
+  },
+  {
+    "line": 180803,
+    "raw": "10.0.5.88 - michael_t [18/Mar/2026:13:55:00 -0400] \"GET /intranet/forum/view/1188 HTTP/1.1\" 200 3105",
+    "ts": "2026-03-18T13:55:00-04:00",
+    "user": "michael_t",
+    "ip": "10.0.5.88",
+    "method": "GET",
+    "path": "/intranet/forum/view/1188",
+    "status": 200,
+    "size": 3105,
+    "synthetic": true
+  },
+  {
+    "line": 180804,
+    "raw": "10.0.5.88 - michael_t [18/Mar/2026:13:55:02 -0400] \"POST /api/admin/role_update HTTP/1.1\" 200 85",
+    "ts": "2026-03-18T13:55:02-04:00",
+    "user": "michael_t",
+    "ip": "10.0.5.88",
+    "method": "POST",
+    "path": "/api/admin/role_update",
+    "status": 200,
+    "size": 85,
+    "synthetic": true
+  },
+  {
+    "line": 180805,
+    "raw": "10.0.5.88 - michael_t [18/Mar/2026:13:55:05 -0400] \"GET /assets/avatar_1188.png HTTP/1.1\" 200 1205",
+    "ts": "2026-03-18T13:55:05-04:00",
+    "user": "michael_t",
+    "ip": "10.0.5.88",
+    "method": "GET",
+    "path": "/assets/avatar_1188.png",
+    "status": 200,
+    "size": 1205,
+    "synthetic": true
+  },
+  {
+    "line": 180806,
+    "raw": "10.0.8.50 - joshua_c [18/Mar/2026:14:06:30 -0400] \"GET /hr/directory_full_CONFIDENTIAL.csv HTTP/1.1\" 200 4812",
+    "ts": "2026-03-18T14:06:30-04:00",
+    "user": "joshua_c",
+    "ip": "10.0.8.50",
+    "method": "GET",
+    "path": "/hr/directory_full_CONFIDENTIAL.csv",
+    "status": 200,
+    "size": 4812,
+    "synthetic": true
   }
 ]
