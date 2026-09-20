@@ -360,7 +360,7 @@ function beat(t) {
       <p class="beat-action">${esc(t.action || '')}</p>
       ${t.note ? `<p class="hand aside">${esc(t.note)}</p>` : ''}
       ${stamp}
-      ${evidenceToggle({ lines, label: `Line ${lines[0] || ''}` })}
+      ${evidenceToggle({ lines, label: 'Raw' })}
     </article>`;
 }
 
