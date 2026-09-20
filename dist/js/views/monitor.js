@@ -4,6 +4,7 @@
 import { api, openStream, seedLines } from '../api.js';
 import { $, esc, fmtTs, sevChip, toast } from '../dom.js';
 import { evidenceToggle, mountEvidence } from '../evidence.js';
+import { bornIncident, enterRow, growIncident } from '../motion.js';
 
 const SPEEDS = [
   { value: 1, label: '1 h/s' },
@@ -29,13 +30,13 @@ export async function render(container) {
           <button class="ctl primary-ctl" id="playBtn" type="button"><span id="playIcon">▶</span><span id="playText">Play</span></button>
           <button class="ctl" id="resetBtn" type="button">⟲ Reset</button>
           <label class="speed">
-            <span class="mono">SPEED</span>
+            <span class="meta">SPEED</span>
             <select id="speedSel">${SPEEDS.map((s) => `<option value="${s.value}"${s.value === speed ? ' selected' : ''}>${s.label}</option>`).join('')}</select>
           </label>
-          <span class="replay-hint mono">log hours per wall second</span>
+          <span class="replay-hint meta">log hours per wall second</span>
         </div>
         <div class="replay-right">
-          <span class="cursor mono" id="cursorTs">n/a</span>
+          <span class="cursor meta" id="cursorTs">n/a</span>
           <span class="chip stream-chip" id="connChip">idle</span>
         </div>
         <div class="progress"><i id="progressBar"></i></div>
@@ -44,7 +45,7 @@ export async function render(container) {
       <section class="panel col ticker-col">
         <div class="col-head">
           <p class="section-label">EVENT TICKER</p>
-          <span class="col-count mono" id="tickCount">0</span>
+          <span class="col-count meta" id="tickCount">0</span>
         </div>
         <div class="col-body" id="ticker"><div class="empty">Press play to replay the window.</div></div>
       </section>
@@ -52,7 +53,7 @@ export async function render(container) {
       <section class="panel col inc-col">
         <div class="col-head">
           <p class="section-label">INCIDENTS</p>
-          <span class="col-count mono" id="incCount">0</span>
+          <span class="col-count meta" id="incCount">0</span>
         </div>
         <div class="col-body" id="incidents">
           <p class="col-intro">Correlated alerts collapse into one incident. Watch a card grow rather than reading twenty warnings.</p>
@@ -162,12 +163,13 @@ function pushEvent(ev) {
   const row = document.createElement('div');
   row.className = 'tick';
   row.innerHTML = `
-    <span class="tick-ln mono">${esc(ev.line)}</span>
-    <span class="tick-ts mono">${esc((ev.ts || '').slice(11, 19))}</span>
+    <span class="tick-ln meta">${esc(ev.line)}</span>
+    <span class="tick-ts meta">${esc((ev.ts || '').slice(11, 19))}</span>
     <span class="tick-user">${esc(ev.user || 'n/a')}</span>
-    <span class="tick-path mono" title="${esc(ev.path || '')}">${esc(ev.path || '')}</span>
-    <span class="tick-status mono s${statusClass(ev.status)}">${esc(ev.status)}</span>`;
+    <span class="tick-path meta" title="${esc(ev.path || '')}">${esc(ev.path || '')}</span>
+    <span class="tick-status meta s${statusClass(ev.status)}">${esc(ev.status)}</span>`;
   list.prepend(row);
+  enterRow(row);
   trim(list);
   $('#tickCount', root).textContent = String(tickCount);
 }
@@ -178,11 +180,12 @@ function pushAlert(alert) {
   const row = document.createElement('div');
   row.className = 'tick tick-alert';
   row.innerHTML = `
-    <span class="tick-sig mono">${esc(alert.signal)}</span>
-    <span class="tick-ts mono">${esc((alert.ts || '').slice(11, 19))}</span>
+    <span class="tick-sig meta">${esc(alert.signal)}</span>
+    <span class="tick-ts meta">${esc((alert.ts || '').slice(11, 19))}</span>
     <span class="tick-alert-name">${esc(alert.signal_name)}</span>
     ${sevChip(alert.severity)}`;
   list.prepend(row);
+  enterRow(row);
   trim(list);
 }
 
@@ -215,18 +218,31 @@ function upsertIncident(inc) {
     node.dataset.inc = inc.incident_id;
     list.appendChild(node);
   }
+
+  // The card is measured either side of the swap so the spring has a real
+  // start and end. This is the animation the whole view exists for.
+  const before = isNew ? 0 : node.getBoundingClientRect().height;
+  const seen = beatsBefore(node);
   node.innerHTML = incidentHtml(inc);
-  node.classList.toggle('synthetic', !!(inc.labels && inc.labels.synthetic));
+
+  const synthetic = !!(inc.labels && inc.labels.synthetic);
+  node.classList.toggle('synthetic', synthetic);
+  node.classList.toggle('hatch', synthetic);
+  node.classList.toggle('inc-high', String(inc.severity || '').toLowerCase() === 'high');
 
   const grewBy = previous ? (inc.alerts || []).length - (previous.alerts || []).length : 0;
-  node.classList.remove('grew', 'born');
-  void node.offsetWidth; // restart the animation
-  node.classList.add(isNew ? 'born' : 'grew');
   if (!isNew && grewBy > 0) {
     const badge = node.querySelector('.inc-grew');
     if (badge) badge.textContent = `+${grewBy} correlated`;
   }
-  if (isNew) node.scrollIntoView({ block: 'nearest' });
+
+  if (isNew) {
+    bornIncident(node);
+    node.scrollIntoView({ block: 'nearest' });
+  } else {
+    const fresh = Array.from(node.querySelectorAll('.nbeat')).slice(seen);
+    growIncident(node, before, node.getBoundingClientRect().height, fresh);
+  }
 }
 
 function incidentHtml(inc) {
@@ -240,7 +256,7 @@ function incidentHtml(inc) {
   }).join('');
   const beats = (inc.narrative || []).map((n) => `
     <div class="nbeat">
-      <span class="nbeat-ts mono">${esc(fmtTs(n.ts))}</span>
+      <span class="nbeat-ts meta">${esc(fmtTs(n.ts))}</span>
       <p>${esc(n.text)}</p>
       ${evidenceToggle({ lines: n.lines || [], label: 'Raw' })}
     </div>`).join('');
@@ -249,16 +265,16 @@ function incidentHtml(inc) {
     <div class="inc-head">
       <div class="inc-tags">
         ${sevChip(inc.severity)}
-        <span class="inc-id mono">${esc(inc.incident_id)}</span>
-        ${synthetic ? `<span class="synth-badge">SYNTHETIC · ${esc((inc.labels && inc.labels.variant_id) || 'injected')}</span>` : ''}
+        <span class="inc-id meta">${esc(inc.incident_id)}</span>
+        ${synthetic ? `<span class="synth-badge hatch">SYNTHETIC · ${esc((inc.labels && inc.labels.variant_id) || 'injected')}</span>` : ''}
       </div>
       <div class="inc-counts">
         <span class="inc-grew"></span>
-        <span class="inc-alerts mono">${(inc.alerts || []).length} alerts</span>
+        <span class="inc-alerts meta">${(inc.alerts || []).length} alerts</span>
       </div>
     </div>
     <h3 class="inc-title">${esc(inc.title || 'Incident')}</h3>
-    <div class="inc-actors mono">
+    <div class="inc-actors meta">
       <span class="ia attacker">${esc(attacker.user || '?')}<i>${esc(attacker.ip || '')}</i></span>
       <span class="ia-arrow">→</span>
       <span class="ia victim">${esc(victim.user || '?')}<i>${esc(victim.ip || '')}</i></span>
@@ -267,11 +283,16 @@ function incidentHtml(inc) {
     </div>
     <div class="inc-sigs">${alerts || '<span class="asig unknown">no alerts yet</span>'}</div>
     <div class="inc-narrative">${beats || '<div class="empty">Narrative assembling…</div>'}</div>
-    <div class="inc-foot mono">
+    <div class="inc-foot meta">
       <span>opened ${esc(fmtTs(inc.opened_ts))}</span>
       <span>last ${esc(fmtTs(inc.last_ts))}</span>
       <span>${(inc.evidence_lines || []).length} evidence lines</span>
     </div>`;
+}
+
+/** How many narrative beats the card was already showing. */
+function beatsBefore(node) {
+  return node.querySelectorAll('.nbeat').length;
 }
 
 function cssEscape(value) {
