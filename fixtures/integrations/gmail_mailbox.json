@@ -1,0 +1,75 @@
+{
+  "_comment": "Recorded response for GMAIL_FETCH_EMAILS. Headers and snippet only. There is no body field on any message in this file and the sync refuses to store one, because nothing beyond the section 11 fields is ever persisted and nothing from a mailbox may leave the app.",
+  "seeded_demo_mailbox": true,
+  "disclosure": "Seeded demonstration mailbox. No corporate mailbox exists for this dataset, so six messages matching the March 2026 story timeline were seeded into a demonstration account and recorded here. Every mailbox record is labelled seeded in the UI, and mailbox evidence never raises a claim above medium confidence.",
+  "account": "soc-demo@example.com",
+  "recorded_at": "2026-09-19T21:40:00-04:00",
+  "messages": [
+    {
+      "id": "18f2c9a1b501",
+      "threadId": "18f2c9a1b500",
+      "ts": "2026-03-02T09:41:00-04:00",
+      "from": "facilities@example.com",
+      "to": ["all-staff@example.com"],
+      "subject": "Parking permits for Q2",
+      "snippet": "Renewal opens on 20 March. Reply to this thread with your plate number by the end of the month.",
+      "labelIds": ["INBOX"],
+      "_why_seeded": "Outside every bounded query: the sender is not on the allowlist and the subject carries none of the keyword set. It is here to prove the queries are bounded, because it is never fetched at all."
+    },
+    {
+      "id": "18f2c9a1b4c1",
+      "threadId": "18f2c9a1b4c0",
+      "ts": "2026-03-14T09:20:00-04:00",
+      "from": "no-reply@intranet.example.com",
+      "to": ["sarah.j@example.com"],
+      "subject": "Access request from david.m: finance/reports/q1_draft_CONFIDENTIAL.zip",
+      "snippet": "david.m has requested read access to finance/reports/q1_draft_CONFIDENTIAL.zip. Reason given: quarterly reconciliation. Approve or decline in the portal.",
+      "labelIds": ["INBOX"],
+      "_why_seeded": "Sent 45 seconds after line 168315, the 403 that denied him the file. The log records the denial and never the request that followed it."
+    },
+    {
+      "id": "18f2c9a1b507",
+      "threadId": "18f2c9a1b506",
+      "ts": "2026-03-14T16:10:44-04:00",
+      "from": "no-reply@intranet.example.com",
+      "to": ["davidson.k@example.com"],
+      "subject": "Password reset completed for davidson.k",
+      "snippet": "The password for davidson.k was reset at 16:10 EDT. If you did not request this, contact IT immediately.",
+      "labelIds": ["INBOX"],
+      "_why_seeded": "Inside the bounded query and inside the incident window, and deliberately not attached. davidson.k does not normalize to david_m, and time proximity on its own is never evidence."
+    },
+    {
+      "id": "18f2c9a1b4d7",
+      "threadId": "18f2c9a1b4d0",
+      "ts": "2026-03-15T11:07:58-04:00",
+      "from": "no-reply@intranet.example.com",
+      "to": ["sarah.j@example.com"],
+      "subject": "Role updated: david.m added to finance-confidential",
+      "snippet": "david.m was added to the group finance-confidential by sarah.j at 11:07 EDT. If you did not request this change, contact IT.",
+      "labelIds": ["INBOX"],
+      "_why_seeded": "The one the whole evidence path exists for. Line 168336 records a request to /api/admin/role_update and returns 85 bytes naming nobody. This names the grantee."
+    },
+    {
+      "id": "18f2c9a1b4e3",
+      "threadId": "18f2c9a1b4e0",
+      "ts": "2026-03-15T11:27:20-04:00",
+      "from": "no-reply@intranet.example.com",
+      "to": ["david.m@example.com"],
+      "subject": "Export confirmed: q1_draft_CONFIDENTIAL.zip",
+      "snippet": "Your download of q1_draft_CONFIDENTIAL.zip (8.47 MB) completed at 11:26 EDT from 10.0.8.45.",
+      "labelIds": ["INBOX"],
+      "_why_seeded": "21 seconds after line 168338, the single successful read of the asset, and it names the same workstation."
+    },
+    {
+      "id": "18f2c9a1b4e9",
+      "threadId": "18f2c9a1b4d0",
+      "ts": "2026-03-16T08:02:15-04:00",
+      "from": "no-reply@intranet.example.com",
+      "to": ["sarah.j@example.com", "security@example.com"],
+      "subject": "Role updated: david.m removed from finance-confidential",
+      "snippet": "david.m was removed from the group finance-confidential by an administrator at 08:02 EDT following a membership review.",
+      "labelIds": ["INBOX"],
+      "_why_seeded": "The revocation behind unknown U3. It matches on entity and falls inside the widened incident window, but no log line sits within an hour of it, so it attaches to the incident and pins itself to no line."
+    }
+  ]
+}

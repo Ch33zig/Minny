@@ -56,6 +56,11 @@ export const api = {
     return getJson(`${API_BASE}/incidents/${encodeURIComponent(id)}`);
   },
 
+  // Integration state. Fails soft into a not connected strip: the rail must
+  // render whether or not anything is wired up.
+  integrations: () =>
+    (MOCK ? mockFile('integrations_status.json') : getJson(`${API_BASE}/integrations/status`)),
+
   async emailEvidence(ids) {
     if (!ids || !ids.length) return [];
     if (MOCK) {
@@ -72,6 +77,58 @@ export const api = {
       return await getJson(`${API_BASE}/evidence/email?ids=${ids.map(encodeURIComponent).join(',')}`);
     } catch (err) {
       return [];
+    }
+  },
+
+  /**
+   * Mailbox records already linked to these log lines.
+   *
+   * The linking happened during the sync and is recorded in `linked_lines`,
+   * so this reads a decision rather than making one. Corroboration is never
+   * required, so every failure path here returns an empty list and the strip
+   * simply does not appear.
+   */
+  async emailEvidenceByLines(lines) {
+    const wanted = Array.from(new Set((lines || []).filter((n) => Number.isFinite(n))));
+    if (!wanted.length) return [];
+    if (MOCK) {
+      const file = await mockFile('email_evidence.json').catch(() => null);
+      const all = Array.isArray(file) ? file : (file && file.messages) || [];
+      const want = new Set(wanted);
+      return all.filter((m) => (m.linked_lines || []).some((n) => want.has(n)));
+    }
+    const out = [];
+    const seen = new Set();
+    for (let i = 0; i < wanted.length; i += 50) {
+      try {
+        const batch = await getJson(
+          `${API_BASE}/evidence/email?lines=${wanted.slice(i, i + 50).join(',')}`,
+        );
+        for (const m of batch || []) {
+          if (!seen.has(m.evidence_id)) { seen.add(m.evidence_id); out.push(m); }
+        }
+      } catch (err) {
+        // Nothing on the critical path waits on the mailbox.
+      }
+    }
+    return out;
+  },
+
+  /**
+   * Announce a high severity incident. Fire and forget, and never awaited by
+   * anything that draws a card: the incident is on screen already and whether
+   * Slack accepted a message about it changes nothing.
+   *
+   * Fixture mode has no backend to post through, so it returns null and the
+   * strip keeps saying what it already said.
+   */
+  async alertIncident(incidentId) {
+    if (MOCK || !incidentId) return null;
+    try {
+      const body = await postJson(`${API_BASE}/integrations/test`, { incident_id: incidentId });
+      return (body && body.delivery) || null;
+    } catch (err) {
+      return null;
     }
   },
 

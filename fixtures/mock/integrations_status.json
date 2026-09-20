@@ -1,0 +1,163 @@
+{
+  "mode": "auto",
+  "capabilities": [
+    {
+      "id": "slack.post",
+      "label": "Slack alerting",
+      "short": "SLACK",
+      "direction": "outbound",
+      "toolkit": "slack",
+      "tool_slug": "SLACK_CHAT_POST_MESSAGE",
+      "scope": "chat:write",
+      "summary": "Posts the plain English explanation and a Minny link when a high severity incident opens. Never a log line, never mailbox content.",
+      "state": "mock",
+      "credentials_present": false,
+      "missing_env": [
+        "COMPOSIO_API_KEY",
+        "COMPOSIO_AUTH_CONFIG_SLACK"
+      ],
+      "toolkit_version": "20260915_00",
+      "last_delivery": null
+    },
+    {
+      "id": "gmail.read",
+      "label": "Gmail evidence",
+      "short": "MAIL IN",
+      "direction": "inbound",
+      "toolkit": "gmail",
+      "tool_slug": "GMAIL_FETCH_EMAILS",
+      "scope": "https://www.googleapis.com/auth/gmail.readonly",
+      "summary": "Runs three fixed, app coded queries over a bounded window and stores headers, category, matched entities and snippet. Never bodies.",
+      "state": "mock",
+      "credentials_present": false,
+      "missing_env": [
+        "COMPOSIO_API_KEY",
+        "COMPOSIO_AUTH_CONFIG_GMAIL_READ"
+      ],
+      "toolkit_version": "20260915_00",
+      "last_delivery": null
+    },
+    {
+      "id": "gmail.send",
+      "label": "Gmail notifications",
+      "short": "MAIL OUT",
+      "direction": "outbound",
+      "toolkit": "gmail",
+      "tool_slug": "GMAIL_SEND_EMAIL",
+      "scope": "https://www.googleapis.com/auth/gmail.send",
+      "summary": "A separate grant from the evidence scope. Authorising one does not authorise the other, so the two are reported independently.",
+      "state": "mock",
+      "credentials_present": false,
+      "missing_env": [
+        "COMPOSIO_API_KEY",
+        "COMPOSIO_AUTH_CONFIG_GMAIL"
+      ],
+      "toolkit_version": "20260915_00",
+      "last_delivery": null
+    },
+    {
+      "id": "github.pr",
+      "label": "GitHub review",
+      "short": "GITHUB",
+      "direction": "outbound",
+      "toolkit": "github",
+      "tool_slug": "GITHUB_CREATE_A_PULL_REQUEST",
+      "scope": "repo",
+      "summary": "Opens a pull request carrying the evaded variant, the gate results and the false positive numbers. Merging stays a human action.",
+      "state": "mock",
+      "credentials_present": false,
+      "missing_env": [
+        "COMPOSIO_API_KEY",
+        "COMPOSIO_AUTH_CONFIG_GITHUB"
+      ],
+      "toolkit_version": "20260916_00",
+      "last_delivery": null
+    }
+  ],
+  "mailbox": {
+    "seeded_demo_mailbox": true,
+    "disclosure": "Seeded demonstration mailbox. No corporate mailbox exists for this dataset, so six messages matching the March 2026 story timeline were seeded into a demonstration account and recorded here. Every mailbox record is labelled seeded in the UI, and mailbox evidence never raises a claim above medium confidence.",
+    "account": "soc-demo@example.com",
+    "generated_at": "2026-09-19T22:20:05-04:00",
+    "source_mode": "mock",
+    "window": {
+      "start": "2026-03-12T23:10:19-04:00",
+      "end": "2026-03-16T22:33:40-04:00"
+    },
+    "counts": {
+      "stored": 5,
+      "linked": 4,
+      "unlinked": 1,
+      "pinned_to_lines": 3,
+      "by_category": {
+        "access_request": 1,
+        "credential_reset": 1,
+        "permission_change": 1,
+        "data_export": 1,
+        "access_revoked": 1
+      },
+      "bodies_stored": 0,
+      "bodies_dropped": 0
+    },
+    "queries": [
+      {
+        "id": "permissions",
+        "purpose": "permission changes, access requests, group membership",
+        "query": "from:(no-reply@intranet.example.com OR it-notifications@example.com) (subject:\"role updated\" OR subject:\"access request\" OR subject:\"access granted\" OR subject:\"access removed\" OR subject:\"permission\" OR subject:\"group\" OR subject:\"membership\") after:2026/03/12 before:2026/03/17",
+        "in_bounds": 3,
+        "state": "mock"
+      },
+      {
+        "id": "credentials",
+        "purpose": "credential resets and second factor changes",
+        "query": "from:(no-reply@intranet.example.com OR it-notifications@example.com) (subject:\"password\" OR subject:\"credential\" OR subject:\"mfa\" OR subject:\"token\") after:2026/03/12 before:2026/03/17",
+        "in_bounds": 1,
+        "state": "mock"
+      },
+      {
+        "id": "exports",
+        "purpose": "data export confirmations and security alerts",
+        "query": "from:(no-reply@intranet.example.com OR security@example.com) (subject:\"export\" OR subject:\"download\" OR subject:\"security alert\" OR subject:\"suspicious\" OR subject:\"unusual sign-in\") after:2026/03/12 before:2026/03/17",
+        "in_bounds": 1,
+        "state": "mock"
+      }
+    ],
+    "policy": {
+      "scope": [
+        "no-reply@intranet.example.com",
+        "it-notifications@example.com",
+        "security@example.com"
+      ],
+      "access": "read only, granted separately from the send scope",
+      "stores": [
+        "headers",
+        "category",
+        "matched entities",
+        "snippet"
+      ],
+      "never_stores": [
+        "message bodies",
+        "attachments",
+        "full mailbox listings"
+      ],
+      "never_leaves_the_app": true,
+      "confidence_cap": "medium",
+      "feeds_a_detector": false
+    },
+    "error": null
+  },
+  "destinations": {
+    "base_url": "http://localhost:8080",
+    "slack_channel": "#minny-soc",
+    "github": {
+      "owner": null,
+      "repo": null,
+      "base": "main",
+      "configured": false,
+      "slug": null
+    }
+  },
+  "deliveries": [],
+  "note": "Delivery status is reported apart from detection. An incident is found whether or not a vendor accepted a message about it.",
+  "_comment": "Generated by GET /api/integrations/status with no credentials present, which is the state the demo runs in. Refresh with the same call after changing a capability."
+}

@@ -5,6 +5,7 @@ import { api, openStream, seedLines } from '../api.js';
 import { $, esc, fmtTs, NONE, noneTag, sevChip, toast } from '../dom.js';
 import { evidenceToggle, mountEvidence } from '../evidence.js';
 import { bornIncident, enterRow, growIncident } from '../motion.js';
+import { mount as refreshIntegrations } from '../integrations.js';
 
 const SPEEDS = [
   { value: 1, label: '1 h/s' },
@@ -19,6 +20,9 @@ let root = null;
 let running = false;
 let speed = 6;
 const incidents = new Map();
+// Incidents already announced this session. A replay re-emits a card as it
+// grows, and the story should reach a channel once.
+const announced = new Set();
 const alertsById = new Map();
 
 export async function render(container) {
@@ -97,6 +101,7 @@ function resetReplay() {
   if (!stream) return;
   stream.reset();
   incidents.clear();
+  announced.clear();
   const list = $('#incidents', root);
   list.querySelectorAll('.inc').forEach((n) => n.remove());
   $('#incEmpty', root).hidden = false;
@@ -243,6 +248,23 @@ function upsertIncident(inc) {
     const fresh = Array.from(node.querySelectorAll('.nbeat')).slice(seen);
     growIncident(node, before, node.getBoundingClientRect().height, fresh);
   }
+
+  announce(inc);
+}
+
+/**
+ * A high severity incident goes to the channel once, with the explanation and
+ * a link. Nothing here is awaited and nothing here can fail loudly: the card
+ * is already rendered and the detection already happened.
+ */
+function announce(inc) {
+  if (String(inc.severity || '').toLowerCase() !== 'high') return;
+  if (announced.has(inc.incident_id)) return;
+  announced.add(inc.incident_id);
+  api
+    .alertIncident(inc.incident_id)
+    .then((delivery) => { if (delivery) refreshIntegrations(); })
+    .catch(() => {});
 }
 
 function incidentHtml(inc) {

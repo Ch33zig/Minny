@@ -104,6 +104,35 @@ nav { display: grid; gap: 2px; }
 .src-line span { font: 400 10px var(--display); letter-spacing: .14em; color: var(--text-3); }
 .src-line b { font: 400 11px var(--mono); color: var(--text-2); }
 
+/* Integration state is told apart the way confidence is told apart: by
+   border style, never by hue. Solid is a live connection, dashed is a
+   recorded response, dotted is a failure. Amber means the finding and is not
+   spent here. The strip is display only and carries no hover state. */
+.integrations { display: grid; gap: 3px; margin-bottom: 11px; }
+.integrations .section-label { margin: 0 0 3px; }
+.int-row {
+  display: flex; justify-content: space-between; gap: 6px; align-items: baseline;
+  padding: 1px 0 1px 7px; border-left: 2px solid var(--line-2);
+}
+.int-row > span {
+  font: 400 10px var(--display); letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.int-row > b {
+  font: 500 11px var(--sans); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-2);
+}
+.int-connected { border-left-style: solid; }
+.int-connected > b { color: var(--text); }
+.int-mock { border-left-style: dashed; }
+.int-error { border-left-style: dotted; }
+.int-error > b { color: var(--text-3); }
+.int-seeded {
+  margin-top: 5px; border: 1px dashed var(--line); padding: 3px 6px;
+  font: 500 10px var(--sans); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-3); line-height: 1.35;
+}
+
 .workspace { flex: 1; min-width: 0; padding: 18px 22px 16px; display: flex; flex-direction: column; }
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 13px; }
 .topbar-id { min-width: 0; }

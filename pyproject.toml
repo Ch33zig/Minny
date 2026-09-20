@@ -18,6 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# The live integration path only. Without it every capability runs on the
+# recorded responses in fixtures/integrations/, which is the default.
+integrations = ["composio>=0.8"]
 
 [build-system]
 requires = ["setuptools>=68"]

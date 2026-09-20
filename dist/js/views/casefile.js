@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { confChip, esc, fmtTs, NONE, noneTag } from '../dom.js';
-import { evidenceToggle, mountEvidence, toggleAll } from '../evidence.js';
+import { evidenceToggle, invalidate, mountEvidence, toggleAll } from '../evidence.js';
 
 export async function render(container) {
   const cf = await api.caseFile();
@@ -59,6 +59,56 @@ export async function render(container) {
   // ?open=1 opens every evidence block on load, for a walkthrough that starts
   // with the proof already on screen rather than a click away.
   if (new URLSearchParams(location.search).get('open') === '1') toggleAll(container, true);
+
+  // Deliberately not awaited. Mailbox records corroborate a claim and never
+  // carry one, so the case file renders first and the corroboration attaches
+  // when it arrives, or never, and the page is correct either way.
+  attachCorroboration(container, cf);
+}
+
+/**
+ * Hang mailbox records under the findings whose log lines they are pinned to.
+ *
+ * The linking already happened during the Gmail sync and is recorded in
+ * `linked_lines`, so nothing here re-decides what attaches to what. A case
+ * file that already names its `evidence_emails` keeps them and gains any
+ * others that match.
+ */
+async function attachCorroboration(container, cf) {
+  const findings = cf.findings || [];
+  const lines = findings.flatMap((f) => f.evidence_lines || []);
+  let mail = [];
+  try {
+    mail = await api.emailEvidenceByLines(lines);
+  } catch (err) {
+    return;
+  }
+  if (!mail.length) return;
+
+  for (const f of findings) {
+    const own = new Set(f.evidence_lines || []);
+    const ids = new Set(f.evidence_emails || []);
+    for (const m of mail) {
+      if ((m.linked_lines || []).some((n) => own.has(n))) ids.add(m.evidence_id);
+    }
+    if (!ids.size) continue;
+
+    const card = container.querySelector(`[data-finding="${CSS.escape(f.id)}"]`);
+    const button = card && card.querySelector('.ev-toggle');
+    if (!button) continue;
+    const next = Array.from(ids).join(',');
+    if (button.dataset.emails === next) continue;
+    button.dataset.emails = next;
+
+    let badge = button.querySelector('.ev-mail-count');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'ev-mail-count meta';
+      button.appendChild(badge);
+    }
+    badge.textContent = `+${ids.size} mail`;
+    invalidate(button);
+  }
 }
 
 function empty(text) {
@@ -125,7 +175,7 @@ function finding(f) {
   const level = (f.confidence || 'low').toLowerCase();
   const mailOnly = (!f.evidence_lines || !f.evidence_lines.length) && (f.evidence_emails || []).length;
   return `
-    <article class="card finding conf-edge-${esc(level)}">
+    <article class="card finding conf-edge-${esc(level)}" data-finding="${esc(f.id || '')}">
       <div class="card-head">
         <span class="card-id meta">${esc(f.id || '')}</span>
         ${confChip(f.confidence)}

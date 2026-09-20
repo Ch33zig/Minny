@@ -59,12 +59,16 @@ minny/detect/          Signals S1 to S8, correlator, replay engine, rule DSL
 minny/redteam/         Attack families, mutation operators, renderer, critic
 minny/eval/            Detection, attribution, false positives, time to detect
 minny/api/             One FastAPI app, one router per track
+minny/integrations/    Slack alerting, Gmail evidence, a review for an accepted rule
 dist/, web/            Front end, no build step, fixtures or live API
 docs/handoff/          Build plan, shared contracts, verified ground truth, design
 ```
 
 ## Design notes worth knowing
 
+- **Every integration runs on recorded responses by default, and fails soft always.** No Composio project, Slack workspace, rules repository or mailbox is provisioned, so the recorded responses in `fixtures/integrations/` are the path the demo runs on. Credentials turn the same code into a live call. A missing key, an expired token, a rate limit or a vendor outage cannot change the case file, the detector, the incidents or the metrics, and delivery status is reported apart from detection: an incident is found whether or not Slack accepted a message about it.
+- **The demonstration mailbox is seeded, and the product says so first.** No corporate mailbox exists for this dataset, so six messages matching the March timeline are seeded into a demonstration account. Every mailbox record is labelled seeded in the stored evidence, in the API response and on screen.
+- **Nothing from a mailbox leaves the app.** Slack and GitHub payloads are assembled from an allowlist of fields and carry a Minny link, never a log line, a subject, a snippet or an address. The queries are three fixed app coded searches over a bounded window, and only headers, category, matched entities and a snippet are stored. Never bodies.
 - **No signal reads email.** Mailbox records corroborate a finding and are capped at medium confidence, because headers are forgeable and we do not verify DKIM. Alerts stay reproducible from the parsed log alone, which is what makes the evaluation mean anything.
 - **Explanations are generated from signal values, not written by a model.** An LLM may smooth wording; it may never add a fact. Every sentence traces to a field and a line number.
 - **The LLM never writes a log line.** It picks parameters for attack variants; deterministic code renders everything, which is what keeps the output reproducible from a seed and safe to publish.

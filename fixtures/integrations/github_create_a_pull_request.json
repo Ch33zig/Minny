@@ -1,0 +1,16 @@
+{
+  "_comment": "Recorded envelope for GITHUB_CREATE_A_PULL_REQUEST. In mock mode the adapter returns this and the route replaces the title, body, head and base with the ones that were actually assembled, so the artifact the UI shows is the exact request that would have been sent rather than this placeholder.",
+  "successful": true,
+  "error": null,
+  "data": {
+    "number": 0,
+    "state": "open",
+    "html_url": "https://github.com/OWNER/REPO/pull/0",
+    "draft": false,
+    "merged": false,
+    "head": { "ref": "minny/recorded", "sha": "0000000000000000000000000000000000000000" },
+    "base": { "ref": "main" },
+    "title": "recorded placeholder",
+    "body": "recorded placeholder"
+  }
+}
