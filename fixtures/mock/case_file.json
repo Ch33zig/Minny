@@ -1,0 +1,177 @@
+{
+  "case_id": "minny-2026-q1",
+  "title": "Unauthorized access to the Q1 confidential draft",
+  "window": { "start": "2025-08-01T08:00:57-04:00", "end": "2026-03-31T18:00:26-04:00" },
+  "source": {
+    "file": "data/logs.txt",
+    "lines": 180800,
+    "sha256": "9f773643335352d8aa8cc9f07c5f92614b65c806f84c84790f56e4c652970575"
+  },
+  "verdict": {
+    "summary": "david_m used sarah_j's account to grant himself access to the Q1 confidential draft, downloaded it once from his own workstation, and returned that night as her to take it a second time.",
+    "confidence": "high",
+    "basis": "Three of the six load-bearing claims are counting arguments over the full 180,800 lines rather than inference: one user/IP binding violation, one 400 and one 500, one call to /api/admin/role_update."
+  },
+  "actors": {
+    "attacker": {
+      "user": "david_m",
+      "ip": "10.0.8.45",
+      "role": "attacker",
+      "confidence": "high",
+      "summary": "Owns 10.0.8.45 across seven months of baseline. Denied the Q1 draft 80 times, then succeeded once.",
+      "stats": [
+        { "label": "denials on the asset", "value": "80" },
+        { "label": "successes on the asset", "value": "1" },
+        { "label": "baseline source IPs", "value": "1" },
+        { "label": "globally unique statuses", "value": "500, 400" }
+      ],
+      "evidence_lines": [168315, 168330, 168331, 168332, 168333, 168338, 168339, 168340]
+    },
+    "victim": {
+      "user": "sarah_j",
+      "ip": "10.0.5.12",
+      "role": "victim",
+      "confidence": "high",
+      "summary": "Authorized reader of the asset with 1,528 ordinary successes. The only user in the file who ever appears on a second IP, and that IP is david_m's.",
+      "stats": [
+        { "label": "authorized successes on the asset", "value": "1,528" },
+        { "label": "baseline source IPs", "value": "1" },
+        { "label": "IPs observed in March", "value": "2" },
+        { "label": "login failures from 10.0.8.45", "value": "10" }
+      ],
+      "evidence_lines": [168311, 168321, 168335, 168336, 168337, 168343, 168345]
+    },
+    "asset": "/finance/reports/q1_draft_CONFIDENTIAL.zip",
+    "vector": { "obj_id": 1042, "template": "/intranet/forum/view/{id}" }
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "claim": "sarah_j's account was used from david_m's workstation.",
+      "confidence": "high",
+      "method": "Nine of ten users appear on exactly one source IP across 180,800 lines. sarah_j is the only exception, and her second address is 10.0.8.45, which belongs to david_m. This is counting, not inference.",
+      "evidence_lines": [168311, 168312, 168313, 168314, 168321, 168322, 168323, 168324, 168325, 168326, 168343, 168344, 168345, 168346],
+      "evidence_emails": [],
+      "query": "casefile.queries.ip_user_mismatch"
+    },
+    {
+      "id": "F2",
+      "claim": "Ten login failures for sarah_j arrived from that workstation in two tight bursts, 23 hours apart.",
+      "confidence": "high",
+      "method": "Exactly two clusters of four or more 401s inside ten minutes exist in the entire file, and both belong to sarah_j from 10.0.8.45. Her tightest gap between failures in the seven-month baseline is 809 seconds; inside these bursts it is 2.",
+      "evidence_lines": [168311, 168312, 168313, 168314, 168321, 168322, 168323, 168324, 168325, 168326],
+      "evidence_emails": [],
+      "query": "casefile.queries.auth_fail_bursts"
+    },
+    {
+      "id": "F3",
+      "claim": "david_m probed the forum endpoint three times before a payload was accepted.",
+      "confidence": "high",
+      "method": "Status 500 and status 400 each occur exactly once in 180,800 lines, and both are his, 22 minutes apart. The third attempt returns 302, the ordinary redirect for a created post.",
+      "evidence_lines": [168330, 168331, 168332],
+      "evidence_emails": [],
+      "query": "casefile.queries.anomalous_status"
+    },
+    {
+      "id": "F4",
+      "claim": "sarah_j's session performed a privileged role update one second after she opened post 1042.",
+      "confidence": "high",
+      "method": "/api/admin/role_update appears once in the whole file. It is preceded at 11:07:56 by a view of forum post 1042 and followed at 11:07:59 by /assets/avatar_1042.png, a template that also appears exactly once. A one-second gap is machine latency, not a person navigating a console.",
+      "evidence_lines": [168335, 168336, 168337],
+      "evidence_emails": [],
+      "query": "casefile.queries.content_triggered_privileged_action"
+    },
+    {
+      "id": "F5",
+      "claim": "david_m authored post 1042.",
+      "confidence": "medium",
+      "method": "The logs record requests, never bodies or authorship. He created a post at 10:18:52 and read /intranet/forum/view/1042 three seconds later, and no other account touches object 1042 before sarah_j opens it. The object ID is never returned in a log field, so this is adjacency, not a recorded fact.",
+      "evidence_lines": [168332, 168333],
+      "evidence_emails": [],
+      "query": "casefile.queries.post_authorship"
+    },
+    {
+      "id": "F6",
+      "claim": "david_m downloaded the Q1 confidential draft once, after 80 denials, 19 minutes after the role update.",
+      "confidence": "high",
+      "method": "80 responses of 403 on that path to david_m across eight months, then exactly one 200, at 11:26:59 on 15 March. The two authorized readers hold 1,528 and 1,532 successes, which is what ordinary access looks like.",
+      "evidence_lines": [168315, 168338],
+      "evidence_emails": [],
+      "query": "casefile.queries.first_success_on_denied"
+    },
+    {
+      "id": "F7",
+      "claim": "david_m was the grantee of that role update, added to the finance-confidential group.",
+      "confidence": "medium",
+      "method": "The log records sarah_j's account calling /api/admin/role_update but never records who was granted what. The seeded demonstration mailbox holds the automated notification that names him, sent one second later. Mailbox records corroborate a claim; headers are forgeable and we did not verify DKIM, so email alone never raises a finding above medium.",
+      "evidence_lines": [168336],
+      "evidence_emails": ["gmail:18f2c9a1b4d7"],
+      "query": "casefile.queries.privileged_action_with_mail_corroboration"
+    },
+    {
+      "id": "F8",
+      "claim": "The account returned that night from the same workstation and took the file a second time.",
+      "confidence": "high",
+      "method": "At 22:29:43 a login for sarah_j succeeds from 10.0.8.45 — the only success for her account from that host in the file — then dashboard, the zip, logout, inside four minutes.",
+      "evidence_lines": [168343, 168344, 168345, 168346],
+      "evidence_emails": [],
+      "query": "casefile.queries.ip_user_mismatch"
+    },
+    {
+      "id": "F9",
+      "claim": "The vector post was edited after the download, and a file he is authorized to read was fetched an hour later.",
+      "confidence": "medium",
+      "method": "POST /intranet/forum/edit/1042 at 11:48:01 and GET /finance/templates/expense.docx at 12:34:21. The edit is consistent with removing the payload and the second download with covering the first, but the logs carry neither body, so both readings remain open.",
+      "evidence_lines": [168339, 168340],
+      "evidence_emails": ["gmail:18f2c9a1b4e3"],
+      "query": "casefile.queries.cleanup_and_cover"
+    }
+  ],
+  "timeline": [
+    { "ts": "2026-03-13T23:10:19-04:00", "line": 168311, "actor": "sarah_j", "action": "Four failed logins for sarah_j from 10.0.8.45, gaps of 6s, 3s and 4s", "note": "First appearance of her account on a host she has never used", "confidence": "high", "evidence_lines": [168311, 168312, 168313, 168314] },
+    { "ts": "2026-03-14T09:19:15-04:00", "line": 168315, "actor": "david_m", "action": "Denied the Q1 confidential draft — the 80th such denial", "note": null, "confidence": "high", "evidence_lines": [168315] },
+    { "ts": "2026-03-14T22:11:26-04:00", "line": 168321, "actor": "sarah_j", "action": "Six more failed logins from 10.0.8.45, gaps down to 2s", "note": "Tighter than any gap in her seven-month baseline", "confidence": "high", "evidence_lines": [168321, 168322, 168323, 168324, 168325, 168326] },
+    { "ts": "2026-03-15T09:20:20-04:00", "line": 168330, "actor": "david_m", "action": "POST forum/new?topic=lunch_menu&payload=csrf_test — the only 500 in the file", "note": null, "confidence": "high", "evidence_lines": [168330] },
+    { "ts": "2026-03-15T09:42:35-04:00", "line": 168331, "actor": "david_m", "action": "POST forum/new?topic=q1_updates&action=csrf_role_update — the only 400 in the file", "note": null, "confidence": "high", "evidence_lines": [168331] },
+    { "ts": "2026-03-15T10:18:52-04:00", "line": 168332, "actor": "david_m", "action": "POST forum/new?topic=parking_issues&script=success — accepted, 302", "note": "Third attempt, third parameter name", "confidence": "high", "evidence_lines": [168332] },
+    { "ts": "2026-03-15T10:18:55-04:00", "line": 168333, "actor": "david_m", "action": "Reads forum/view/1042 three seconds later", "note": "Authorship of 1042 is inferred from this adjacency, see F5 and U2", "confidence": "medium", "evidence_lines": [168333] },
+    { "ts": "2026-03-15T11:07:56-04:00", "line": 168335, "actor": "sarah_j", "action": "Opens forum/view/1042 from her own workstation", "note": null, "confidence": "high", "evidence_lines": [168335] },
+    { "ts": "2026-03-15T11:07:57-04:00", "line": 168336, "actor": "sarah_j", "action": "POST /api/admin/role_update — one second later, the only call in the file", "note": "Grantee is not recorded in the log, see F7", "confidence": "high", "evidence_lines": [168336] },
+    { "ts": "2026-03-15T11:07:59-04:00", "line": 168337, "actor": "sarah_j", "action": "GET /assets/avatar_1042.png — the other once-only template", "note": null, "confidence": "high", "evidence_lines": [168337] },
+    { "ts": "2026-03-15T11:26:59-04:00", "line": 168338, "actor": "david_m", "action": "Downloads the Q1 confidential draft, 8,459,200 bytes, 19 minutes after the escalation", "note": null, "confidence": "high", "evidence_lines": [168338] },
+    { "ts": "2026-03-15T11:48:01-04:00", "line": 168339, "actor": "david_m", "action": "Edits post 1042", "note": "Read as cleanup; the body is not in the log", "confidence": "medium", "evidence_lines": [168339] },
+    { "ts": "2026-03-15T12:34:21-04:00", "line": 168340, "actor": "david_m", "action": "Downloads /finance/templates/expense.docx, a file he is authorized to read", "note": "Read as a cover download", "confidence": "medium", "evidence_lines": [168340] },
+    { "ts": "2026-03-15T22:29:43-04:00", "line": 168343, "actor": "sarah_j", "action": "Login succeeds from 10.0.8.45, then dashboard, the zip again, logout", "note": "Four minutes end to end", "confidence": "high", "evidence_lines": [168343, 168344, 168345, 168346] }
+  ],
+  "unknowns": [
+    { "id": "U1", "text": "How the login as sarah_j eventually succeeded. Ten failures, then a success from the same host, with no mechanism recorded anywhere in the log.", "closed_by": null },
+    { "id": "U2", "text": "What post 1042 contained. The logs record requests, never bodies, so the payload is inferred only from its effect one second after the post was opened.", "closed_by": null },
+    { "id": "U3", "text": "Whether david_m's group membership was revoked after the download. The file ends on 31 March with no further attempt on the asset, which is consistent with both revocation and simple caution.", "closed_by": "gmail:18f2c9a1b4e9" }
+  ],
+  "dismissed": [
+    {
+      "id": "D1",
+      "lead": "Late-night access to the confidential draft",
+      "why": "Four of the five reads of that file outside 08:00–18:59 are benign: sarah_j at 07:00 in August, nicole_h at 21:17 in November and 19:00 in December, sarah_j at 00:19 on 6 March — every one of them an authorized reader on her own workstation. The hour of day does not separate the theft from ordinary work; the source IP does. The detector never reads hour-of-day.",
+      "confidence": "high",
+      "query": "casefile.queries.offhours_access",
+      "evidence_lines": [8326, 72117, 100280, 162048]
+    },
+    {
+      "id": "D2",
+      "lead": "Repeated denials as a signal on their own",
+      "why": "The file holds 5,324 responses of 403, spread from 506 to 545 per user across all ten accounts. Being refused a file here is ordinary permission friction, including michael_t refused this very asset from his own machine. What is not ordinary is the transition: 80 denials followed by exactly one success.",
+      "confidence": "high",
+      "query": "casefile.queries.denial_base_rate",
+      "evidence_lines": [12, 23759, 48303, 72083]
+    },
+    {
+      "id": "D3",
+      "lead": "Failed logins as a signal on their own",
+      "why": "899 login failures, 70 to 102 per account, near-uniform — including david_m failing his own login on the first day of the window. A wrong password is not evidence. Only two clusters of four or more failures inside ten minutes exist in the entire file, and both are sarah_j from a host she has never used.",
+      "confidence": "high",
+      "query": "casefile.queries.auth_fail_base_rate",
+      "evidence_lines": [74, 32059, 65551, 96711]
+    }
+  ]
+}

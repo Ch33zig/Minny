@@ -1,0 +1,116 @@
+[
+  {
+    "id": "R003",
+    "name": "slow credential guessing from a foreign host",
+    "severity": "high",
+    "proposed_by": "blue_agent",
+    "created_ts": "2026-09-20T02:14:00-04:00",
+    "evaded_family": "F1",
+    "evaded_family_name": "credential_takeover",
+    "evaded_operators": [
+      "slow_guess"
+    ],
+    "rationale": "The shipped burst detector keys on four failures inside ten minutes. Variants using slow_guess spread the same ten failures over eighteen hours and walk straight past it. Counting failures per day instead of per burst keeps the signal and loses the timing assumption.",
+    "when": "count(status=401, user=$u, window=24h) >= 5 AND ip_owner != $u",
+    "explain": "{user} failed to log in {count} times in 24 hours from {ip}, which belongs to {ip_owner}.",
+    "parse": {
+      "ok": true,
+      "depth": 2,
+      "nodes": 7,
+      "error": null
+    },
+    "gate": {
+      "heldout_detection": {
+        "threshold": 0.6,
+        "measured": 0.71,
+        "pass": true
+      },
+      "benign_fp_delta": {
+        "budget": 2,
+        "measured": 0,
+        "pass": true
+      },
+      "baseline_window_hits": {
+        "required": 0,
+        "measured": 0,
+        "pass": true
+      },
+      "accepted": true
+    },
+    "before_after": {
+      "family_detection": {
+        "before": 0.24,
+        "after": 0.71
+      },
+      "benign_alerts_per_day": {
+        "before": 0.0,
+        "after": 0.0
+      },
+      "overall_detection": {
+        "before": 0.58,
+        "after": 0.71
+      }
+    },
+    "status": "accepted",
+    "pull_request": null,
+    "placeholder": true
+  },
+  {
+    "id": "R004",
+    "name": "csrf payload in a forum parameter",
+    "severity": "high",
+    "proposed_by": "blue_agent",
+    "created_ts": "2026-09-20T02:31:00-04:00",
+    "evaded_family": "F2",
+    "evaded_family_name": "content_privilege_escalation",
+    "evaded_operators": [
+      "param_rename"
+    ],
+    "rationale": "The real payloads literally contain payload=csrf_test and action=csrf_role_update, so a substring match on csrf catches the March incident perfectly. It catches nothing else, because the attacker chose those words and an attacker who renames the parameter picks different ones.",
+    "when": "template == \"/intranet/forum/new\" AND query CONTAINS \"csrf\"",
+    "explain": "{user} sent a forum parameter containing csrf from {ip}.",
+    "parse": {
+      "ok": true,
+      "depth": 2,
+      "nodes": 5,
+      "error": null,
+      "grammar_note": "CONTAINS and the query field are not in the section 10 grammar, whose field list is user|ip|ip_owner|template|obj_id|status|signal. C either extends the grammar or this rule is rejected at parse time rather than at the gate."
+    },
+    "gate": {
+      "heldout_detection": {
+        "threshold": 0.6,
+        "measured": 0.0,
+        "pass": false
+      },
+      "benign_fp_delta": {
+        "budget": 2,
+        "measured": 0,
+        "pass": true
+      },
+      "baseline_window_hits": {
+        "required": 0,
+        "measured": 0,
+        "pass": true
+      },
+      "accepted": false,
+      "rejected_reason": "Held-out detection 0.00 against a threshold of 0.60. The rule matches the one string the attacker happened to use. Every param_rename variant renames that parameter, so the rule detects the incident it was written from and nothing else. That is memorisation, not detection."
+    },
+    "before_after": {
+      "family_detection": {
+        "before": 0.41,
+        "after": 0.41
+      },
+      "benign_alerts_per_day": {
+        "before": 0.0,
+        "after": 0.0
+      },
+      "overall_detection": {
+        "before": 0.58,
+        "after": 0.58
+      }
+    },
+    "status": "rejected",
+    "pull_request": null,
+    "placeholder": true
+  }
+]
