@@ -1,6 +1,7 @@
 """Assemble data/case_file.json from the saved queries (milestone M1).
 
     python -m minny.casefile.build
+    python -m minny.casefile.build --emit-fixture
 
 The UI renders the whole case file from this one document, so every sentence
 in it is built here from a `QueryResult` rather than typed. Change a query
@@ -889,9 +890,147 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
     return case_file
 
 
+# --- the UI fixture --------------------------------------------------------
+#
+# fixtures/mock/case_file.json used to be written by hand from the same
+# dataset, and the two documents drifted into telling different stories: a
+# different verdict, different findings, a different off-hours window. The
+# demo runs on the fixture and live mode runs on the generated file, so the
+# drift was invisible until a judge flipped the switch. The fixture is now a
+# copy of the generated document and nothing else, which is the only way the
+# two can be kept from disagreeing again.
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+FIXTURE_DIR = REPO_ROOT / "fixtures" / "mock"
+# Documents whose line numbers the UI can expand in fixture mode. Every one
+# of them has to resolve in events.json, per web/verify_fixtures.py.
+FIXTURE_DOCUMENTS = ("case_file.json", "incidents.json", "alerts.json")
+LINE_KEYS = ("evidence_lines", "lines", "linked_lines", "injected_lines")
+
+
+def cited_lines(node) -> set[int]:
+    """Every log line a fixture document lets the UI drill into."""
+    found: set[int] = set()
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in LINE_KEYS and isinstance(value, list):
+                found |= {int(item) for item in value if isinstance(item, int)}
+            elif key == "line" and isinstance(value, int):
+                found.add(value)
+            else:
+                found |= cited_lines(value)
+    elif isinstance(node, list):
+        for item in node:
+            found |= cited_lines(item)
+    return found
+
+
+def fixture_lines(case_file: dict) -> set[int]:
+    """What the regenerated case file cites, plus what the other tracks cite.
+
+    The events fixture is shared. Emitting only this document's lines would
+    take the incident and alert drill-downs out with it.
+    """
+    lines = cited_lines(case_file)
+    for name in FIXTURE_DOCUMENTS:
+        path = FIXTURE_DIR / name
+        if name == "case_file.json" or not path.exists():
+            continue
+        lines |= cited_lines(json.loads(path.read_text(encoding="utf-8")))
+
+    stream = FIXTURE_DIR / "stream.ndjson"
+    if stream.exists():
+        for raw in stream.read_text(encoding="utf-8").splitlines():
+            if not raw.strip():
+                continue
+            frame = json.loads(raw)
+            if frame.get("type") == "event":
+                lines |= cited_lines(frame.get("data") or {})
+    return lines
+
+
+def raw_lines(wanted: set[int]) -> dict[int, str]:
+    """The original bytes of each line, read out of the log itself."""
+    path = paths.require(paths.logs_path())
+    found: dict[int, str] = {}
+    with open(path, "rb") as handle:
+        for number, raw in enumerate(handle, 1):
+            if number in wanted:
+                found[number] = raw.decode("utf-8").rstrip()
+    return found
+
+
+def build_events_fixture(wanted: set[int], existing: list[dict]) -> list[dict]:
+    """The evidence rows for those lines, shaped exactly like GET /api/events.
+
+    Imported here rather than at module scope so the case file still builds
+    on a machine where the API dependencies are not installed.
+    """
+    from minny.api.routes_case import EVIDENCE_COLUMNS, _serialize
+
+    frame = pd.read_parquet(
+        paths.require(paths.events_path()), columns=list(EVIDENCE_COLUMNS)
+    ).set_index("line", drop=False)
+    original = raw_lines(wanted)
+    # Lines past the end of the real log are the red team's injected variant.
+    # They have no bytes to read and this module did not write them, so they
+    # are carried across untouched rather than regenerated.
+    injected = {
+        int(row["line"]): row
+        for row in existing
+        if int(row["line"]) not in frame.index
+    }
+
+    rows = []
+    for line in sorted(wanted):
+        if line not in frame.index:
+            if line not in injected:
+                raise AssertionError(
+                    f"fixture cites line {line}, which is neither in the log nor an "
+                    "injected event already in events.json"
+                )
+            rows.append(injected[line])
+            continue
+        row = _serialize(frame.loc[line])
+        # The bytes come out of logs.txt, never out of the parsed fields. If
+        # the two ever disagree the evidence block is showing a forgery.
+        if original.get(line) != row["raw"]:
+            raise AssertionError(
+                f"line {line} in the log does not match the parsed raw text"
+            )
+        row["raw"] = original[line]
+        rows.append(row)
+    return rows
+
+
+def emit_fixture(case_file_path: Path) -> tuple[Path, Path, int]:
+    """Copy the generated case file into the fixtures and refresh its evidence."""
+    text = paths.require(case_file_path).read_text(encoding="utf-8")
+    case_file = json.loads(text)
+
+    FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
+    fixture_path = FIXTURE_DIR / "case_file.json"
+    fixture_path.write_text(text, encoding="utf-8")
+
+    events_path = FIXTURE_DIR / "events.json"
+    existing = (
+        json.loads(events_path.read_text(encoding="utf-8"))
+        if events_path.exists()
+        else []
+    )
+    events = build_events_fixture(fixture_lines(case_file), existing)
+    events_path.write_text(json.dumps(events, indent=2), encoding="utf-8")
+    return fixture_path, events_path, len(events)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default=str(paths.case_file_path()))
+    parser.add_argument(
+        "--emit-fixture",
+        action="store_true",
+        help="also copy the document into fixtures/mock/ and refresh events.json",
+    )
     args = parser.parse_args()
 
     case_file = build_case_file()
@@ -909,6 +1048,11 @@ def main() -> None:
     print(f"timeline    {len(case_file['timeline'])} entries")
     print(f"unknowns    {len(case_file['unknowns'])}")
     print(f"dismissed   {len(case_file['dismissed'])}")
+
+    if args.emit_fixture:
+        fixture_path, events_path, count = emit_fixture(out_path)
+        print(f"fixture     {fixture_path}")
+        print(f"evidence    {events_path} ({count} lines)")
 
 
 if __name__ == "__main__":

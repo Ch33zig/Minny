@@ -7,6 +7,8 @@ citing evidence that no longer supports it.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from minny import paths
@@ -394,6 +396,76 @@ def test_a_finding_without_evidence_cannot_be_built(results):
     empty = queries.QueryResult(name="nothing", question="?", lines=[])
     with pytest.raises(AssertionError):
         build._finding("FX", "claim", "high", "method", empty)
+
+
+# --- the UI fixture --------------------------------------------------------
+
+
+def test_the_fixture_is_a_copy_of_the_generated_case_file():
+    """The drift this module exists to prevent, caught as a failing test."""
+    fixture = build.FIXTURE_DIR / "case_file.json"
+    generated = paths.case_file_path()
+    if not fixture.exists() or not generated.exists():
+        pytest.skip("run python -m minny.casefile.build --emit-fixture")
+
+    mock = json.loads(fixture.read_text(encoding="utf-8"))
+    live = json.loads(generated.read_text(encoding="utf-8"))
+    # A rebuild moves the timestamp and nothing else. Every word the UI shows
+    # has to be the same in both documents.
+    for document in (mock, live):
+        document.get("provenance", {}).pop("generated_at", None)
+    assert mock == live, "re-run python -m minny.casefile.build --emit-fixture"
+
+
+def test_every_line_the_fixture_cites_resolves_to_raw_bytes():
+    fixture = build.FIXTURE_DIR / "case_file.json"
+    events = build.FIXTURE_DIR / "events.json"
+    if not fixture.exists() or not events.exists():
+        pytest.skip("run python -m minny.casefile.build --emit-fixture")
+
+    rows = json.loads(events.read_text(encoding="utf-8"))
+    cited = build.cited_lines(json.loads(fixture.read_text(encoding="utf-8")))
+    assert cited
+    assert cited <= {row["line"] for row in rows}
+    for row in rows:
+        assert row["raw"]
+        assert str(row["status"]) in row["raw"]
+
+
+def test_emit_fixture_derives_both_documents(tmp_path, monkeypatch, case_file):
+    if not paths.logs_path().exists():
+        pytest.skip("data/logs.txt is shared out of band")
+    monkeypatch.setattr(build, "FIXTURE_DIR", tmp_path)
+
+    source = tmp_path / "generated.json"
+    source.write_text(json.dumps(case_file, indent=2), encoding="utf-8")
+    fixture_path, events_path, count = build.emit_fixture(source)
+
+    # Byte for byte, so no hand edit can survive the next emit.
+    assert fixture_path.read_text(encoding="utf-8") == source.read_text(
+        encoding="utf-8"
+    )
+    rows = json.loads(events_path.read_text(encoding="utf-8"))
+    assert len(rows) == count
+    assert build.cited_lines(case_file) <= {row["line"] for row in rows}
+
+    # And the bytes are the log's own, not a line rebuilt from the fields.
+    raw = {row["line"]: row["raw"] for row in rows}
+    with open(paths.logs_path(), "rb") as handle:
+        for number, line in enumerate(handle, 1):
+            if number in raw:
+                assert raw[number] == line.decode("utf-8").rstrip()
+
+
+def test_an_injected_line_is_carried_over_rather_than_invented(tmp_path, monkeypatch):
+    monkeypatch.setattr(build, "FIXTURE_DIR", tmp_path)
+    injected = {"line": 999999, "raw": "synthetic", "status": 200, "synthetic": True}
+    rows = build.build_events_fixture({168338, 999999}, [injected])
+    assert rows[-1] == injected
+
+    # With nothing to carry over, the build refuses instead of guessing.
+    with pytest.raises(AssertionError):
+        build.build_events_fixture({999999}, [])
 
 
 # --- the endpoints ---------------------------------------------------------
