@@ -18,6 +18,13 @@ const ORDER = Object.keys(VIEWS);
 
 let current = null;
 
+/** The one-click parachute: same page, same view, reading fixtures. */
+function mockHref() {
+  const url = new URL(location.href);
+  url.searchParams.set('mock', '1');
+  return url.pathname + url.search + url.hash;
+}
+
 function setMode() {
   const chip = $('#modeChip');
   chip.textContent = mode.label;
@@ -32,6 +39,7 @@ async function setHeader() {
     $('#caseTitle').textContent = cf.title || 'Case file';
     if (cf.window) {
       $('#windowChip').textContent = `${fmtDate(cf.window.start)} – ${fmtDate(cf.window.end)}`;
+      $('#windowChip').hidden = false;
     }
     if (cf.source) {
       $('#srcLines').textContent = `${fmtNum(cf.source.lines)} lines`;
@@ -42,6 +50,7 @@ async function setHeader() {
   } catch (err) {
     $('#caseTitle').textContent = 'Case file unavailable';
     $('#caseId').textContent = 'MINNY';
+    $('#windowChip').hidden = true;
     toast(`Case file did not load: ${err.message}. Try ?mock=1.`, 'bad');
   }
 }
@@ -69,9 +78,14 @@ async function show(name) {
       await view.render(container);
       container.dataset.rendered = '1';
     } catch (err) {
-      container.innerHTML = `<div class="panel fail"><h2>${esc(VIEWS[name].title)} could not load</h2>
+      container.innerHTML = `<div class="panel fail">
+        <h2>${esc(VIEWS[name].title)} could not load</h2>
         <p class="mono">${esc(err.message)}</p>
-        <p>${mode.mock ? 'Check that fixtures/mock is being served.' : 'Append <code>?mock=1</code> to fall back to fixtures.'}</p></div>`;
+        <p>${mode.mock
+          ? 'Reading from <code>' + esc(mode.source) + '</code>. Check that the fixtures directory is being served.'
+          : 'The API is not answering. The fixture demo needs no backend at all.'}</p>
+        ${mode.mock ? '' : `<a class="ctl primary-ctl" href="${esc(mockHref())}">Switch to fixtures</a>`}
+      </div>`;
       return;
     }
   }
