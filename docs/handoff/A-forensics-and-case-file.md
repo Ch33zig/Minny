@@ -6,11 +6,11 @@ You are the critical path for the first 90 minutes and the voice of the project 
 
 ## Checklist
 
-- [ ] **19:50** `logs.txt` located, SHA-256 posted to the team
-- [ ] **20:15** `pyproject.toml`, `.gitignore`, `minny/api/app.py` skeleton merged; contracts frozen
-- [ ] **21:00** `events.parquet`, `size_table.json`, `access_matrix.json`, `GET /api/events` merged — **C2, this unblocks B and C**
-- [ ] **23:00** Findings F1 through F5 with evidence lines; first `case_file.json` merged
-- [ ] **01:00** Case file complete: timeline, unknowns, dismissed leads, all queries saved — **C4**
+- [x] **19:50** `logs.txt` located, SHA-256 posted to the team
+- [x] **20:15** `pyproject.toml`, `.gitignore`, `minny/api/app.py` skeleton merged; contracts frozen
+- [x] **21:00** `events.parquet`, `size_table.json`, `access_matrix.json`, `GET /api/events` merged — **C2, this unblocks B and C**
+- [x] **23:00** Findings F1 through F5 with evidence lines; first `case_file.json` merged
+- [x] **01:00** Case file complete: timeline, unknowns, dismissed leads, all queries saved — **C4**
 - [ ] **01:00 onward** M9: Devpost draft, demo script, rehearsals
 - [ ] **05:00** Backup video recorded
 - [ ] **08:00** Submitted
@@ -83,3 +83,43 @@ You own the story. Start the Devpost draft at 01:00 while the others are still b
 - **Rehearse three times, timed.** The 60-second judge segment is the one that overruns.
 
 The demo script is in [README.md](README.md). Two lines to land: *"They asked if there was funny business. There was."* and the close, *"We found the breach, then attacked our own detector hundreds of ways so it catches the next one."*
+
+## M1 as built, and what the data said back
+
+Everything below was re-derived from `data/events.parquet`. Rebuild and re-check it with:
+
+```bash
+export MINNY_DATA_DIR=/path/to/main/checkout/data
+python -m minny.casefile.queries   # every saved query, with its lines and counts
+python -m minny.casefile.build     # writes data/case_file.json
+python -m pytest tests/test_casefile.py -q
+```
+
+### The findings, with the lines they actually returned
+
+| ID | Query | Lines | The number that carries it |
+|---|---|---|---|
+| F1 | `ip_user_mismatch` | 168311-168314, 168321-168326, 168343-168346 | 14 lines out of 180,800 break the one-user-one-IP binding, all of them sarah_j on 10.0.8.45 |
+| F2 | `auth_fail_burst` | 168311-168314, 168321-168326 | 2 bursts in the file and no third: of the other 889 failed logins, **not one pair** from the same user and IP is closer than 174 seconds, and there is not a single run of two |
+| F3 | `tampered_forum_post` | 168330, 168331, 168332 | 3 of 9,083 forum posts carry a key other than `topic`, and `/intranet/forum/new` is the only path in the file that ever carries a query string |
+| F4 | `globally_unique_templates` | 168336, 168337 | 2 of 27 templates occur once; the next rarest occurs 1,778 times |
+| F5 | `first_success_after_denials` | 168338 | 77 denials before the download, 80 in total, 3 more once access closed again on 27 March |
+| F6 | `anomalous_status` | 168330, 168331 | the only 400 and the only 500 in the file, both david_m's failed payloads |
+| F7 | `post_attribution` | 168332, 168333 (+168335, 168336, 168339 as chain evidence) | 1 of 9,081 accepted posts is followed within 10s by its author opening a post |
+
+Supporting queries the timeline cites: `denials_before_exfil` (168315), `content_triggered_privileged_action` (168335, 168336), `vector_object_edits` (168339), `cover_download` (168340), `credential_mechanism_gap` (168326, 168343).
+
+Dismissed leads: `offhours_confidential_access` (9 legitimate off-hours reads, lines 42768 to 162048), `scattered_auth_failures` (889 isolated 401s), `routine_denials` (5,324 denials).
+
+### Four corrections the data forced
+
+1. **F5 needs a threshold, and the case file says so.** "First 200 where every earlier attempt was a 403" returns **two** rows, not one. The second is sarah_j at line 370 on day one of the dataset: one denial, then 1,528 successes on the same file. That is an access grant landing, not a breach. The query takes `min_prior_denials` (default 5), keeps the rejected row in `stats.flips_below_threshold`, and the finding's `method` names it.
+2. **david_m did not create post 1042.** Object 1042 first appears at **line 331 on 2025-08-01**, seven months before the incident, and carries 353 events. The brief and the contract example both say "created", and that is not in the data. What is in the data: he posts with a tampered parameter at 168332 and opens 1042 three seconds later at 168333, uniquely among 9,081 posts, and edits the same object 21 minutes after the download. F7 stays `confidence: medium` and says all of this in `method`.
+3. **The off-hours example in the contract is fixture prose.** Line 161204 is `ashley_k GET /assets/app.js`. The real thing is **line 162048**: sarah_j pulling the same Q1 zip at 23:19 on 5 March from her own IP. Eight more like it exist. Note that a 20:00-06:00 rule would fire on 10 confidential reads, 9 of them legitimate, and the tenth is already F1's.
+4. **77, not 80, precede the theft.** david_m collects 80 denials on the zip in total: 77 before line 168338, then 3 more from 27 March once the access closed again. Both numbers are true; the case file uses each where it belongs, and the reopened denials are the evidence behind U3.
+
+### For B and C
+
+- The `query` column survives the parquet round trip as a **struct**, so every row carries every key the column ever saw with `None` where the parameter was absent. `bool(row["query"])` is therefore always true. Filter the Nones out; `minny.casefile.queries._query_keys` does it in one place.
+- `casefile.queries` is importable on its own and every function takes an optional `events` frame, so a detector can reuse a forensic query rather than reimplementing it. `content_triggered_privileged_action` is S6 and `post_attribution` is S7 in all but name.
+- Unknown U3 is the one most likely to be answered by the mailbox. `build.attach_email_evidence` already links a message to a finding when both cite the same line, and it never raises a finding's confidence.
