@@ -341,3 +341,33 @@ def test_case_file_endpoint_serves_the_built_document(client):
     payload = response.json()
     assert payload["case_id"] == build.CASE_ID
     assert len(payload["findings"]) == 7
+
+
+def test_mailbox_records_corroborate_and_never_promote(case_file):
+    findings = [
+        dict(finding, evidence_emails=list(finding["evidence_emails"]))
+        for finding in case_file["findings"]
+    ]
+    message = {
+        "evidence_id": "gmail:18f2c9a1b4d7",
+        "linked_lines": [168336],
+        "confidence": "medium",
+    }
+    attached = build.attach_email_evidence(findings, [message])
+
+    f4 = next(finding for finding in attached if finding["id"] == "F4")
+    assert f4["evidence_emails"] == ["gmail:18f2c9a1b4d7"]
+    # Corroboration is not promotion: the confidence label is untouched.
+    assert f4["confidence"] == next(
+        finding["confidence"]
+        for finding in case_file["findings"]
+        if finding["id"] == "F4"
+    )
+    assert next(f for f in attached if f["id"] == "F1")["evidence_emails"] == []
+
+
+def test_a_missing_mailbox_changes_nothing(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        build.paths, "email_evidence_path", lambda: tmp_path / "absent.json"
+    )
+    assert build.load_email_evidence() == []

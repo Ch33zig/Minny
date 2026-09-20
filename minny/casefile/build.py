@@ -67,6 +67,49 @@ def _finding(
     }
 
 
+def load_email_evidence() -> list[dict]:
+    """Mailbox records, if track D has synced any.
+
+    Nothing on this path may wait on or depend on the mailbox. No file, a
+    half-written file or a rate-limited sync all mean the same thing here: no
+    corroboration, and a case file that is otherwise identical.
+    """
+    path = paths.email_evidence_path()
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if isinstance(payload, dict):
+        payload = payload.get("messages") or payload.get("emails") or []
+    return [message for message in payload if isinstance(message, dict)]
+
+
+def attach_email_evidence(findings: list[dict], messages: list[dict]) -> list[dict]:
+    """Link a message to a finding when they cite the same log line.
+
+    Corroboration only. Mail headers are trivially forgeable and we did not
+    verify DKIM, so an attached message can make a finding richer and must
+    never make it more certain: no confidence is touched here.
+    """
+    for finding in findings:
+        lines = set(finding["evidence_lines"])
+        linked = sorted(
+            {
+                str(message["evidence_id"])
+                for message in messages
+                if message.get("evidence_id")
+                and lines & set(message.get("linked_lines") or [])
+            }
+        )
+        if linked:
+            finding["evidence_emails"] = sorted(
+                set(finding["evidence_emails"]) | set(linked)
+            )
+    return findings
+
+
 def build_findings(results: dict[str, QueryResult], total_events: int) -> list[dict]:
     """F1 to F7, each worded from the numbers its query measured."""
     mismatch = results["ip_user_mismatch"]
@@ -515,7 +558,9 @@ def build_case_file(events: pd.DataFrame | None = None) -> dict:
     chain = authorship.stats["chains"][0]
     escalation_chain = escalation.stats["chains"][0]
 
-    findings = build_findings(results, int(len(frame)))
+    findings = attach_email_evidence(
+        build_findings(results, int(len(frame))), load_email_evidence()
+    )
     evidence = {line for finding in findings for line in finding["evidence_lines"]}
     evidence |= {line for result in results.values() for line in result.lines}
 
